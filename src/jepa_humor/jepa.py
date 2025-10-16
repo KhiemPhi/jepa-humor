@@ -3,21 +3,28 @@ import torch.nn as nn
 import torch.nn.functional as F
 from copy import deepcopy
 
-def jepa_loss(pred, target, mask=None, temperature=0.1):
-    # normalize
-    pred = F.normalize(pred, dim=-1)        # [B,T,D]
-    target = F.normalize(target.detach(), dim=-1)  # stop-grad
 
-    # flatten only masked tokens
+def jepa_loss(pred, target, mask=None, temperature=0.1):
+    # normalize embeddings to unit length
+    pred = F.normalize(pred, dim=-1)              # [B, T, D]
+    target = F.normalize(target.detach(), dim=-1) # stop-gradient
+
+    # optionally select only masked tokens
     if mask is not None:
         mask = mask.bool()
         pred = pred[mask]      # [M, D]
         target = target[mask]  # [M, D]
 
-    B = pred.size(0)
-    logits = pred @ target.T / temperature   # [M, M]
-    labels = torch.arange(B, device=pred.device)
-    return F.cross_entropy(logits, labels)
+    # compute cosine similarities (dot product since normalized)
+    sim_matrix = pred @ target.T / temperature    # [M, M]
+
+    # compute contrastive loss
+    labels = torch.arange(sim_matrix.size(0), device=pred.device)
+    loss_i2t = F.cross_entropy(sim_matrix, labels)       # pred -> target
+    loss_t2i = F.cross_entropy(sim_matrix.T, labels)     # target -> pred
+    loss = (loss_i2t + loss_t2i) / 2
+
+    return loss
 
 def freeze_distilbert_layers(encoder, unfreeze_last_n=2):
     # DistilBERT has encoder.transformer.layer[i]

@@ -61,7 +61,7 @@ def pretrain(cfg):
 
     
     jepa = JEPA(base, hidden_size=base.config.hidden_size,
-                pred_hid=256, ema_decay=cfg["ema_decay"], use_cls=True).to(dev)
+                pred_hid=512, ema_decay=cfg["ema_decay"], use_cls=True).to(dev)
     jepa.train()
 
     from .data import load_hf_splits, make_dataloaders

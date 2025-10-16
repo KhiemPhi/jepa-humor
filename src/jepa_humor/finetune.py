@@ -41,6 +41,7 @@ def finetune(cfg, encoder_ckpt: str):
    
     # split train/val from train_ds
     split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
+   
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")

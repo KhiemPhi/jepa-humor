@@ -2,67 +2,6 @@ import math, random, re
 from typing import List, Optional, Sequence, Tuple
 import torch
 
-def _geometric_span_len(mean_len: float, min_len: int = 1, max_len: Optional[int] = None) -> int:
-    mean_len = max(mean_len, 1.0)
-    p = 1.0 / mean_len
-    u = random.random()
-    L = math.ceil(math.log(1 - u) / math.log(1 - p))
-    if max_len is not None:
-        L = min(L, max_len)
-    return max(L, min_len)
-
-def _choose_start_with_tail_bias(candidates: List[int], T: int, tail_bias: float) -> int:
-    if len(candidates) == 1 or tail_bias <= 0:
-        return random.choice(candidates)
-    denom = max(T - 1, 1)
-    weights = [(c / denom + 1e-6) ** tail_bias for c in candidates]
-    s = sum(weights); r = random.random() * s; acc = 0.0
-    for c, w in zip(candidates, weights):
-        acc += w
-        if r <= acc: return c
-    return candidates[-1]
-
-def _mask_spans_auto(valid: List[int], T: int, mask_ratio: float, mean_span_len: float, tail_bias: float):
-    if not valid: return []
-    valid_set = set(valid); covered = set(); budget = max(1, int(len(valid) * mask_ratio))
-    spans, occupied = [], [False] * T
-    def _fits(start: int, L: int) -> bool:
-        end = min(start + L, T)
-        return all((t in valid_set and not occupied[t]) for t in range(start, end))
-    while len(covered) < budget:
-        L = _geometric_span_len(mean_span_len, 1, min(32, T))
-        cands = [i for i in valid if _fits(i, L)]
-        if not cands:
-            for L_try in range(L-1, 0, -1):
-                cands = [i for i in valid if _fits(i, L_try)]
-                if cands:
-                    L = L_try; break
-            if not cands: break
-        start = _choose_start_with_tail_bias(cands, T, tail_bias); end = min(start + L, T)
-        for t in range(start, end):
-            occupied[t] = True; covered.add(t)
-        spans.append((start, end))
-        if len(covered) >= budget: break
-    spans.sort()
-    merged = []
-    for s, e in spans:
-        if not merged or s > merged[-1][1]: merged.append([s, e])
-        else: merged[-1][1] = max(merged[-1][1], e)
-    return [(s, e) for s, e in merged]
-
-def _char_spans_to_token_spans(offsets: List[Tuple[int, int]], char_spans: List[Tuple[int, int]]):
-    token_spans = []
-    for cs, ce in char_spans:
-        t_start = t_end = None
-        for ti, (os, oe) in enumerate(offsets):
-            if os == oe: continue
-            if not (oe <= cs or os >= ce):
-                if t_start is None: t_start = ti
-                t_end = ti + 1
-        if t_start is not None and t_end is not None and t_start < t_end:
-            token_spans.append((t_start, t_end))
-    return token_spans
-
 def make_token_level_views_punchline(
     texts: Sequence[str],
     tokenizer,
