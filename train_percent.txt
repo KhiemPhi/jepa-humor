@@ -1,0 +1,24 @@
+30%: 
+[Finetune] epoch 1: loss=0.3210 acc=0.8645 f1=0.8635                                                                                                                                                      
+          val: acc=0.9464 f1=0.9449
+[Finetune] epoch 2: loss=0.1165 acc=0.9598 f1=0.9598                                                                                                                                                      
+          val: acc=0.9619 f1=0.9611
+[Finetune] epoch 3: loss=0.0780 acc=0.9729 f1=0.9729                                                                                                                                                      
+          val: acc=0.9695 f1=0.9692
+[Finetune] epoch 4: loss=0.0516 acc=0.9829 f1=0.9829                                                                                                                                                      
+          val: acc=0.9666 f1=0.9659
+[Finetune] epoch 5: loss=0.0371 acc=0.9874 f1=0.9874                                                                                                                                                      
+          val: acc=0.9688 f1=0.9684
+[Finetune] epoch 6: loss=0.0226 acc=0.9926 f1=0.9926                                                                                                                                                      
+          val: acc=0.9677 f1=0.9673
+[Finetune] epoch 7: loss=0.0137 acc=0.9959 f1=0.9959                                                                                                                                                      
+          val: acc=0.9688 f1=0.9685
+[Finetune] epoch 8: loss=0.0097 acc=0.9970 f1=0.9970                                                                                                                                                      
+          val: acc=0.9689 f1=0.9688
+[Finetune] epoch 9: loss=0.0082 acc=0.9976 f1=0.9976                                                                                                                                                      
+          val: acc=0.9689 f1=0.9686
+[Finetune] epoch 10: loss=0.0065 acc=0.9980 f1=0.9980                                                                                                                                                     
+          val: acc=0.9671 f1=0.9667
+✅ Finetune done.
+
+20%: 

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jepa-humor"
+version = "0.1.0"
+description = "JEPA-style pretraining + humor detection finetuning"
+authors = [{name="You"}]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "torch>=2.2",
+  "transformers>=4.43",
+  "datasets>=2.19",
+  "evaluate>=0.4.1",
+  "scikit-learn>=1.4",
+  "numpy>=1.26",
+  "pyyaml>=6.0.1",
+  "tqdm>=4.66",
+  "tensorboard>=2.16"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

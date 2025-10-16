@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: jepa-humor
+Version: 0.1.0
+Summary: JEPA-style pretraining + humor detection finetuning
+Author: You
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.2
+Requires-Dist: transformers>=4.43
+Requires-Dist: datasets>=2.19
+Requires-Dist: evaluate>=0.4.1
+Requires-Dist: scikit-learn>=1.4
+Requires-Dist: numpy>=1.26
+Requires-Dist: pyyaml>=6.0.1
+Requires-Dist: tqdm>=4.66
+Requires-Dist: tensorboard>=2.16
