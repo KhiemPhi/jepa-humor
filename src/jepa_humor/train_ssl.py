@@ -4,7 +4,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from transformers import AutoTokenizer, AutoModel
 from .utils import set_seed, device, save_ckpt
-from .masking import make_token_level_views_punchline
+from .masking import make_sentence_deletion_views
 from .jepa import JEPA
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import os
@@ -54,6 +54,7 @@ def pretrain(cfg):
     set_seed(cfg["seed"])
     dev = device()
 
+    model = AutoModel.from_pretrained(cfg["model_name"])
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_name"])
     base = AutoModel.from_pretrained(cfg["model_name"])
     if tokenizer.mask_token_id is None:
@@ -82,11 +83,11 @@ def pretrain(cfg):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
-            texts = batch["text"]
+            claims, evidences = batch["claim"], batch['evidence']
             
-            keep_tok, target_tok, mask, _ = make_token_level_views_punchline(
-                texts=texts, tokenizer=tokenizer, max_length=cfg["max_length"],
-                punchline_ratio=0.4
+            keep_tok, target_tok, mask, _ = make_sentence_deletion_views(
+                claims=claims, evidence_claims = evidences, tokenizer=tokenizer, max_length=cfg["max_length"],
+                similarity_threshold = 0.0
             )
             
             
