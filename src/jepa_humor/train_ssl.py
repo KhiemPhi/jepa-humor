@@ -86,7 +86,7 @@ def pretrain(cfg):
             claims, evidences = batch["claim"], batch['evidence']
             
             keep_tok, target_tok, mask, _ = make_sentence_deletion_views(
-                claims=claims, evidence_claims = evidences, tokenizer=tokenizer, max_length=cfg["max_length"],
+                claims=claims, evidence_claims = evidences, model = model, tokenizer=tokenizer, max_length=cfg["max_length"],
                 similarity_threshold = 0.0
             )
             
