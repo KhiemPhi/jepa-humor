@@ -67,6 +67,7 @@ def pretrain(cfg):
 
     from .data import load_hf_splits, make_dataloaders
     ds = load_hf_splits(cfg["dataset"])
+    ds = ds.filter(lambda x: x['label'] == 1)
    
     # split train/val from train_ds
     split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
