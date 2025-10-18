@@ -16,7 +16,7 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
     collate = lambda batch: {
         "claim": [b["claim"] for b in batch],
         "evidence": [b["evidence"] for b in batch]
-        "label": [bool(b["evidence"]) for b in batch]
+        "label": [bool(b["label"]) for b in batch]
     }
     # fixed generator for deterministic shuffling
     seed = 42
