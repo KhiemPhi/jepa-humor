@@ -38,7 +38,7 @@ def finetune(cfg, encoder_ckpt: str):
         print(f"Loading fresh encoder")
 
     ds = load_hf_splits(cfg["dataset"])
-   
+    ds.filter(lambda x: x['label'] == 1)
     # split train/val from train_ds
     split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
    
