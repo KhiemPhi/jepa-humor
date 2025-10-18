@@ -14,4 +14,4 @@ checkpoint = 'distilbert/distilbert-base-uncased'
 model_bert = AutoModelForSequenceClassification.from_pretrained(checkpoint)
 tokenizer_bert = AutoTokenizer.from_pretrained(checkpoint)
 
-masked_ds_humor = load_dataset("CreativeLang/ColBERT_Humor_Detection")
+masked_ds_humor = load_dataset("Dzeniks/hover")
