@@ -15,7 +15,7 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
     # Both datasets must yield dicts with at least {"text", "humor"}
     collate = lambda batch: {
         "claim": [b["claim"] for b in batch],
-        "evidence": [b["evidence"] for b in batch]
+        "evidence": [b["evidence"] for b in batch],
         "label": [bool(b["label"]) for b in batch]
     }
     # fixed generator for deterministic shuffling
@@ -38,7 +38,8 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
         collate_fn=collate,
         pin_memory=True,
         generator=g,
-        worker_init_fn=seed_worker
+        worker_init_fn=seed_worker, 
+        persistent_workers=True
     )
 
     test_loader = DataLoader(
@@ -47,7 +48,8 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
         shuffle=False,
         num_workers=num_workers,
         collate_fn=collate,
-        pin_memory=True
+        pin_memory=True,
+        persistent_workers=True
     )
 
     return train_loader, test_loader

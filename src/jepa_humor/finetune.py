@@ -38,13 +38,10 @@ def finetune(cfg, encoder_ckpt: str):
         print(f"Loading fresh encoder")
 
     ds = load_hf_splits(cfg["dataset"])
-    ds.filter(lambda x: x['label'] == 1)
-    # split train/val from train_ds
-    split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
    
-    train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
-    print(f"Train dataset size: {len(split['train'])}")
-    print(f"Test dataset size: {len(split['test'])}")
+    train_loader, val_loader = make_dataloaders(ds["train"], ds["test"], cfg["batch_size"], cfg["num_workers"])
+    print(f"Train dataset size: {len(ds['train'])}")
+    print(f"Test dataset size: {len(ds['test'])}")
 
     model = HumorClassifier(base, hidden_size=base.config.hidden_size).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"])

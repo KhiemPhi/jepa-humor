@@ -64,11 +64,31 @@ class JEPA(nn.Module):
             p_t.data.mul_(d).add_(p_o.data, alpha=1 - d)
 
     def forward(self, context_inputs, target_inputs, mask=None, temperature=0.1):
-        online = self.encoder(**context_inputs).last_hidden_state   # [B,T,D]
-        pred   = self.predictor(online)
+        """
+        Forward pass for JEPA with cross-attention:
+        - Each claim token attends over evidence embeddings.
+        - Predict claim embeddings aligned with the target encoder.
+        """
 
+        # 1. Encode evidence (context)
+        online = self.encoder(**context_inputs).last_hidden_state   # [B, T_evidence, D]
+
+        # 2. Encode claim (target)
         with torch.no_grad():
-            target = self.target_encoder(**target_inputs).last_hidden_state
-      
+            target = self.target_encoder(**target_inputs).last_hidden_state  # [B, T_claim, D]
+
+        # 3. Compute attention from claim → evidence
+        #    Each claim token queries evidence tokens
+        attn = torch.bmm(target, online.transpose(1, 2))    # [B, T_claim, T_evidence]
+        attn = F.softmax(attn / (online.size(-1) ** 0.5), dim=-1)  # scaled dot-product attention
+
+        # 4. Aggregate contextually relevant evidence for each claim token
+        context_aligned = torch.bmm(attn, online)  # [B, T_claim, D]
+
+        # 5. Predict claim embeddings from evidence-aligned context
+        pred = self.predictor(context_aligned)  # [B, T_claim, D]
+
+        # 6. Compute JEPA loss
         loss = jepa_loss(pred, target, mask, temperature)
+
         return loss, pred, target

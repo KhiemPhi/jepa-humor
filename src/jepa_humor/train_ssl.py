@@ -4,7 +4,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from transformers import AutoTokenizer, AutoModel
 from .utils import set_seed, device, save_ckpt
-from .masking import make_sentence_deletion_views
+from .masking import process_evidence_deletions, make_claim_mask_views
 from .jepa import JEPA
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import os
@@ -67,10 +67,14 @@ def pretrain(cfg):
 
     from .data import load_hf_splits, make_dataloaders
     ds = load_hf_splits(cfg["dataset"])
-    ds = ds.filter(lambda x: x['label'] == 1)
-   
+    
+    split = {}
+    split['train'] = ds['train']
+    split['train'] = split['train'].filter(lambda x: x['label'] == 1)
+    split['test'] = ds['test']
+
     # split train/val from train_ds
-    split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
+    
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")
@@ -86,9 +90,9 @@ def pretrain(cfg):
         for batch in pbar:
             claims, evidences = batch["claim"], batch['evidence']
             
-            keep_tok, target_tok, mask, _ = make_sentence_deletion_views(
-                claims=claims, evidence_claims = evidences, model = model, tokenizer=tokenizer, max_length=cfg["max_length"],
-                similarity_threshold = 0.0
+            keep_tok, target_tok, mask, _ = make_claim_mask_views(
+                claims=claims, evidences = evidences, model = model, tokenizer=tokenizer, max_length=cfg["max_length"],
+               
             )
             
             
@@ -106,7 +110,7 @@ def pretrain(cfg):
             #     target_tok["input_ids"], 
             #     skip_special_tokens=True
             # )
-         
+            # breakpoint()
 
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):

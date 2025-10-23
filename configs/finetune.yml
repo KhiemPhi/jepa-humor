@@ -1,6 +1,6 @@
 seed: 42
 model_name: distilbert/distilbert-base-uncased   # ignored if --ckpt provided
-dataset: CreativeLang/ColBERT_Humor_Detection
+dataset: Dzeniks/hover
 max_length: 256
 batch_size: 256
 num_workers: 4
@@ -9,4 +9,4 @@ lr: 1.0e-4
 mixed_precision: true
 log_dir: runs/finetune
 ckpt_dir: checkpoints/finetune
-val_split: 0.8
+val_split: 0.2
