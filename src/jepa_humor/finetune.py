@@ -56,14 +56,11 @@ def finetune(cfg, encoder_ckpt: str):
 
     ds = load_hf_splits(cfg["dataset"])
    
-    # split train/val from train_ds
-    split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
-   
-    train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
-    print(f"Train dataset size: {len(split['train'])}")
-    print(f"Test dataset size: {len(split['test'])}")
+    train_loader, val_loader = make_dataloaders(ds["train"], ds["test"], cfg["batch_size"], cfg["num_workers"])
+    print(f"Train dataset size: {len(ds['train'])}")
+    print(f"Test dataset size: {len(ds['test'])}")
 
-    model = HumorClassifier(base, hidden_size=base.config.hidden_size).to(dev)
+    model = NextPhrasePredictor(base, hidden_dim=base.config.hidden_size).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"])
     criterion = nn.CrossEntropyLoss()
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
@@ -73,18 +70,40 @@ def finetune(cfg, encoder_ckpt: str):
         model.train()
         running, y_true, y_pred = 0.0, [], []
         for batch in tqdm(train_loader, desc=f"Finetune {epoch}/{cfg['epochs']}", leave=False):
-            texts = batch["text"]
-            labels = torch.tensor(batch["humor"], dtype=torch.long)
+            start_phrase = list(batch["startphrase"])
+            ending0, ending1, ending2, ending3 = (
+                list(batch["ending0"]),
+                list(batch["ending1"]),
+                list(batch["ending2"]),
+                list(batch["ending3"]),
+            )
 
-            enc = tokenizer(list(texts), return_tensors="pt", padding="longest",
-                            truncation=True, max_length=cfg["max_length"])
-            enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
-            labels = labels.to(dev, non_blocking=True)
+            start_phrase = tokenizer(list(start_phrase), return_tensors="pt", padding="longest", truncation=True, max_length=cfg["max_length"])
+            start_phrase = {k: v.to(dev, non_blocking=True) for k, v in start_phrase.items()}
+
+            all_endings = [ending0, ending1, ending2, ending3]
+
+            concat_inputs = []
+            for i in range(len(start_phrase)):
+                for j in range(4):
+                    concat_inputs.append(start_phrase[i] + " " + all_endings[j][i])
+
+            # Tokenize all pairs together
+            enc = tokenizer(
+                concat_inputs,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=cfg["max_length"]
+            ).to(dev)
+
+            labels = torch.tensor(batch["label"], dtype=torch.long, device=dev, non_blocking=True)
 
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
-                logits = model(enc["input_ids"], enc["attention_mask"])
+                logits = model(enc["input_ids"], enc["attention_mask"], batch_size=len(start_phrase))
                 loss = criterion(logits, labels)
+
             scaler.scale(loss).backward()
             scaler.step(opt)
             scaler.update()
@@ -102,13 +121,37 @@ def finetune(cfg, encoder_ckpt: str):
         v_true, v_pred = [], []
         with torch.no_grad():
             for batch in val_loader:
-                texts = batch["text"]
-                labels = torch.tensor(batch["humor"], dtype=torch.long)
-                enc = tokenizer(list(texts), return_tensors="pt", padding="longest",
-                                truncation=True, max_length=cfg["max_length"])
-                enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
+                start_phrase = list(batch["startphrase"])
+                ending0, ending1, ending2, ending3 = (
+                    list(batch["ending0"]),
+                    list(batch["ending1"]),
+                    list(batch["ending2"]),
+                    list(batch["ending3"]),
+                )
+
+                start_phrase = tokenizer(list(start_phrase), return_tensors="pt", padding="longest", truncation=True, max_length=cfg["max_length"])
+                start_phrase = {k: v.to(dev, non_blocking=True) for k, v in start_phrase.items()}
+
+                all_endings = [ending0, ending1, ending2, ending3]
+
+                concat_inputs = []
+                for i in range(len(start_phrase)):
+                    for j in range(4):
+                        concat_inputs.append(start_phrase[i] + " " + all_endings[j][i])
+
+                # Tokenize all pairs together
+                enc = tokenizer(
+                    concat_inputs,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    max_length=cfg["max_length"]
+                ).to(dev)
+
+
+                labels = torch.tensor(batch["label"], dtype=torch.long, device=dev, non_blocking=True)
                 labels = labels.to(dev, non_blocking=True)
-                logits = model(enc["input_ids"], enc["attention_mask"])
+                logits = model(enc["input_ids"], enc["attention_mask"], batch_size=len(start_phrase))
                 v_true.extend(labels.cpu().tolist())
                 v_pred.extend(logits.cpu().argmax(-1).tolist())
 
