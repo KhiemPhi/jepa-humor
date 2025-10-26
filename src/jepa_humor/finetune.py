@@ -54,7 +54,7 @@ def finetune(cfg, encoder_ckpt: str):
     else: 
         print(f"Loading fresh encoder")
 
-    ds = load_hf_splits(cfg["dataset"])
+    ds = load_hf_splits(cfg["dataset"], "regular")
     ds['test'] = ds['validation']
     del ds['validation']
     
