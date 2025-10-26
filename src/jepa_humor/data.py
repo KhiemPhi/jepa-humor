@@ -20,7 +20,7 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
         "ending2": [b["humor"] for b in batch]
         "ending3": [b["humor"] for b in batch]
         "next_phrase": [b["next_phrase"] for b in batch]
-        "label": [b["label"] for b in batch]
+        "label": [int(b["label"]) for b in batch]
     }
     # fixed generator for deterministic shuffling
     seed = 42
