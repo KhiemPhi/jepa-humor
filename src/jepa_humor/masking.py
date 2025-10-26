@@ -1,72 +1,63 @@
 import math, random, re
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, Dict, Any
 import torch
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+from transformers import AutoModel, AutoTokenizer
 
-def make_token_level_views_punchline(
-    texts: Sequence[str],
+def make_next_phrases_mask_views(
+    startphrase: Sequence[str],
+    nextphrase: Sequence[str],
     tokenizer,
-    max_length=256,
-    punchline_ratio: float = 0.3,  # proportion of tokens from the end to mask if last sentence detection fails
-):
-    target_tok = tokenizer(
-        list(texts),
+    max_length: int = 256,
+) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor], torch.Tensor, List[List[Tuple[int, int]]]]:
+    """
+    Given evidence and claim pairs:
+    - Tokenize the evidence as the model input (keep_tok)
+    - Mask the claim tokens (target_tok)
+    - Return a prediction mask and span indices for reconstruction
+
+    Args:
+        claims: Sequence of claim strings (to be masked and predicted)
+        evidences: Sequence of evidence strings (context inputs)
+        tokenizer: HuggingFace tokenizer
+        max_length: Maximum tokenization length
+
+    Returns:
+        keep_tok: Tokenized evidence (model inputs)
+        target_tok: Tokenized claim (model targets)
+        predict_mask: Mask tensor for claim tokens to predict
+        spans_used: List of token spans for each claim
+    """
+    assert len(startphrase) == len(nextphrase), "Claims and evidences must have the same length"
+
+    # Tokenize evidence as inputs
+    keep_tok = tokenizer(
+        list(startphrase),
         return_tensors="pt",
         padding="longest",
         truncation=True,
         max_length=max_length,
-        return_offsets_mapping=True
     )
 
-    input_ids = target_tok["input_ids"].clone()
-    attn = target_tok["attention_mask"]
-    offsets = target_tok["offset_mapping"]
-    B, T = input_ids.shape
+    # Tokenize claim as target
+    target_tok = tokenizer(
+        list(nextphrase),
+        return_tensors="pt",
+        padding="longest",
+        truncation=True,
+        max_length=max_length,
+    )
 
-    keep_ids = input_ids.clone()
-    predict_mask = torch.zeros_like(attn, dtype=torch.float)
-    mask_token_id = tokenizer.mask_token_id
-    assert mask_token_id is not None, "Tokenizer needs a [MASK] token."
-    special_ids = set(tokenizer.all_special_ids)
-    spans_used = [[] for _ in range(B)]
+    B, T = target_tok["input_ids"].shape
 
+    # Mask all claim tokens for prediction
+    predict_mask = torch.ones_like(target_tok["attention_mask"], dtype=torch.float)
+
+    # Record the full span of each claim (so model predicts all tokens)
+    spans_used = []
     for b in range(B):
-        # 1️⃣ Identify valid token positions
-        valid = [t for t in range(T)
-                 if attn[b, t].item() == 1 and input_ids[b, t].item() not in special_ids]
-
-        # 2️⃣ Find the punchline span
-        text = texts[b]
-        sent_splits = list(re.finditer(r"[.!?\n]", text))
-        if sent_splits:
-            # Take last sentence boundary
-            last_end = sent_splits[-1].end()
-            punchline_start_char = sent_splits[0].start()
-        else:
-            # No punctuation, fallback to last 30% of text
-            punchline_start_char = int(len(text) * (1 - punchline_ratio))
-        punchline_end_char = len(text)
-
-        # 3️⃣ Map char spans to token spans using offsets
-        off_b = [(int(o[0].item()), int(o[1].item())) for o in offsets[b]]
-        start_t, end_t = 0, len(off_b)
-        for i, (s, e) in enumerate(off_b):
-            if s <= punchline_start_char < e:
-                start_t = i
-                break
-        for j, (s, e) in enumerate(off_b):
-            if s < punchline_end_char <= e:
-                end_t = j + 1
-                break
-
-        # 4️⃣ Mask that punchline span
-        for t in range(start_t, end_t):
-            if t in valid:
-                keep_ids[b, t] = mask_token_id
-                predict_mask[b, t] = 1.0
-        spans_used[b] = [(start_t, end_t)]
-
-    keep_tok = {k: v.clone() for k, v in target_tok.items() if k != "offset_mapping"}
-    keep_tok["input_ids"] = keep_ids
-    target_tok = {k: v for k, v in target_tok.items() if k != "offset_mapping"}
+        seq_len = int(target_tok["attention_mask"][b].sum().item())
+        spans_used.append([(0, seq_len)])
 
     return keep_tok, target_tok, predict_mask, spans_used
