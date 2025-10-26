@@ -55,7 +55,9 @@ def finetune(cfg, encoder_ckpt: str):
         print(f"Loading fresh encoder")
 
     ds = load_hf_splits(cfg["dataset"])
-   
+    ds['test'] = ds['validation']
+    del ds['validation']
+    
     train_loader, val_loader = make_dataloaders(ds["train"], ds["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(ds['train'])}")
     print(f"Test dataset size: {len(ds['test'])}")
