@@ -69,7 +69,7 @@ def pretrain(cfg):
     jepa.train()
 
     from .data import load_hf_splits, make_dataloaders
-    ds = load_hf_splits(cfg["dataset"])
+    ds = load_hf_splits(cfg["dataset"], "regular")
     ds['test'] = ds['validation']
     del ds['validation']
     ds = ds.map( lambda x: {'next_phrase': next_phrase(x)} )
