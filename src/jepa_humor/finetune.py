@@ -12,17 +12,34 @@ import os
 from torch import amp
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-class HumorClassifier(nn.Module):
-    def __init__(self, encoder, hidden_size=768, num_labels=2, dropout=0.2):
+class NextPhrasePredictor(nn.Module):
+    def __init__(self, encoder, hidden_dim=768, mlp_hidden=512):
         super().__init__()
         self.encoder = encoder
-        self.dropout = nn.Dropout(dropout)
-        self.classifier = nn.Linear(hidden_size, num_labels)
-    def forward(self, input_ids, attention_mask):
-        out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        pooled = out.last_hidden_state[:, 0, :]
-        pooled = self.dropout(pooled)
-        return self.classifier(pooled)
+        self.hidden_dim = hidden_dim
+        
+        # MLP scoring head
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden_dim, mlp_hidden),
+            nn.ReLU(),
+            nn.Linear(mlp_hidden, 1)   # scalar score for each candidate
+        )
+
+    def forward(self, input_ids, attention_mask, batch_size):
+        """
+        input_ids: (B*4, L)
+        attention_mask: (B*4, L)
+        batch_size: B
+        Returns:
+            logits: (B, 4)
+        """
+        outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
+        cls_vec = outputs.last_hidden_state[:, 0, :]  # (B*4, hidden_dim)
+        scores = self.mlp(cls_vec).squeeze(-1)         # (B*4,)
+
+        # reshape back to (B, 4)
+        logits = scores.view(batch_size, 4)
+        return logits
 
 def finetune(cfg, encoder_ckpt: str):
     set_seed(cfg["seed"])
