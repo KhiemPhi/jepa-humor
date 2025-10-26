@@ -14,8 +14,13 @@ def load_hf_splits(name: str, test_size=0.2, seed=42):
 def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True):
     # Both datasets must yield dicts with at least {"text", "humor"}
     collate = lambda batch: {
-        "text": [b["text"] for b in batch],
-        "humor": [bool(b["humor"]) for b in batch]
+        "startphrase": [b["startphrase"] for b in batch],
+        "ending0": [b["humor"] for b in batch]
+        "ending1": [b["humor"] for b in batch]
+        "ending2": [b["humor"] for b in batch]
+        "ending3": [b["humor"] for b in batch]
+        "next_phrase": [b["next_phrase"] for b in batch]
+        "label": [b["label"] for b in batch]
     }
     # fixed generator for deterministic shuffling
     seed = 42
