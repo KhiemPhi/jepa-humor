@@ -74,8 +74,10 @@ def pretrain(cfg):
     del ds['validation']
     ds = ds.map( lambda x: {'next_phrase': next_phrase(x)} )
     # split train/val from train_ds
-    split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
-    train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
+    
+    #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
+    
+    train_loader, val_loader = make_dataloaders(ds["train"], ds["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")
     opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=cfg["lr"])
