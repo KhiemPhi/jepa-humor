@@ -31,28 +31,29 @@ def make_next_phrases_mask_views(
     """
     assert len(startphrase) == len(nextphrase), "Claims and evidences must have the same length"
 
-    # Tokenize evidence as inputs
+    # Tokenize evidence as inputs (pad to fixed max_length so time-dim matches target)
     keep_tok = tokenizer(
         list(startphrase),
         return_tensors="pt",
-        padding="longest",
+        padding="max_length",
         truncation=True,
         max_length=max_length,
     )
 
-    # Tokenize claim as target
+    # Tokenize claim as target (pad to fixed max_length so time-dim matches context)
     target_tok = tokenizer(
         list(nextphrase),
         return_tensors="pt",
-        padding="longest",
+        padding="max_length",
         truncation=True,
         max_length=max_length,
     )
 
     B, T = target_tok["input_ids"].shape
 
-    # Mask all claim tokens for prediction
-    predict_mask = torch.ones_like(target_tok["attention_mask"], dtype=torch.float)
+    # Return a prediction mask aligned with the token time-dimension [B, T]
+    # (model hidden states will have shape [B, T, D], the mask is applied along T)
+    predict_mask = target_tok["attention_mask"].float()
 
     # Record the full span of each claim (so model predicts all tokens)
     spans_used = []

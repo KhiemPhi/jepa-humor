@@ -2,7 +2,7 @@ seed: 42
 model_name: distilbert/distilbert-base-uncased
 dataset: allenai/swag
 max_length: 256
-batch_size: 256
+batch_size: 128
 num_workers: 4
 epochs: 3
 lr: 1.0e-3

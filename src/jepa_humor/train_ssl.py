@@ -50,9 +50,9 @@ def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
     return optimizer, scheduler
 
-def next_phrase( x ):
-  num = 'ending' + str(x['label'])
-  return x[num]
+def make_next_phrase(x):
+    num = 'ending' + str(x['label'])
+    return x[num]
 
 def pretrain(cfg):
     set_seed(cfg["seed"])
@@ -72,12 +72,14 @@ def pretrain(cfg):
     ds = load_hf_splits(cfg["dataset"], "regular")
     ds['test'] = ds['validation']
     del ds['validation']
-    ds = ds.map( lambda x: {'next_phrase': next_phrase(x)} )
+    ds = ds.map( lambda x: {'next_phrase': make_next_phrase(x)} )
     # split train/val from train_ds
     
+    split = ds
+
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     
-    train_loader, val_loader = make_dataloaders(ds["train"], ds["test"], cfg["batch_size"], cfg["num_workers"])
+    train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")
     opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=cfg["lr"])
@@ -91,11 +93,10 @@ def pretrain(cfg):
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
             start_phrase = list(batch["startphrase"])
-            next_phrase = list(batch["next_phrase"]
+            next_phrase = list(batch["next_phrase"])
             
             keep_tok, target_tok, mask, _ = make_next_phrases_mask_views(
                 startphrase=start_phrase, nextphrase = next_phrase, tokenizer=tokenizer, max_length=cfg["max_length"],
-                punchline_ratio=0.4
             )
             
             
