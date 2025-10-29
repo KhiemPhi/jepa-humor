@@ -50,9 +50,16 @@ def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
     return optimizer, scheduler
 
-def make_next_phrase(x):
-    num = 'ending' + str(x['label'])
-    return x[num]
+ending_names = ["ending0", "ending1", "ending2", "ending3"]
+
+next_sentences = ["next_sentence0", "next_sentence1", "next_sentence2", "next_sentence3"]
+
+def make_next_sentence(example):
+    res = {}
+    for i in range(4):
+        res[next_sentences[i]] = example["sent2"] + " " + example[ending_names[i]]
+    res['true_next_sentence'] = example["sent2"] + " " + example[ending_names[example['label']]]
+    return res
 
 def pretrain(cfg):
     set_seed(cfg["seed"])
@@ -72,7 +79,7 @@ def pretrain(cfg):
     ds = load_hf_splits(cfg["dataset"], "regular")
     ds['test'] = ds['validation']
     del ds['validation']
-    ds = ds.map( lambda x: {'next_phrase': make_next_phrase(x)} )
+    ds = ds.map( make_next_sentence)
     # split train/val from train_ds
     
     split = ds
@@ -92,11 +99,11 @@ def pretrain(cfg):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
-            start_phrase = list(batch["startphrase"])
-            next_phrase = list(batch["next_phrase"])
+            sent1 = list(batch["sent1"])
+            sent2 = list(batch["true_next_sentence"])
             
             keep_tok, target_tok, mask, _ = make_next_phrases_mask_views(
-                startphrase=start_phrase, nextphrase = next_phrase, tokenizer=tokenizer, max_length=cfg["max_length"],
+                startphrase=sent1, nextphrase = sent2, tokenizer=tokenizer, max_length=cfg["max_length"],
             )
             
             
