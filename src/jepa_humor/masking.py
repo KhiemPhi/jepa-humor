@@ -1,72 +1,91 @@
-import math, random, re
-from typing import List, Optional, Sequence, Tuple
+import spacy
 import torch
+from typing import List, Tuple, Dict, Sequence
 
-def make_token_level_views_punchline(
-    texts: Sequence[str],
+# Load spaCy English model (for POS + dependency parsing)
+nlp = spacy.load("en_core_web_sm")
+
+
+def make_grammar_mask_views(
+    sentences: Sequence[str],
     tokenizer,
-    max_length=256,
-    punchline_ratio: float = 0.3,  # proportion of tokens from the end to mask if last sentence detection fails
-):
-    target_tok = tokenizer(
-        list(texts),
+    max_length: int = 256,
+) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor], torch.Tensor, List[List[Tuple[int, int]]]]:
+    """
+    Create tokenized input/target pairs by masking the grammatically challenging parts of sentences.
+
+    Rules:
+      1. For parallel/comparative sentences (containing ','): mask everything *after the comma*.
+      2. For simple sentences: mask everything *after the main verb (ROOT)*.
+
+    Args:
+        sentences: Sequence of English sentences.
+        tokenizer: HuggingFace tokenizer.
+        max_length: Max token length for padding/truncation.
+
+    Returns:
+        keep_tok: Tokenized masked input sentences.
+        target_tok: Tokenized original sentences.
+        predict_mask: Mask tensor for predicting masked parts.
+        spans_used: List of (start, end) token spans for masked sections.
+    """
+    masked_sentences = []
+    spans_used = []
+
+    for sent in sentences:
+        doc = nlp(sent)
+        masked_sentence = sent
+        mask_start = None
+
+        # Rule 1: mask after comma (often parallel or comparative structure)
+        if "," in sent:
+            mask_start = sent.index(",") + 1
+            masked_sentence = sent[:mask_start] + " [MASK]"
+        
+        else:
+            # Rule 2: mask after main verb
+            for token in doc:
+                if token.dep_ == "ROOT" and token.pos_ == "VERB":
+                    mask_start = token.idx + len(token.text)
+                    masked_sentence = sent[:mask_start] + " [MASK]"
+                    break
+
+        masked_sentences.append(masked_sentence)
+
+        # Compute token-level span (after tokenization)
+        tok = tokenizer(masked_sentence, truncation=True, max_length=max_length)
+        orig_tok = tokenizer(sent, truncation=True, max_length=max_length)
+        mask_token_id = tokenizer.mask_token_id
+
+        # find where [MASK] appears
+        mask_pos = [i for i, t in enumerate(tok["input_ids"]) if t == mask_token_id]
+        if mask_pos:
+            spans_used.append([(mask_pos[0], len(tok["input_ids"]))])
+        else:
+            spans_used.append([])
+
+    # Tokenize both masked inputs and original targets
+    keep_tok = tokenizer(
+        masked_sentences,
         return_tensors="pt",
-        padding="longest",
+        padding="max_length",
         truncation=True,
         max_length=max_length,
-        return_offsets_mapping=True
+    )
+    target_tok = tokenizer(
+        sentences,
+        return_tensors="pt",
+        padding="max_length",
+        truncation=True,
+        max_length=max_length,
     )
 
-    input_ids = target_tok["input_ids"].clone()
-    attn = target_tok["attention_mask"]
-    offsets = target_tok["offset_mapping"]
-    B, T = input_ids.shape
+    B, T = target_tok["input_ids"].shape
+    predict_mask = torch.zeros((B, T), dtype=torch.float32)
 
-    keep_ids = input_ids.clone()
-    predict_mask = torch.zeros_like(attn, dtype=torch.float)
-    mask_token_id = tokenizer.mask_token_id
-    assert mask_token_id is not None, "Tokenizer needs a [MASK] token."
-    special_ids = set(tokenizer.all_special_ids)
-    spans_used = [[] for _ in range(B)]
-
-    for b in range(B):
-        # 1️⃣ Identify valid token positions
-        valid = [t for t in range(T)
-                 if attn[b, t].item() == 1 and input_ids[b, t].item() not in special_ids]
-
-        # 2️⃣ Find the punchline span
-        text = texts[b]
-        sent_splits = list(re.finditer(r"[.!?\n]", text))
-        if sent_splits:
-            # Take last sentence boundary
-            last_end = sent_splits[-1].end()
-            punchline_start_char = sent_splits[0].start()
-        else:
-            # No punctuation, fallback to last 30% of text
-            punchline_start_char = int(len(text) * (1 - punchline_ratio))
-        punchline_end_char = len(text)
-
-        # 3️⃣ Map char spans to token spans using offsets
-        off_b = [(int(o[0].item()), int(o[1].item())) for o in offsets[b]]
-        start_t, end_t = 0, len(off_b)
-        for i, (s, e) in enumerate(off_b):
-            if s <= punchline_start_char < e:
-                start_t = i
-                break
-        for j, (s, e) in enumerate(off_b):
-            if s < punchline_end_char <= e:
-                end_t = j + 1
-                break
-
-        # 4️⃣ Mask that punchline span
-        for t in range(start_t, end_t):
-            if t in valid:
-                keep_ids[b, t] = mask_token_id
-                predict_mask[b, t] = 1.0
-        spans_used[b] = [(start_t, end_t)]
-
-    keep_tok = {k: v.clone() for k, v in target_tok.items() if k != "offset_mapping"}
-    keep_tok["input_ids"] = keep_ids
-    target_tok = {k: v for k, v in target_tok.items() if k != "offset_mapping"}
+    # mark [MASK] region as 1 in predict_mask
+    for b, spans in enumerate(spans_used):
+        for (start, end) in spans:
+            predict_mask[b, start:end] = 1.0
 
     return keep_tok, target_tok, predict_mask, spans_used
