@@ -6,8 +6,10 @@ Self-supervised JEPA-style pretraining on CreativeLang/ColBERT_Humor_Detection, 
 ```bash
 pip install -e .
 # or: pip install -r requirements.txt
-python -m scripts.pretrain --config configs/pretrain.yaml
-python -m scripts.finetune --config configs/finetune.yaml --encoder_ckpt checkpoints/pretrain/best.pt
+python -m scripts.pretrain --config configs/pretrain.yml
+python -m scripts.finetune --config configs/finetune.yml --encoder_ckpt checkpoints/pretrain/jepa_epoch6_loss0.9887.pt
+python -m scripts.finetune --config configs/finetune_fresh.yml --encoder_ckpt fresh
+
 
 Comparision F1 = 0.982
 
