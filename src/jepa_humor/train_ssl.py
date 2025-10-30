@@ -4,7 +4,8 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from transformers import AutoTokenizer, AutoModel
 from .utils import set_seed, device, save_ckpt
-from .masking import make_token_level_views_punchline
+from .masking import make_grammar_mask_views
+
 from .jepa import JEPA
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import os
@@ -66,9 +67,11 @@ def pretrain(cfg):
 
     from .data import load_hf_splits, make_dataloaders
     ds = load_hf_splits(cfg["dataset"])
-   
-    # split train/val from train_ds
-    split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
+    
+    split = {}
+    split['train'] = ds['train']
+    split['test'] = ds['validation']
+    #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")
@@ -82,11 +85,10 @@ def pretrain(cfg):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
-            texts = batch["text"]
+            sentences = batch["sentence"]
             
-            keep_tok, target_tok, mask, _ = make_token_level_views_punchline(
-                texts=texts, tokenizer=tokenizer, max_length=cfg["max_length"],
-                punchline_ratio=0.4
+            keep_tok, target_tok, mask, _ = make_grammar_mask_views(
+                sentences = sentences, tokenizer=tokenizer, max_length=cfg["max_length"]
             )
             
             
