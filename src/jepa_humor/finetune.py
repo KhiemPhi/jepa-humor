@@ -31,7 +31,7 @@ def finetune(cfg, encoder_ckpt: str):
     # 1. Load Encoder
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_name"])
     base = AutoModel.from_pretrained(cfg["model_name"]) if encoder_ckpt is None else AutoModel.from_pretrained(cfg["model_name"])
-    if encoder_ckpt:
+    if encoder_ckpt != "fresh":
         print(f"Loading pretrained encoder from {encoder_ckpt}")
         base = load_encoder_state(base, encoder_ckpt, map_location="cpu")
     else: 
