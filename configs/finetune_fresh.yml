@@ -1,8 +1,8 @@
 seed: 42
-model_name: bert-large-uncased  # ignored if --ckpt provided
+model_name: google-bert/bert-base-uncased  # ignored if --ckpt provided
 dataset: glue
 max_length: 256
-batch_size: 8
+batch_size: 32
 num_workers: 4
 epochs: 10
 lr: 1.0e-5
