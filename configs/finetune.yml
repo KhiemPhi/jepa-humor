@@ -4,7 +4,7 @@ dataset: nyu-mll/glue
 max_length: 256
 batch_size: 32
 num_workers: 4
-epochs: 15
+epochs: 10
 lr: 1.0e-5
 mixed_precision: true
 log_dir: runs/finetune

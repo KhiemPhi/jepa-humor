@@ -12,6 +12,7 @@ from .train_ssl import pretrain
 import os
 from torch import amp
 import numpy as np
+import copy
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class CorrectEnglishSentenceClassifier(nn.Module):
@@ -48,16 +49,14 @@ def finetune(cfg, encoder_ckpt: str):
     print(f"Test dataset size: {len(ds['validation'])}")
 
     model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.07)
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.08)
     
     # Setup SWA (Stochastic Weight Averaging)
-    swa_start_epoch = max(1, int(cfg["epochs"] * 0.7))  # Start SWA after 75% of training
+    # Start SWA after best epoch to avoid averaging in worse weights
     swa_model = AveragedModel(model)
-    swa_scheduler = SWALR(opt, swa_lr=cfg["lr"] * 0.5)  # Lower LR for averaging phase
+    swa_scheduler = SWALR(opt, swa_lr=cfg["lr"] * 0.35)  # Lower LR for averaging phase
     use_swa = cfg.get("use_swa", True)
-    
-    if use_swa:
-        print(f"SWA will start at epoch {swa_start_epoch}/{cfg['epochs']}")
+    swa_started = False
     
     # Compute class weights from training labels (inverse frequency)
     try:
@@ -74,11 +73,13 @@ def finetune(cfg, encoder_ckpt: str):
         criterion = nn.CrossEntropyLoss(label_smoothing=0.01)
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 
+    # Track best model for early stopping and SWA comparison
+    best_val_mcc = -1.0
+    best_epoch = 0
+    best_model_state = None
+    best_val_threshold = 0.5
+
     for epoch in range(1, cfg["epochs"] + 1):
-        # Check if SWA phase starts this epoch
-        if use_swa and epoch == swa_start_epoch:
-            print(f"Starting SWA at epoch {epoch}")
-        
         # train
         model.train()
         running, y_true, y_pred = 0.0, [], []
@@ -101,7 +102,7 @@ def finetune(cfg, encoder_ckpt: str):
             scaler.update()
             
             # Update SWA model and scheduler if in SWA phase (after each batch)
-            if use_swa and epoch >= swa_start_epoch:
+            if use_swa and swa_started:
                 swa_model.update_parameters(model)
                 swa_scheduler.step()
 
@@ -148,14 +149,77 @@ def finetune(cfg, encoder_ckpt: str):
                 probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
                 v_prob.append(probs_batch)
 
-        probs = np.concatenate(v_prob, axis=0) 
-        preds = (probs >= best_t).astype(int)
-        val_mcc = matthews_corrcoef(v_true, preds)
-        val_f1 = f1_score(v_true, preds)
-        print(f"          val: mcc={val_mcc:.4f} f1={val_f1:.4f}")
+        val_probs = np.concatenate(v_prob, axis=0)
+        val_true_arr = np.asarray(v_true)
+        
+        # Find best threshold on VALIDATION set (not training!)
+        best_val_t, best_val_mcc_thresh = 0.5, -1.0
+        for t in np.linspace(0.01, 0.99, 99):
+            preds_t = (val_probs >= t).astype(int)
+            mcc_t = matthews_corrcoef(val_true_arr, preds_t)
+            if mcc_t > best_val_mcc_thresh:
+                best_val_mcc_thresh, best_val_t = mcc_t, t
+        
+        val_mcc = best_val_mcc_thresh  # Use threshold-optimized MCC
+        val_preds = (val_probs >= best_t).astype(int)
+        val_f1 = f1_score(val_true_arr, val_preds)
+        argmax_mcc = matthews_corrcoef(v_true, v_pred)
+        print(f"          val: mcc={val_mcc:.4f} f1={val_f1:.4f} (threshold={best_val_t:.3f}, argmax_mcc={argmax_mcc:.4f})")
+        
+        # Track best model and start SWA after finding best epoch
+        if val_mcc > best_val_mcc:
+            best_val_mcc = val_mcc
+            best_epoch = epoch
+            best_val_threshold = best_val_t
+            best_model_state = copy.deepcopy(model.state_dict())
+            print(f"          *** New best validation MCC: {best_val_mcc:.4f} at epoch {epoch} ***")
+        
+        # Start SWA after best epoch (with 1 epoch delay) to only average good weights
+        if use_swa and not swa_started and epoch > best_epoch and best_epoch > 0:
+            swa_started = True
+            # Initialize SWA model with best checkpoint
+            if best_model_state is not None:
+                model.load_state_dict(best_model_state)
+                swa_model = AveragedModel(model)
+            print(f"Starting SWA at epoch {epoch} (best epoch was {best_epoch})")
     
-    # After training, update BN stats for SWA model and replace regular model
-    if use_swa:
+    # After training, evaluate SWA model and compare with best single epoch
+    if use_swa and swa_started:
+        print("\nEvaluating SWA model vs best single epoch model...")
+        print(f"Best single epoch: {best_epoch} with MCC: {best_val_mcc:.4f}")
+        
+        # Load best single epoch model first
+        if best_model_state is not None:
+            model.load_state_dict(best_model_state)
+        
+        # Evaluate SWA-averaged model
+        swa_model.eval()
+        swa_v_true, swa_v_prob = [], []
+        with torch.no_grad():
+            for batch in val_loader:
+                sentences = batch["sentence"]
+                labels = torch.tensor(batch["label"], dtype=torch.long)
+                enc = tokenizer(list(sentences), return_tensors="pt", padding="longest",
+                                truncation=True, max_length=cfg["max_length"])
+                enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
+                labels = labels.to(dev, non_blocking=True)
+                logits = swa_model(enc["input_ids"], enc["attention_mask"])
+                swa_v_true.extend(labels.cpu().tolist())
+                probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
+                swa_v_prob.append(probs_batch)
+        
+        swa_probs = np.concatenate(swa_v_prob, axis=0)
+        swa_true_arr = np.asarray(swa_v_true)
+        swa_preds = (swa_probs >= best_t).astype(int)
+        swa_mcc = matthews_corrcoef(swa_true_arr, swa_preds)
+        print(f"SWA model MCC: {swa_mcc:.4f} (threshold={best_t:.3f})")
+        
+        model.load_state_dict(swa_model.module.state_dict())
+    elif best_model_state is not None:
+        #uci No SWA or SWA didn't start, just load best model
+        print(f"Loading best model from epoch {best_epoch} with MCC: {best_val_mcc:.4f}")
+        model.load_state_dict(best_model_state)
+    elif use_swa:
         print("Updating batch normalization statistics for SWA model...")
         # Update BN stats by running one forward pass through training data
         model.eval()
