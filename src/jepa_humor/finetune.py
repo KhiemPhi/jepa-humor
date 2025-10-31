@@ -41,7 +41,8 @@ def finetune(cfg, encoder_ckpt: str):
         print(f"Loading fresh encoder")
 
     ds = load_hf_splits(cfg["dataset"])
-   
+    ds['train'] = ds['train'].filter(lambda x: x['label'] = (not x['label']))
+    ds['test'] = ds['test'].filter(lambda x: x['label'] = (not x['label']))
     # split train/val from train_ds
     train_loader, val_loader = make_dataloaders(ds["train"], ds["validation"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(ds['train'])}")
@@ -105,7 +106,7 @@ def finetune(cfg, encoder_ckpt: str):
                 v_pred.extend(logits.cpu().argmax(-1).tolist())
 
         val_acc = accuracy_score(v_true, v_pred)
-        val_f1 = f1_score(v_true, v_pred)
+        val_f1   = f1_score(v_true, v_pred)
         print(f"          val: acc={val_acc:.4f} f1={val_f1:.4f}")
     
     return model
