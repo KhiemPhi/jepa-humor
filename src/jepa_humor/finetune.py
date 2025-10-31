@@ -48,7 +48,7 @@ def finetune(cfg, encoder_ckpt: str):
     print(f"Test dataset size: {len(ds['validation'])}")
 
     model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.15)
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.17)
     
     # Setup SWA (Stochastic Weight Averaging)
     swa_start_epoch = max(1, int(cfg["epochs"] * 0.9))  # Start SWA after 75% of training
