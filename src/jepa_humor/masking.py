@@ -5,9 +5,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from transformers import AutoModel, AutoTokenizer
 
-def make_second_sent_mask_views(
-    sent1: Sequence[str],
-    sent2: Sequence[str],
+def make_sentence_mask_views(
+    question: Sequence[str],
+    sentence: Sequence[str],
     tokenizer,
     max_length: int = 256,
 ) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor], torch.Tensor, List[List[Tuple[int, int]]]]:
@@ -29,11 +29,11 @@ def make_second_sent_mask_views(
         predict_mask: Mask tensor for claim tokens to predict
         spans_used: List of token spans for each claim
     """
-    assert len(sent1) == len(sent2), "Claims and evidences must have the same length"
+    assert len(question) == len(sentence), "Claims and evidences must have the same length"
 
     # Tokenize evidence as inputs (pad to fixed max_length so time-dim matches target)
     keep_tok = tokenizer(
-        list(sent1),
+        list(question),
         return_tensors="pt",
         padding="max_length",
         truncation=True,
@@ -42,7 +42,7 @@ def make_second_sent_mask_views(
 
     # Tokenize claim as target (pad to fixed max_length so time-dim matches context)
     target_tok = tokenizer(
-        list(sent2),
+        list(sentence),
         return_tensors="pt",
         padding="max_length",
         truncation=True,

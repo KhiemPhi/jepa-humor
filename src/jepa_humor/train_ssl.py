@@ -4,7 +4,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from transformers import AutoTokenizer, AutoModel
 from .utils import set_seed, device, save_ckpt
-from .masking import make_second_sent_mask_views
+from .masking import make_sentence_mask_views
 
 from .jepa import JEPA
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -70,7 +70,7 @@ def pretrain(cfg):
     
     split = {}
     split['train'] = ds['train']
-    split['train'] = split['train'].filter(lambda x: x['label'] == 1)
+    split['train'] = split['train'].filter(lambda x: x['label'] == 0)
     split['test'] = ds['validation']
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
@@ -86,12 +86,12 @@ def pretrain(cfg):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
-            sent1 = batch["sentence1"]
-            sent2 = batch["sentence2"]
+            question = batch["question"]
+            sentence = batch["sentence"]
 
 
-            keep_tok, target_tok, mask, _ = make_second_sent_mask_views(
-                sent1 = sent1, sent2 = sent2, tokenizer=tokenizer, max_length=cfg["max_length"]
+            keep_tok, target_tok, mask, _ = make_sentence_mask_views(
+                question = question, sentence = sentence, tokenizer=tokenizer, max_length=cfg["max_length"]
             )
             
             
