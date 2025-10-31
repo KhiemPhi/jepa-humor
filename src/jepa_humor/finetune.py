@@ -84,10 +84,11 @@ def finetune(cfg, encoder_ckpt: str):
         running, y_true, y_pred = 0.0, [], []
         y_prob = []  # store positive-class probabilities across the epoch
         for batch in tqdm(train_loader, desc=f"Finetune {epoch}/{cfg['epochs']}", leave=False):
-            sentences = batch["sentence"]
+            sent1 = batch["sentence1"]
+            sent2 = batch["sentence2"]
             labels = torch.tensor(batch["label"], dtype=torch.long)
 
-            enc = tokenizer(list(sentences), return_tensors="pt", padding="longest",
+            enc = tokenizer(list(sent1), list(sent2), return_tensors="pt", padding="longest",
                             truncation=True, max_length=cfg["max_length"])
             enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
             labels = labels.to(dev, non_blocking=True)

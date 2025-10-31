@@ -7,14 +7,15 @@ import random
 
 
 def load_hf_splits(name: str, test_size=0.2, seed=42):
-    ds = load_dataset(name, 'cola')
+    ds = load_dataset(name, 'mrpc')
    
     return ds
 
 def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True):
     # Both datasets must yield dicts with at least {"text", "humor"}
     collate = lambda batch: {
-        "sentence": [b["sentence"] for b in batch],
+        "sent1": [b["sent1"] for b in batch],
+        "sent2": [b["sent2"] for b in batch],
         "label": [bool(b["label"]) for b in batch]
     }
     # fixed generator for deterministic shuffling
