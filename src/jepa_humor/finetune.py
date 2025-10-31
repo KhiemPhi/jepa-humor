@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
 from transformers import AutoTokenizer, AutoModel
-from sklearn.metrics import matthews_corrcoef, f1_score
+from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score
 from .utils import set_seed, device, load_encoder_state
 from .data import load_hf_splits, make_dataloaders
 from .train_ssl import pretrain
@@ -48,10 +48,10 @@ def finetune(cfg, encoder_ckpt: str):
     print(f"Test dataset size: {len(ds['validation'])}")
 
     model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.07)
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.15)
     
     # Setup SWA (Stochastic Weight Averaging)
-    swa_start_epoch = max(1, int(cfg["epochs"] * 0.7))  # Start SWA after 75% of training
+    swa_start_epoch = max(1, int(cfg["epochs"] * 0.9))  # Start SWA after 75% of training
     swa_model = AveragedModel(model)
     swa_scheduler = SWALR(opt, swa_lr=cfg["lr"] * 0.5)  # Lower LR for averaging phase
     use_swa = cfg.get("use_swa", True)
@@ -155,7 +155,8 @@ def finetune(cfg, encoder_ckpt: str):
         preds = (probs >= best_t).astype(int)
         val_mcc = matthews_corrcoef(v_true, preds)
         val_f1 = f1_score(v_true, preds)
-        print(f"          val: mcc={val_mcc:.4f} f1={val_f1:.4f}")
+        val_acc = accuracy_score(v_true, preds)
+        print(f"          val: mcc={val_mcc:.4f} f1={val_f1:.4f} acc={val_acc:.4f}")
     
     # After training, update BN stats for SWA model and replace regular model
     if use_swa:
@@ -164,10 +165,15 @@ def finetune(cfg, encoder_ckpt: str):
         model.eval()
         with torch.no_grad():
             for batch in tqdm(train_loader, desc="Updating BN stats", leave=False):
-                sentences = batch["sentence"]
-                enc = tokenizer(list(sentences), return_tensors="pt", padding="longest",
-                                truncation=True, max_length=cfg["max_length"])
+                sent1 = batch["sentence1"]
+                sent2 = batch["sentence2"]
+                labels = torch.tensor(batch["label"], dtype=torch.long)
+
+                enc = tokenizer(list(sent1), list(sent2), return_tensors="pt", padding="longest",
+                            truncation=True, max_length=cfg["max_length"])
                 enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
+                labels = labels.to(dev, non_blocking=True)
+                
                 _ = swa_model(enc["input_ids"], enc["attention_mask"])
         # Note: BERT uses LayerNorm, not BatchNorm, so update_bn is not strictly necessary
         # But we'll update any BatchNorm layers if they exist (e.g., in custom heads)
@@ -203,6 +209,7 @@ def finetune(cfg, encoder_ckpt: str):
     preds = (probs >= best_t).astype(int)
     val_mcc = matthews_corrcoef(v_true, preds)
     val_f1 = f1_score(v_true, preds)
-    print(f"Final validation: mcc={val_mcc:.4f} f1={val_f1:.4f}")
+    val_acc = accuracy_score(v_true, preds)
+    print(f"Final validation: mcc={val_mcc:.4f} f1={val_f1:.4f}, val_acc={val_acc:.4f}")
      
     return model
