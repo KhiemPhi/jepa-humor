@@ -41,8 +41,9 @@ def finetune(cfg, encoder_ckpt: str):
         print(f"Loading fresh encoder")
 
     ds = load_hf_splits(cfg["dataset"])
-    ds['train'] = ds['train'].filter(lambda x: x['label'] = (not x['label']))
-    ds['test'] = ds['test'].filter(lambda x: x['label'] = (not x['label']))
+    ds['train'] = ds['train'].map(lambda x: {'label': int(not x['label'])})
+    ds['validation'] = ds['validation'].map(lambda x: {'label': int(not x['label'])})
+
     # split train/val from train_ds
     train_loader, val_loader = make_dataloaders(ds["train"], ds["validation"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(ds['train'])}")
@@ -88,6 +89,8 @@ def finetune(cfg, encoder_ckpt: str):
  
         print(f"[Finetune] epoch {epoch}: loss={running/len(train_loader):.4f} acc={train_acc:.4f} f1={train_f1:.4f}")
 
+        print("Pred label counts:", np.bincount(y_pred))
+        print("True label counts:", np.bincount(y_true))
         # validate
         model.eval()
         v_true, v_pred, v_prob = [], [], []
@@ -108,5 +111,7 @@ def finetune(cfg, encoder_ckpt: str):
         val_acc = accuracy_score(v_true, v_pred)
         val_f1   = f1_score(v_true, v_pred)
         print(f"          val: acc={val_acc:.4f} f1={val_f1:.4f}")
+        print("Pred label counts:", np.bincount(v_pred))
+        print("True label counts:", np.bincount(v_true))
     
     return model
