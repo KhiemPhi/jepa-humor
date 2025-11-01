@@ -3,7 +3,7 @@ from typing import List, Optional, Sequence, Tuple, Dict, Any
 import torch
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-    from transformers import AutoModel, AutoTokenizer
+from transformers import AutoModel, AutoTokenizer
 
 def make_second_sent_mask_views(
     sent1: Sequence[str],

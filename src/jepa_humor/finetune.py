@@ -52,6 +52,7 @@ def finetune(cfg, encoder_ckpt: str):
     criterion = nn.CrossEntropyLoss(label_smoothing=0.01)
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 
+    best_val_acc = 0.0
     for epoch in range(1, cfg["epochs"] + 1):
         
         # train
@@ -104,9 +105,11 @@ def finetune(cfg, encoder_ckpt: str):
                 v_true.extend(labels.cpu().tolist())
                 v_pred.extend(logits.cpu().argmax(-1).tolist())
 
-        val_acc = matthews_corrcoef(v_true, v_preds)
-        val_f1 = f1_score(v_true, v_preds)
+        val_acc = accuracy_score(v_true, v_pred)
+        val_f1 = f1_score(v_true, v_pred)
+        best_val_acc = max(best_val_acc, val_acc)
         print(f"          val: acc={val_acc:.4f} f1={val_f1:.4f}")
+        print(f"          best val acc so far: {best_val_acc:.4f}")
     
      
     return model
