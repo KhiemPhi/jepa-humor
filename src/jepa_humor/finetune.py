@@ -16,7 +16,7 @@ import numpy as np
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class STSBRegressor(nn.Module):
-    def __init__(self, encoder, hidden_size=768, dropout=0.1):
+    def __init__(self, encoder, hidden_size=768, dropout=0.3):
         super().__init__()
         self.encoder = encoder
         self.dropout = nn.Dropout(dropout)
@@ -51,7 +51,7 @@ def finetune(cfg, encoder_ckpt: str):
     print(f"Test dataset size: {len(ds['validation'])}")
 
     model = STSBRegressor(base, hidden_size=base.config.hidden_size).to(dev)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.07)
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.09)
     criterion = nn.MSELoss()
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 
