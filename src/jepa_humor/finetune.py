@@ -41,8 +41,6 @@ def finetune(cfg, encoder_ckpt: str):
         print(f"Loading fresh encoder")
 
     ds = load_hf_splits(cfg["dataset"])
-    ds['train'] = ds['train'].map(lambda x: {'label': int(not x['label'])})
-    ds['validation'] = ds['validation'].map(lambda x: {'label': int(not x['label'])})
 
     # split train/val from train_ds
     train_loader, val_loader = make_dataloaders(ds["train"], ds["validation"], cfg["batch_size"], cfg["num_workers"])
