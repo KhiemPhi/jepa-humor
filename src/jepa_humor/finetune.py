@@ -84,8 +84,8 @@ def finetune(cfg, encoder_ckpt: str):
         running, y_true, y_pred = 0.0, [], []
         y_prob = []  # store positive-class probabilities across the epoch
         for batch in tqdm(train_loader, desc=f"Finetune {epoch}/{cfg['epochs']}", leave=False):
-            sent1 = batch["sentence1"]
-            sent2 = batch["sentence2"]
+            sent1 = batch["question1"]
+            sent2 = batch["question2"]
             labels = torch.tensor(batch["label"], dtype=torch.long)
 
             enc = tokenizer(list(sent1), list(sent2), return_tensors="pt", padding="longest",
@@ -137,8 +137,8 @@ def finetune(cfg, encoder_ckpt: str):
         v_true, v_pred, v_prob = [], [], []
         with torch.no_grad():
             for batch in val_loader:
-                sent1 = batch["sentence1"]
-                sent2 = batch["sentence2"]
+                sent1 = batch["question1"]
+                sent2 = batch["question2"]
                 labels = torch.tensor(batch["label"], dtype=torch.long)
 
                 enc = tokenizer(list(sent1), list(sent2), return_tensors="pt", padding="longest",
@@ -165,8 +165,8 @@ def finetune(cfg, encoder_ckpt: str):
         model.eval()
         with torch.no_grad():
             for batch in tqdm(train_loader, desc="Updating BN stats", leave=False):
-                sent1 = batch["sentence1"]
-                sent2 = batch["sentence2"]
+                sent1 = batch["question1"]
+                sent2 = batch["question2"]
                 labels = torch.tensor(batch["label"], dtype=torch.long)
 
                 enc = tokenizer(list(sent1), list(sent2), return_tensors="pt", padding="longest",
@@ -191,8 +191,8 @@ def finetune(cfg, encoder_ckpt: str):
     v_true, v_pred, v_prob = [], [], []
     with torch.no_grad():
         for batch in val_loader:
-            sent1 = batch["sentence1"]
-            sent2 = batch["sentence2"]
+            sent1 = batch["question1"]
+            sent2 = batch["question2"]
             labels = torch.tensor(batch["label"], dtype=torch.long)
 
             enc = tokenizer(list(sent1), list(sent2), return_tensors="pt", padding="longest",
