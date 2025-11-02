@@ -40,6 +40,34 @@ def freeze_distilbert_layers(encoder, unfreeze_last_n=2):
             for p in m.parameters():
                 p.requires_grad = True
 
+def freeze_bert_layers(encoder, unfreeze_last_n=2):
+    """
+    Freeze all BERT layers except for the last `unfreeze_last_n` encoder layers.
+    Optionally keeps LayerNorm parameters trainable throughout.
+    
+    Args:
+        encoder: BERT model (e.g., AutoModel.from_pretrained("bert-base-uncased"))
+        unfreeze_last_n (int): Number of last transformer layers to unfreeze.
+    """
+    # 1️⃣ Freeze everything
+    for p in encoder.parameters():
+        p.requires_grad = False
+
+    # 2️⃣ Unfreeze last N layers (BERT has 12 layers)
+    total_layers = len(encoder.encoder.layer)
+    for i in range(total_layers - unfreeze_last_n, total_layers):
+        for p in encoder.encoder.layer[i].parameters():
+            p.requires_grad = True
+
+    # 3️⃣ (Optional) Keep all LayerNorms trainable for stability
+    for m in encoder.modules():
+        if isinstance(m, torch.nn.LayerNorm):
+            for p in m.parameters():
+                p.requires_grad = True
+
+    #print(f"✅ Frozen {total_layers - unfreeze_last_n} layers, unfrozen last {unfreeze_last_n} layers.")
+
+
 class JEPA(nn.Module):
     def __init__(self, initial_encoder, hidden_size=768, pred_hid=128, ema_decay=0.996, use_cls=False):
         super().__init__()
@@ -56,6 +84,7 @@ class JEPA(nn.Module):
         self.ema_decay = ema_decay
         self.use_cls = use_cls
         #freeze_distilbert_layers(self.encoder)
+        #freeze_bert_layers(self.encoder)
 
     @torch.no_grad()
     def update_target(self):

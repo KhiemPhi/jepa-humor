@@ -2,10 +2,10 @@ seed: 42
 model_name: google-bert/bert-base-uncased
 dataset: nyu-mll/glue
 max_length: 256
-batch_size: 64
+batch_size: 32
 num_workers: 4
-epochs: 10
-lr: 1.0e-6
+epochs: 15
+lr: 1.0e-5
 ema_decay: 0.996
 mask_ratio: 0.4
 mean_span_len: 3.0

@@ -6,6 +6,7 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
 from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics import accuracy_score, f1_score
+from scipy.stats import pearsonr, spearmanr
 from .utils import set_seed, device, load_encoder_state
 from .data import load_hf_splits, make_dataloaders
 from .train_ssl import pretrain
@@ -14,17 +15,19 @@ from torch import amp
 import numpy as np
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-class EntailmentSentenceClassifier(nn.Module):
-    def __init__(self, encoder, hidden_size=768, num_labels=2, dropout=0.5):
+class STSBRegressor(nn.Module):
+    def __init__(self, encoder, hidden_size=768, dropout=0.1):
         super().__init__()
         self.encoder = encoder
         self.dropout = nn.Dropout(dropout)
-        self.classifier = nn.Linear(hidden_size, num_labels)
+        self.reg_head = nn.Linear(hidden_size, 1)
+
     def forward(self, input_ids, attention_mask):
         out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
         pooled = out.last_hidden_state[:, 0, :]
         pooled = self.dropout(pooled)
-        return self.classifier(pooled)
+        return self.reg_head(pooled).squeeze(-1) 
+
 
 
 def finetune(cfg, encoder_ckpt: str):
@@ -47,12 +50,12 @@ def finetune(cfg, encoder_ckpt: str):
     print(f"Train dataset size: {len(ds['train'])}")
     print(f"Test dataset size: {len(ds['validation'])}")
 
-    model = EntailmentSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
+    model = STSBRegressor(base, hidden_size=base.config.hidden_size).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.07)
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.01)
+    criterion = nn.MSELoss()
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 
-    best_val_acc = 0.0
+    best_val = 0.0
     for epoch in range(1, cfg["epochs"] + 1):
         
         # train
@@ -61,7 +64,7 @@ def finetune(cfg, encoder_ckpt: str):
         for batch in tqdm(train_loader, desc=f"Finetune {epoch}/{cfg['epochs']}", leave=False):
             sent1 = batch["sentence1"]
             sent2 = batch["sentence2"]
-            labels = torch.tensor(batch["label"], dtype=torch.long)
+            labels = torch.tensor(batch["label"], dtype=torch.float32)
 
             enc = tokenizer(list(sent1), list(sent2), return_tensors="pt", padding="longest",
                             truncation=True, max_length=cfg["max_length"])
@@ -70,23 +73,23 @@ def finetune(cfg, encoder_ckpt: str):
 
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
-                logits = model(enc["input_ids"], enc["attention_mask"])
+                logits = model(enc["input_ids"], enc["attention_mask"])  # outputs: [B, 1]
+                #logits = logits.squeeze(-1)  # shape: [B]
                 loss = criterion(logits, labels)
+
             scaler.scale(loss).backward()
             scaler.step(opt)
             scaler.update()
-            
 
-            running += float(loss.item())
+            running += loss.item() * labels.size(0)
+            y_pred.extend(logits.detach().cpu().tolist())
             y_true.extend(labels.detach().cpu().tolist())
-            y_pred.extend(logits.detach().cpu().argmax(-1).tolist())
-            
 
-        train_acc = accuracy_score(y_true, y_pred)
-        train_f1 = f1_score(y_true, y_pred)
-        
-
-        print(f"[Finetune] epoch {epoch}: loss={running/len(train_loader):.4f} acc={train_acc:.4f} f1={train_f1:.4f}")
+        epoch_loss = running / len(train_loader.dataset)
+        pearson = pearsonr(y_pred, y_true)[0]
+        spearman = spearmanr(y_pred, y_true)[0]
+        final_score = (pearson + spearman) / 2
+        print(f"Epoch {epoch}: Train Loss={epoch_loss:.4f}, Pearson={pearson:.4f}, Spearman={spearman:.4f}, Final={final_score:.4f}")
 
         # validate
         model.eval()
@@ -95,21 +98,24 @@ def finetune(cfg, encoder_ckpt: str):
             for batch in val_loader:
                 sent1 = batch["sentence1"]
                 sent2 = batch["sentence2"]
-                labels = torch.tensor(batch["label"], dtype=torch.long)
+                labels = torch.tensor(batch["label"], dtype=torch.float32)
 
                 enc = tokenizer(list(sent1), list(sent2), return_tensors="pt", padding="longest",
                             truncation=True, max_length=cfg["max_length"])
                 enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
                 labels = labels.to(dev, non_blocking=True)
                 logits = model(enc["input_ids"], enc["attention_mask"])
+                #logits = logits.squeeze(-1)
                 v_true.extend(labels.cpu().tolist())
-                v_pred.extend(logits.cpu().argmax(-1).tolist())
+                v_pred.extend(logits.cpu().tolist())
 
-        val_acc = accuracy_score(v_true, v_pred)
-        val_f1 = f1_score(v_true, v_pred)
-        best_val_acc = max(best_val_acc, val_acc)
-        print(f"          val: acc={val_acc:.4f} f1={val_f1:.4f}")
-        print(f"          best val acc so far: {best_val_acc:.4f}")
+        pearson = pearsonr(v_pred, v_true)[0]
+        spearman = spearmanr(v_pred, v_true)[0]
+        final_score = (pearson + spearman) / 2
+        best_val = max(best_val, final_score)
+        #print(f"STS-B score: {final_score * 100:.2f}")
+        print(f"          val: Pearson={pearson:.4f}, Spearman={spearman:.4f}, Final={final_score:.4f}")
+        print(f"          best STS-B score so far: {best_val:.4f}")
     
      
     return model
