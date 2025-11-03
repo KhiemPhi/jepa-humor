@@ -1,6 +1,6 @@
 seed: 42
 model_name: google-bert/bert-base-uncased  # ignored if --ckpt provided
-dataset: nyu-mll/glue
+dataset: aps/super_glue
 max_length: 256
 batch_size: 64
 num_workers: 4

@@ -15,20 +15,40 @@ from torch import amp
 import numpy as np
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-class STSBRegressor(nn.Module):
-    def __init__(self, encoder, hidden_size=768, dropout=0.3):
+class NextSentencePredictor(nn.Module):
+    def __init__(self, encoder, hidden_size=768):
         super().__init__()
         self.encoder = encoder
-        self.dropout = nn.Dropout(dropout)
-        self.reg_head = nn.Linear(hidden_size, 1)
+        self.hidden_size = hidden_size
+        self.dropout = nn.Dropout(0.1)
+        # MLP scoring head
+        self.classifier = nn.Linear(hidden_size, 1)
 
-    def forward(self, input_ids, attention_mask):
-        out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        pooled = out.last_hidden_state[:, 0, :]
-        pooled = self.dropout(pooled)
-        return self.reg_head(pooled).squeeze(-1) 
+    def forward(self, input_ids, attention_mask ):
+        """
+        input_ids: (B*4, L)
+        attention_mask: (B*4, L)
+        Returns:
+            logits: (B, 4)
+        """
+        B, C, L = input_ids.shape  # B=batch size, C=num_choices
+        input_ids = input_ids.view(B*C, L)
+        outputs = self.encoder(
+            input_ids,
+            attention_mask = attention_mask.view(B*C, L),
+        )
+        last_hidden = outputs.last_hidden_state  # (B*4, seq_len, hidden_size)
+        pooled_output = last_hidden[:, 0, :]    # Take CLS token
+        logits = self.classifier(self.dropout(pooled_output))  # (B*C, 1)
+        logits = logits.view(B, C)  # (B, num_choices)
+        return logits
 
+choice = ['choice1', 'choice2']
 
+def process_data( x ):
+    return {
+        "true_sentence": x[choice[x["label"]]], 
+    }
 
 def finetune(cfg, encoder_ckpt: str):
     set_seed(cfg["seed"])
@@ -45,12 +65,12 @@ def finetune(cfg, encoder_ckpt: str):
 
     ds = load_hf_splits(cfg["dataset"])
    
-    # split train/val from train_ds
+    ds = ds.map(lambda x: process_data(x))
     train_loader, val_loader = make_dataloaders(ds["train"], ds["validation"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(ds['train'])}")
     print(f"Test dataset size: {len(ds['validation'])}")
 
-    model = STSBRegressor(base, hidden_size=base.config.hidden_size).to(dev)
+    model = NextSentencePredictor(base, hidden_size=base.config.hidden_size).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.09)
     criterion = nn.MSELoss()
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
@@ -62,19 +82,38 @@ def finetune(cfg, encoder_ckpt: str):
         model.train()
         running, y_true, y_pred = 0.0, [], []
         for batch in tqdm(train_loader, desc=f"Finetune {epoch}/{cfg['epochs']}", leave=False):
-            sent1 = batch["sentence1"]
-            sent2 = batch["sentence2"]
-            labels = torch.tensor(batch["label"], dtype=torch.float32)
+            premise = batch["premise"]
+            sentence1, sentence2 = batch["choice1"], batch["choice2"]
+            sentences = [sentence1, sentence2]
+            num_choices = len(sentences)
 
-            enc = tokenizer(list(sent1), list(sent2), return_tensors="pt", padding="longest",
-                            truncation=True, max_length=cfg["max_length"])
+            # Flatten the pairs (so tokenizer can handle them all at once)
+            premise = [[s] * num_choices for s in premise]
+            sentences = list(zip(*sentences))  # [(ending0[i], ending1[i], ...), ...]
+
+            # Flatten properly
+            premise_flat= sum(premise, [])  # still okay, already lists
+            sentences_flat= [s for tup in sentences for s in tup]
+
+            # Tokenize
+            enc = tokenizer(
+                premise_flat,
+                sentences_flat,
+                padding=True,
+                truncation=True,
+                max_length=128,
+                return_tensors="pt"
+            )
             enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
+            input_ids = enc["input_ids"].view(len(batch["label"]), 2, -1)
+            attention_mask = enc["attention_mask"].view(len(batch["label"]), 2, -1)
+
+            labels = torch.tensor(batch["label"], dtype=torch.long)
             labels = labels.to(dev, non_blocking=True)
 
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
-                logits = model(enc["input_ids"], enc["attention_mask"])  # outputs: [B, 1]
-                #logits = logits.squeeze(-1)  # shape: [B]
+                logits = model(input_ids, attention_mask)
                 loss = criterion(logits, labels)
 
             scaler.scale(loss).backward()
@@ -86,36 +125,54 @@ def finetune(cfg, encoder_ckpt: str):
             y_true.extend(labels.detach().cpu().tolist())
 
         epoch_loss = running / len(train_loader.dataset)
-        pearson = pearsonr(y_pred, y_true)[0]
-        spearman = spearmanr(y_pred, y_true)[0]
+        train_f1 = f1_score(y_pred, y_true)
+        train_val = accuracy_score(y_pred, y_true)
         final_score = (pearson + spearman) / 2
-        print(f"Epoch {epoch}: Train Loss={epoch_loss:.4f}, Pearson={pearson:.4f}, Spearman={spearman:.4f}, Final={final_score:.4f}")
+        print(f"Epoch {epoch}: Train Loss={epoch_loss:.4f}, acc={train_val:.4f}, f1={train_f1:.4f}, Final={final_score:.4f}")
 
         # validate
         model.eval()
         v_true, v_pred, v_prob = [], [], []
         with torch.no_grad():
             for batch in val_loader:
-                sent1 = batch["sentence1"]
-                sent2 = batch["sentence2"]
-                labels = torch.tensor(batch["label"], dtype=torch.float32)
+                premise = batch["premise"]
+                sentence1, sentence2 = batch["choice1"], batch["choice2"]
+                sentences = [sentence1, sentence2]
+                num_choices = len(sentences)
 
-                enc = tokenizer(list(sent1), list(sent2), return_tensors="pt", padding="longest",
-                            truncation=True, max_length=cfg["max_length"])
+                # Flatten the pairs (so tokenizer can handle them all at once)
+                premise = [[s] * num_choices for s in premise]
+                sentences = list(zip(*sentences))  # [(ending0[i], ending1[i], ...), ...]
+
+                # Flatten properly
+                premise_flat= sum(premise, [])  # still okay, already lists
+                sentences_flat= [s for tup in sentences for s in tup]
+
+                # Tokenize
+                enc = tokenizer(
+                    premise_flat,
+                    sentences_flat,
+                    padding=True,
+                    truncation=True,
+                    max_length=128,
+                    return_tensors="pt"
+                )
                 enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
+                input_ids = enc["input_ids"].view(len(batch["label"]), 2, -1)
+                attention_mask = enc["attention_mask"].view(len(batch["label"]), 2, -1)
+
+                labels = torch.tensor(batch["label"], dtype=torch.long)
                 labels = labels.to(dev, non_blocking=True)
                 logits = model(enc["input_ids"], enc["attention_mask"])
                 #logits = logits.squeeze(-1)
                 v_true.extend(labels.cpu().tolist())
                 v_pred.extend(logits.cpu().tolist())
 
-        pearson = pearsonr(v_pred, v_true)[0]
-        spearman = spearmanr(v_pred, v_true)[0]
-        final_score = (pearson + spearman) / 2
-        best_val = max(best_val, final_score)
-        #print(f"STS-B score: {final_score * 100:.2f}")
-        print(f"          val: Pearson={pearson:.4f}, Spearman={spearman:.4f}, Final={final_score:.4f}")
-        print(f"          best STS-B score so far: {best_val:.4f}")
+        val_f1 = f1_score(v_pred, v_true)
+        val_acc = accuracy_score(v_pred, v_true)
+        best_val = max(best_val, val_acc)
+        print(f"          val: acc={val_acc:.4f}, f1={val_f1:.4f}")
+        print(f"          best acc so far: {best_val:.4f}")
     
      
     return model

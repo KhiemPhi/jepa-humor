@@ -51,6 +51,14 @@ def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
     return optimizer, scheduler
 
+choice = ['choice1', 'choice2']
+
+def process_data( x ):
+    return {
+        "true_sentence": x[choice[x["label"]]], 
+    }
+
+
 def pretrain(cfg):
     set_seed(cfg["seed"])
     dev = device()
@@ -70,8 +78,8 @@ def pretrain(cfg):
     
     split = {}
     split['train'] = ds['train']
-    split['train'] = split['train'].filter(lambda x: x['label'] >= 4.0)
     split['test'] = ds['validation']
+    split = split.map(lambda x: process_data(x))
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(split['train'])}")
@@ -86,8 +94,8 @@ def pretrain(cfg):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
-            sent1 = batch["sentence1"]
-            sent2 = batch["sentence2"]
+            sent1 = batch["premise"]
+            sent2 = batch["true_sentence"]
 
 
             keep_tok, target_tok, mask, _ = make_second_sent_mask_views(
