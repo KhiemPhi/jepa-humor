@@ -75,11 +75,12 @@ def pretrain(cfg):
 
     from .data import load_hf_splits, make_dataloaders
     ds = load_hf_splits(cfg["dataset"])
-    
+    del ds['test']
+    ds = ds.map(lambda x: process_data(x))
+
     split = {}
     split['train'] = ds['train']
     split['test'] = ds['validation']
-    split = split.map(lambda x: process_data(x))
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(split['train'])}")

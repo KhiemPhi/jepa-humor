@@ -72,7 +72,7 @@ def finetune(cfg, encoder_ckpt: str):
 
     model = NextSentencePredictor(base, hidden_size=base.config.hidden_size).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.09)
-    criterion = nn.MSELoss()
+    criterion =  nn.CrossEntropyLoss()
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 
     best_val = 0.0
@@ -105,15 +105,14 @@ def finetune(cfg, encoder_ckpt: str):
                 return_tensors="pt"
             )
             enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
-            input_ids = enc["input_ids"].view(len(batch["label"]), 2, -1)
-            attention_mask = enc["attention_mask"].view(len(batch["label"]), 2, -1)
 
             labels = torch.tensor(batch["label"], dtype=torch.long)
             labels = labels.to(dev, non_blocking=True)
 
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
-                logits = model(input_ids, attention_mask)
+                logits = model(enc["input_ids"].view(len(batch["label"]), 2, -1),
+                               enc["attention_mask"].view(len(batch["label"]), 2, -1))
                 loss = criterion(logits, labels)
 
             scaler.scale(loss).backward()
@@ -121,14 +120,13 @@ def finetune(cfg, encoder_ckpt: str):
             scaler.update()
 
             running += loss.item() * labels.size(0)
-            y_pred.extend(logits.detach().cpu().tolist())
+            y_pred.extend(logits.detach().cpu().argmax(-1).tolist())
             y_true.extend(labels.detach().cpu().tolist())
 
         epoch_loss = running / len(train_loader.dataset)
         train_f1 = f1_score(y_pred, y_true)
         train_val = accuracy_score(y_pred, y_true)
-        final_score = (pearson + spearman) / 2
-        print(f"Epoch {epoch}: Train Loss={epoch_loss:.4f}, acc={train_val:.4f}, f1={train_f1:.4f}, Final={final_score:.4f}")
+        print(f"Epoch {epoch}: Train Loss={epoch_loss:.4f}, acc={train_val:.4f}, f1={train_f1:.4f}")
 
         # validate
         model.eval()
@@ -158,15 +156,14 @@ def finetune(cfg, encoder_ckpt: str):
                     return_tensors="pt"
                 )
                 enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
-                input_ids = enc["input_ids"].view(len(batch["label"]), 2, -1)
-                attention_mask = enc["attention_mask"].view(len(batch["label"]), 2, -1)
 
                 labels = torch.tensor(batch["label"], dtype=torch.long)
                 labels = labels.to(dev, non_blocking=True)
-                logits = model(enc["input_ids"], enc["attention_mask"])
+                logits = model(enc["input_ids"].view(len(batch["label"]), 2, -1),
+                               enc["attention_mask"].view(len(batch["label"]), 2, -1))
                 #logits = logits.squeeze(-1)
                 v_true.extend(labels.cpu().tolist())
-                v_pred.extend(logits.cpu().tolist())
+                v_pred.extend(logits.detach().cpu().argmax(-1).tolist())
 
         val_f1 = f1_score(v_pred, v_true)
         val_acc = accuracy_score(v_pred, v_true)

@@ -84,7 +84,7 @@ class JEPA(nn.Module):
         self.ema_decay = ema_decay
         self.use_cls = use_cls
         #freeze_distilbert_layers(self.encoder)
-        #freeze_bert_layers(self.encoder)
+        freeze_bert_layers(self.encoder)
 
     @torch.no_grad()
     def update_target(self):
