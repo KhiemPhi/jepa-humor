@@ -70,7 +70,7 @@ def pretrain(cfg):
     
     split = {}
     split['train'] = ds['train']
-    split['train'] = split['train'].filter(lambda x: x['label'] == 1)
+    #split['train'] = split['train'].filter(lambda x: x['label'] == 1)
     split['test'] = ds['validation']
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
@@ -145,7 +145,7 @@ def pretrain(cfg):
                 "loss": epoch_loss,
                 "encoder_state_dict": jepa.encoder.state_dict(),
                 "jepa_state_dict": jepa.state_dict()
-            }, os.path.join(cfg["ckpt_dir"], "best.pt"))
+            }, os.path.join(cfg["ckpt_dir"], "best_sst2.pt"))
         else:
             patience += 1
             if patience >= cfg["early_stop_patience"]:
@@ -153,4 +153,4 @@ def pretrain(cfg):
                 break
 
     # return path to best encoder
-    return os.path.join(cfg["ckpt_dir"], "best.pt")
+    return os.path.join(cfg["ckpt_dir"], "best_sst2.pt")

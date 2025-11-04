@@ -7,7 +7,7 @@ import random
 
 
 def load_hf_splits(name: str, test_size=0.2, seed=42):
-    ds = load_dataset(name, 'cola')
+    ds = load_dataset(name, 'sst2')
    
     return ds
 
