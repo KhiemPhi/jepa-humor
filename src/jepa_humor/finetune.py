@@ -27,7 +27,7 @@ class TemperatureClassifier(nn.Module):
         return self.linear(x) / self.T
 
 class EntailmentSentenceClassifier(nn.Module):
-    def __init__(self, encoder, hidden_size=768, num_labels=2, dropout=0.1):
+    def __init__(self, encoder, hidden_size=768, num_labels=3, dropout=0.1):
         super().__init__()
         self.encoder = encoder
         self.dropout = nn.Dropout(dropout)
@@ -51,7 +51,7 @@ def finetune(cfg, encoder_ckpt: str):
         base = load_encoder_state(base, encoder_ckpt, map_location="cpu")
 
     ds = load_hf_splits(cfg["dataset"])
-    train_loader, val_loader = make_dataloaders(ds["train"], ds["validation"], cfg["batch_size"], cfg["num_workers"])
+    train_loader, val_loader = make_dataloaders(ds["train"], ds["validation_matched"], cfg["batch_size"], cfg["num_workers"])
 
     model = EntailmentSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
 
@@ -70,7 +70,7 @@ def finetune(cfg, encoder_ckpt: str):
 
     # Run 5 times and select the best
     set_seed(cfg["seed"])
-    for run in range(1, 10):
+    for run in range(1, 2):
         print(f"\n{'='*60}")
         print(f"Run {run}/10")
         print(f"{'='*60}")
@@ -95,8 +95,8 @@ def finetune(cfg, encoder_ckpt: str):
             running, y_true, y_pred = 0.0, [], []
 
             for batch in tqdm(train_loader, desc=f"Finetune {epoch}/{cfg['epochs']}", leave=False):
-                sent1 = batch["sentence1"]
-                sent2 = batch["sentence2"]
+                sent1 = batch["premise"]
+                sent2 = batch["hypothesis"]
                 labels = torch.tensor(batch["label"], dtype=torch.long).to(dev, non_blocking=True)
 
                 # ✅ Stable consistent padding
@@ -130,13 +130,13 @@ def finetune(cfg, encoder_ckpt: str):
 
             print(f"[Finetune] epoch {epoch}: loss={running/len(train_loader):.4f} | acc={accuracy_score(y_true,y_pred):.4f}")
 
-            # ---- Validation Pass ----
+            # ---- validation_matched Pass ----
             model.eval()
             v_true, v_pred = [], []
             with torch.no_grad():
                 for batch in val_loader:
-                    sent1 = batch["sentence1"]
-                    sent2 = batch["sentence2"]
+                    sent1 = batch["premise"]
+                    sent2 = batch["hypothesis"]
                     labels = torch.tensor(batch["label"], dtype=torch.long).to(dev, non_blocking=True)
 
                     enc = tokenizer(
@@ -160,14 +160,14 @@ def finetune(cfg, encoder_ckpt: str):
         if best_val_acc > best_run_val_acc:
             best_run_val_acc = best_val_acc
             best_model_state = model.state_dict().copy()
-            print(f"  ✓ New best run! Validation acc: {best_run_val_acc:.4f}")
+            print(f"  ✓ New best run! validation_matched acc: {best_run_val_acc:.4f}")
         else:
             print(f"  Run {run} best val acc: {best_val_acc:.4f} (overall best: {best_run_val_acc:.4f})")
 
     # Load the best model
     print(f"\n{'='*60}")
-    print(f"Best run validation accuracy: {best_run_val_acc:.4f}")
-   #print(f"Mean validation accuracy: {np.mean(val_acc_list):.4f}")
+    print(f"Best run validation_matched accuracy: {best_run_val_acc:.4f}")
+   #print(f"Mean validation_matched accuracy: {np.mean(val_acc_list):.4f}")
     print(f"{'='*60}\n")
     model = EntailmentSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
     model.load_state_dict(best_model_state)

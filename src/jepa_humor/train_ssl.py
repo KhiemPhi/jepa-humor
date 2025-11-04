@@ -70,8 +70,8 @@ def pretrain(cfg):
     
     split = {}
     split['train'] = ds['train']
-    split['train'] = split['train'].filter(lambda x: x['label'] == 0)
-    split['test'] = ds['validation']
+    split['train'] = split['train'].filter(lambda x: x['label'] != 1)
+    split['test'] = ds['validation_matched']
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(split['train'])}")
@@ -86,8 +86,8 @@ def pretrain(cfg):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
-            sent1 = batch["sentence1"]
-            sent2 = batch["sentence2"]
+            sent1 = batch["premise"]
+            sent2 = batch["hypothesis"]
 
 
             keep_tok_sent1, target_tok_sent1, keep_tok_sent2, target_tok_sent2, mask_sent1, mask_sent2, spans_used_sent1, spans_used_sent2 = make_second_sent_mask_views(

@@ -7,16 +7,16 @@ from torch.utils.data import WeightedRandomSampler
 
 
 def load_hf_splits(name: str, test_size=0.2, seed=42):
-    ds = load_dataset(name, 'rte')
+    ds = load_dataset(name, 'mnli')
    
     return ds
 
 def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True, tokenizer=None):
     # Both datasets must yield dicts with at least {"text", "humor"}
     collate = lambda batch: {
-        "sentence1": [b["sentence1"] for b in batch],
-        "sentence2": [b["sentence2"] for b in batch],
-        "label": [bool(b["label"]) for b in batch]
+        "premise": [b["premise"] for b in batch],
+        "hypothesis": [b["hypothesis"] for b in batch],
+        "label": [b["label"] for b in batch]
     }
     # fixed generator for deterministic shuffling
     seed = 42
@@ -45,7 +45,8 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
         collate_fn=collate,
         pin_memory=True,
         generator=g,
-        worker_init_fn=seed_worker
+        worker_init_fn=seed_worker, 
+        
     )
 
     test_loader = DataLoader(
