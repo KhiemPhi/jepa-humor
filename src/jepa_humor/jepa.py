@@ -26,19 +26,21 @@ def jepa_loss(pred, target, mask=None, temperature=0.1):
 
     return loss
 
-def freeze_distilbert_layers(encoder, unfreeze_last_n=2):
-    # DistilBERT has encoder.transformer.layer[i]
+def freeze_bert_layers(encoder, freeze_last_n=2):
+    # BERT has encoder.encoder.layer[i]
+    # Unfreeze all layers initially
     for p in encoder.parameters():
-        p.requires_grad = False
-    # unfreeze last N layers
-    for i in range(6 - unfreeze_last_n, 6):
-        for p in encoder.transformer.layer[i].parameters():
-            p.requires_grad = True
+        p.requires_grad = True
+    # Freeze all but the last N layers
+    for i in range(0, encoder.config.num_hidden_layers - freeze_last_n):
+        for p in encoder.encoder.layer[i].parameters():
+            p.requires_grad = False
     # keep LayerNorms trainable in the whole stack (optional)
     for m in encoder.modules():
         if isinstance(m, torch.nn.LayerNorm):
             for p in m.parameters():
                 p.requires_grad = True
+
 
 class JEPA(nn.Module):
     def __init__(self, initial_encoder, hidden_size=768, pred_hid=128, ema_decay=0.996, use_cls=False):
@@ -55,7 +57,7 @@ class JEPA(nn.Module):
         )
         self.ema_decay = ema_decay
         self.use_cls = use_cls
-        #freeze_distilbert_layers(self.encoder)
+        #freeze_bert_layers(self.encoder)
 
     @torch.no_grad()
     def update_target(self):
@@ -64,11 +66,11 @@ class JEPA(nn.Module):
             p_t.data.mul_(d).add_(p_o.data, alpha=1 - d)
 
     def forward(self, context_inputs, target_inputs, mask=None, temperature=0.1):
-        online = self.encoder(**context_inputs).last_hidden_state   # [B,T,D]
+        online = self.encoder(**context_inputs).last_hidden_state  # use pooled output
         pred   = self.predictor(online)
 
         with torch.no_grad():
-            target = self.target_encoder(**target_inputs).last_hidden_state
+            target = self.target_encoder(**target_inputs).last_hidden_state  # use pooled output
       
         loss = jepa_loss(pred, target, mask, temperature)
         return loss, pred, target

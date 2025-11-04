@@ -121,3 +121,26 @@ Best MCC for Train MCC = 0.6593 at threshold = 0.380
 [Finetune] epoch 10: loss=0.3754 mcc=0.6512 f1=0.8824
           val: mcc=0.5347 f1=0.8729
 ✅ Finetune done.
+
+/home/khiem/nlp/src/jepa_humor/finetune.py:87: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
+[Finetune] epoch 1: loss=0.1067 | acc=0.9928                                                                                                                                                                                    
+          val: acc=0.6137 (best=0.6137)
+[Finetune] epoch 2: loss=0.0293 | acc=0.9952                                                                                                                                                                                    
+          val: acc=0.6498 (best=0.6498)
+[Finetune] epoch 3: loss=0.0095 | acc=0.9984                                                                                                                                                                                    
+          val: acc=0.6534 (best=0.6534)
+[Finetune] epoch 4: loss=0.0033 | acc=0.9996                                                                                                                                                                                    
+          val: acc=0.6498 (best=0.6534)
+  Run 9 best val acc: 0.6534 (overall best: 0.6679)
+
+============================================================
+Best run validation accuracy: 0.6679
+============================================================
+
+>>> np.mean( [0.6715, 0.6137, 0.6245, 0.6534, 0.6282, 0.6173, 0.6173, 0.6606, 0.6426] ) 
+0.6365666666666666
+>>> np.mean( [0.5957, 0.6137, 0.5993, 0.6318, 0.6426, 0.6679, 0.6462, 0.6426, 0.6534] )
+0.6325777777777777
+>>> np.mean( [0.6390, 0.6498, 0.6498, 0.6426, 0.6462, 0.6643, 0.6390, 0.6606, 0.6318] )
+0.6470111111111111

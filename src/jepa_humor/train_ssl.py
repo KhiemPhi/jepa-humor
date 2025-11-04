@@ -70,7 +70,7 @@ def pretrain(cfg):
     
     split = {}
     split['train'] = ds['train']
-    split['train'] = split['train'].filter(lambda x: x['label'] == 1)
+    split['train'] = split['train'].filter(lambda x: x['label'] == 0)
     split['test'] = ds['validation']
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
@@ -90,14 +90,17 @@ def pretrain(cfg):
             sent2 = batch["sentence2"]
 
 
-            keep_tok, target_tok, mask, _ = make_second_sent_mask_views(
+            keep_tok_sent1, target_tok_sent1, keep_tok_sent2, target_tok_sent2, mask_sent1, mask_sent2, spans_used_sent1, spans_used_sent2 = make_second_sent_mask_views(
                 sent1 = sent1, sent2 = sent2, tokenizer=tokenizer, max_length=cfg["max_length"]
             )
             
             
-            keep_tok   = {k: v.to(dev, non_blocking=True) for k, v in keep_tok.items()}
-            target_tok = {k: v.to(dev, non_blocking=True) for k, v in target_tok.items()}
-            mask       = mask.to(dev, non_blocking=True)
+            keep_tok_sent1 = {k: v.to(dev, non_blocking=True) for k, v in keep_tok_sent1.items()}
+            target_tok_sent1 = {k: v.to(dev, non_blocking=True) for k, v in target_tok_sent1.items()}
+            keep_tok_sent2 = {k: v.to(dev, non_blocking=True) for k, v in keep_tok_sent2.items()}
+            target_tok_sent2 = {k: v.to(dev, non_blocking=True) for k, v in target_tok_sent2.items()}
+            mask_sent1       = mask_sent1.to(dev, non_blocking=True)
+            mask_sent2       = mask_sent2.to(dev, non_blocking=True)
             # # Decode a single tensor (e.g. from keep_tok)
             # decoded_keep = tokenizer.batch_decode(
             #     keep_tok["input_ids"], 
@@ -113,7 +116,9 @@ def pretrain(cfg):
 
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
-                loss, pred, target = jepa(keep_tok, target_tok, mask)
+                loss_sent1, pred_sent1, target_sent1 = jepa(keep_tok_sent1, target_tok_sent1, mask_sent1)
+                loss_sent2, pred_sent2, target_sent2 = jepa(keep_tok_sent2, target_tok_sent2, mask_sent2)
+                loss = (loss_sent1 + loss_sent2) / 2
             
           
 
