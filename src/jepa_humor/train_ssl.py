@@ -4,7 +4,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from transformers import AutoTokenizer, AutoModel
 from .utils import set_seed, device, save_ckpt
-from .masking import make_second_sent_mask_views
+from .masking import make_hypothesis_mask_views
 from .jepa import JEPA
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import os
@@ -85,12 +85,12 @@ def pretrain(cfg):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
-            sent1 = batch["question1"]
-            sent2 = batch["question2"]
+            premise = batch["premise"]
+            hypothesis = batch["hypothesis"]
 
 
-            keep_tok, target_tok, mask, _ = make_second_sent_mask_views(
-                sent1 = sent1, sent2 = sent2, tokenizer=tokenizer, max_length=cfg["max_length"]
+            keep_tok, target_tok, mask, _ = make_hypothesis_mask_views(
+                premise = premise, hypothesis = hypothesis, tokenizer=tokenizer, max_length=cfg["max_length"]
             )
             
             
