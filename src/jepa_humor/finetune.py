@@ -15,7 +15,7 @@ import numpy as np
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class ContradictionSentenceClassifier(nn.Module):
-    def __init__(self, encoder, hidden_size=768, num_labels=1, dropout=0.5):
+    def __init__(self, encoder, hidden_size=768, num_labels=3, dropout=0.5):
         super().__init__()
         self.encoder = encoder
         self.dropout = nn.Dropout(dropout)
@@ -52,6 +52,8 @@ def finetune(cfg, encoder_ckpt: str):
     criterion = nn.CrossEntropyLoss()
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 
+    best_f1_score = 0.0
+    best_acc_score = 0.0
     for epoch in range(1, cfg["epochs"] + 1):
         # train
         model.train()
@@ -80,7 +82,7 @@ def finetune(cfg, encoder_ckpt: str):
             y_pred.extend(logits.detach().cpu().argmax(-1).tolist())
 
         train_acc = accuracy_score(y_true, y_pred)
-        train_f1 = f1_score(y_true, y_pred)
+        train_f1 = f1_score(y_true, y_pred, average='macro')
         print(f"[Finetune] epoch {epoch}: loss={running/len(train_loader):.4f} acc={train_acc:.4f} f1={train_f1:.4f}")
 
         # validate
@@ -101,7 +103,10 @@ def finetune(cfg, encoder_ckpt: str):
                 v_pred.extend(logits.cpu().argmax(-1).tolist())
 
         val_acc = accuracy_score(v_true, v_pred)
-        val_f1 = f1_score(v_true, v_pred)
+        val_f1 = f1_score(v_true, v_pred, average='macro')
+        best_f1_score = max(best_f1_score, val_f1)
+        best_acc_score = max(best_acc_score, val_acc)
         print(f"          val: acc={val_acc:.4f} f1={val_f1:.4f}")
+        print(f"          Best val: acc={best_acc_score:.4f} f1={best_f1_score:.4f}")
 
     return model
