@@ -4,7 +4,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from transformers import AutoTokenizer, AutoModel
 from .utils import set_seed, device, save_ckpt
-from .masking import make_second_sent_mask_views
+from .masking import make_second_sent_mask_views, make_copa_format_mask_views
 
 from .jepa import JEPA
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -99,8 +99,9 @@ def pretrain(cfg):
             sent2 = batch["true_sentence"]
 
 
-            keep_tok, target_tok, mask, _ = make_second_sent_mask_views(
-                sent1 = sent1, sent2 = sent2, tokenizer=tokenizer, max_length=cfg["max_length"]
+            # Use COPA format: premise [SEP] true_sentence (consistent with fine-tuning)
+            keep_tok, target_tok, mask, _ = make_copa_format_mask_views(
+                sent1=sent1, sent2=sent2, tokenizer=tokenizer, max_length=cfg["max_length"]
             )
             
             
