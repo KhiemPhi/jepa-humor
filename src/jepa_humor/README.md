@@ -14,6 +14,7 @@ python -m scripts.finetune --config configs/finetune_fresh.yml --encoder_ckpt fr
 Comparison: acc: 0.49
 
 BERT-Base+JEPA: 0.63 Acc 
+BERT-Large: 0.57 Acc 
 
 Epoch 10, freeze 1 layer: 0.5
 Epoch 5, freeze 2 layers: 0.51
