@@ -9,7 +9,7 @@ def set_seed(seed: int):
     torch.cuda.manual_seed_all(seed)
 
 def device():
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
 
 def save_ckpt(state, path: str):
     os.makedirs(os.path.dirname(path), exist_ok=True)

@@ -1,12 +1,12 @@
 seed: 42
-model_name: distilbert/distilbert-base-uncased   # ignored if --ckpt provided
+model_name: bert-base-uncased   # ignored if --ckpt provided
 dataset: allenai/swag
-max_length: 256
-batch_size: 2000
+max_length: 128
+batch_size: 16
 num_workers: 4
-epochs: 10
-lr: 1.0e-4
+epochs: 3
+lr: 2.0e-5
 mixed_precision: true
 log_dir: runs/finetune
 ckpt_dir: checkpoints/finetune
-val_split: 0.99
+

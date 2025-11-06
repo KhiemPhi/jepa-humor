@@ -11,6 +11,7 @@ from .train_ssl import pretrain
 import os
 from torch import amp
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+from transformers import get_linear_schedule_with_warmup
 
 class NextPhrasePredictor(nn.Module):
     def __init__(self, encoder, hidden_dim=768, mlp_hidden=512):
@@ -20,36 +21,68 @@ class NextPhrasePredictor(nn.Module):
         self.dropout = nn.Dropout(0.1)
         # MLP scoring head
         self.classifier = nn.Linear(hidden_dim, 1)
+        nn.init.normal_(self.classifier.weight, std=0.02)
+        nn.init.zeros_(self.classifier.bias)
 
-    def forward(self, input_ids, attention_mask ):
-        """
-        input_ids: (B*4, L)
-        attention_mask: (B*4, L)
-        Returns:
-            logits: (B, 4)
-        """
-        B, C, L = input_ids.shape  # B=batch size, C=num_choices
+    def forward(self, input_ids, attention_mask):
+        B, C, L = input_ids.shape
         input_ids = input_ids.view(B*C, L)
+        attention_mask = attention_mask.view(B*C, L)
+
         outputs = self.encoder(
-            input_ids,
-            attention_mask = attention_mask.view(B*C, L),
+            input_ids=input_ids,
+            attention_mask=attention_mask,
         )
-        last_hidden = outputs.last_hidden_state  # (B*4, seq_len, hidden_size)
-        pooled_output = last_hidden[:, 0, :]    # Take CLS token
-        logits = self.classifier(self.dropout(pooled_output))  # (B*C, 1)
-        logits = logits.view(B, C)  # (B, num_choices)
-        return logits
+        pooled = outputs.pooler_output if hasattr(outputs, "pooler_output") else outputs.last_hidden_state[:, 0, :]
+        logits = self.classifier(self.dropout(pooled))
+        return logits.view(B, C)
+
+def encode_multiple_choice(batch, tokenizer, max_length, device):
+    """
+    batch: dict with keys ["sent1", "next_sentence0"..."next_sentence3", "label"]
+    Returns:
+      input_ids: (B, 4, L)
+      attention_mask: (B, 4, L)
+      labels: (B,)
+    """
+
+    endings = ["ending0", "ending1", "ending2", "ending3"]
+
+    # Build list of 4 candidate full sentences per example
+    all_pairs = []
+    for i in range(len(batch["sent1"])):
+        context = batch["sent1"][i] + " " + batch["sent2"][i]  # or sent1+sent2 depending on dataset
+        candidates = [batch[e][i] for e in endings]
+        # Form 4 text pairs: (context, ending)
+        pairs = [(context, c) for c in candidates]
+        all_pairs.extend(pairs)
+
+    # Tokenize all pairs at once
+    enc = tokenizer(
+        [p[0] for p in all_pairs],
+        [p[1] for p in all_pairs],
+        return_tensors="pt",
+        padding="max_length",
+        truncation=True,
+        max_length=max_length
+    ).to(device)
+
+    B = len(batch["sent1"])
+    input_ids = enc["input_ids"].view(B, 4, -1)
+    attention_mask = enc["attention_mask"].view(B, 4, -1)
+
+    labels = torch.tensor(batch["label"], dtype=torch.long).to(device)
+
+    return input_ids, attention_mask, labels
 
 ending_names = ["ending0", "ending1", "ending2", "ending3"]
-
 next_sentences = ["next_sentence0", "next_sentence1", "next_sentence2", "next_sentence3"]
 
 def make_next_sentence(example):
-    res = {}
-    for i in range(4):
-        res[next_sentences[i]] = example["sent2"] + " " + example[ending_names[i]]
-    res['true_next_sentence'] = example["sent2"] + " " + example[ending_names[example['label']]]
-    return res
+    example = dict(example)  # clone input
+    example['true_next_sentence'] = example["sent2"] + " " + example[ending_names[example['label']]]
+    example['true_start_sentence'] = example["sent1"] + " " + example["sent2"]
+    return example
 
 def finetune(cfg, encoder_ckpt: str):
     set_seed(cfg["seed"])
@@ -58,7 +91,8 @@ def finetune(cfg, encoder_ckpt: str):
     # 1. Load Encoder
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_name"])
     base = AutoModel.from_pretrained(cfg["model_name"]) if encoder_ckpt is None else AutoModel.from_pretrained(cfg["model_name"])
-    if encoder_ckpt:
+    
+    if encoder_ckpt and encoder_ckpt != "fresh":
         print(f"Loading pretrained encoder from {encoder_ckpt}")
         base = load_encoder_state(base, encoder_ckpt, map_location="cpu")
     else: 
@@ -67,7 +101,7 @@ def finetune(cfg, encoder_ckpt: str):
     ds = load_hf_splits(cfg["dataset"], "regular")
     ds['test'] = ds['validation']
     del ds['validation']
-    ds = ds.map( make_next_sentence)
+    ds = ds.map(make_next_sentence)
     # split train/val from train_ds
     
     split = ds
@@ -80,51 +114,27 @@ def finetune(cfg, encoder_ckpt: str):
     print(f"Test dataset size: {len(ds['test'])}")
 
     model = NextPhrasePredictor(base, hidden_dim=base.config.hidden_size).to(dev)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"])
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg.get("weight_decay", 0.01))
     criterion = nn.CrossEntropyLoss()
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
+     # ✅ Standard GLUE schedule: linear warmup → linear decay
+    total_steps = len(train_loader) * cfg["epochs"]
+    warmup_steps = int(0.1 * total_steps)
+    scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, total_steps)
+    
+    scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
+    best_val_acc = 0.0
 
     for epoch in range(1, cfg["epochs"] + 1):
         # train
         model.train()
         running, y_true, y_pred = 0.0, [], []
         for batch in tqdm(train_loader, desc=f"Finetune {epoch}/{cfg['epochs']}", leave=False):
-            start_phrase = list(batch["sent1"])
-            ending0, ending1, ending2, ending3 = (
-                list(batch["next_sentence0"]),
-                list(batch["next_sentence1"]),
-                list(batch["next_sentence2"]),
-                list(batch["next_sentence3"]),
-            )
-
-            #start_phrase = tokenizer(list(start_phrase), return_tensors="pt", padding="longest", truncation=True, max_length=cfg["max_length"])
-            #start_phrase = {k: v.to(dev, non_blocking=True) for k, v in start_phrase.items()}
-
-            endings = [ending0, ending1, ending2, ending3]
-            num_choices = len(endings)
-
-            # Flatten the pairs (so tokenizer can handle them all at once)
-            first_sentences = [[s] * num_choices for s in start_phrase]
-            second_sentences = list(zip(*endings))  # [(ending0[i], ending1[i], ...), ...]
-
-            # Flatten properly
-            first_sentences_flat = sum(first_sentences, [])  # still okay, already lists
-            second_sentences_flat = [s for tup in second_sentences for s in tup]
-
-            # Tokenize
-            enc = tokenizer(
-                first_sentences_flat,
-                second_sentences_flat,
-                padding=True,
-                truncation=True,
-                max_length=128,
-                return_tensors="pt"
-            )
-            enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
-            input_ids = enc["input_ids"].view(len(batch["label"]), 4, -1)
-            attention_mask = enc["attention_mask"].view(len(batch["label"]), 4, -1)
-
-            labels = torch.tensor(batch["label"], dtype=torch.long)
+            input_ids, attention_mask, labels = encode_multiple_choice(batch, tokenizer, cfg["max_length"], dev)
+            input_ids = input_ids.to(dev, non_blocking=True)
+            attention_mask = attention_mask.to(dev, non_blocking=True)
+            
+            #labels = torch.tensor(batch["label"], dtype=torch.long)
             labels = labels.to(dev, non_blocking=True)
 
             opt.zero_grad(set_to_none=True)
@@ -133,9 +143,11 @@ def finetune(cfg, encoder_ckpt: str):
                 loss = criterion(logits, labels)
 
             scaler.scale(loss).backward()
+            scaler.unscale_(opt) 
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             scaler.step(opt)
             scaler.update()
-
+            scheduler.step()
             running += float(loss.item())
             y_true.extend(labels.detach().cpu().tolist())
             y_pred.extend(logits.detach().cpu().argmax(-1).tolist())
@@ -149,43 +161,11 @@ def finetune(cfg, encoder_ckpt: str):
         v_true, v_pred = [], []
         with torch.no_grad():
             for batch in val_loader:
-                start_phrase = list(batch["sent1"])
-                ending0, ending1, ending2, ending3 = (
-                    list(batch["next_sentence0"]),
-                    list(batch["next_sentence1"]),
-                    list(batch["next_sentence2"]),
-                    list(batch["next_sentence3"]),
-                )
+                input_ids, attention_mask, labels = encode_multiple_choice(batch, tokenizer, cfg["max_length"], dev)
+                input_ids = input_ids.to(dev, non_blocking=True)
+                attention_mask = attention_mask.to(dev, non_blocking=True)
+                #labels = labels.to(dev, non_blocking=True)
 
-                #start_phrase = tokenizer(list(start_phrase), return_tensors="pt", padding="longest", truncation=True, max_length=cfg["max_length"])
-                #start_phrase = {k: v.to(dev, non_blocking=True) for k, v in start_phrase.items()}
-
-                endings = [ending0, ending1, ending2, ending3]
-                num_choices = len(endings)
-
-                # Flatten the pairs (so tokenizer can handle them all at once)
-                first_sentences = [[s] * num_choices for s in start_phrase]
-                second_sentences = list(zip(*endings))  # [(ending0[i], ending1[i], ...), ...]
-
-                # Flatten properly
-                first_sentences_flat = sum(first_sentences, [])  # still okay, already lists
-                second_sentences_flat = [s for tup in second_sentences for s in tup]
-
-                # Tokenize
-                enc = tokenizer(
-                    first_sentences_flat,
-                    second_sentences_flat,
-                    padding=True,
-                    truncation=True,
-                    max_length=128,
-                    return_tensors="pt"
-                )
-                enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
-                input_ids = enc["input_ids"].view(len(batch["label"]), 4, -1)
-                attention_mask = enc["attention_mask"].view(len(batch["label"]), 4, -1)
-
-                labels = torch.tensor(batch["label"], dtype=torch.long)
-                labels = labels.to(dev, non_blocking=True)
                 logits = model(input_ids, attention_mask)
                 v_true.extend(labels.cpu().tolist())
                 v_pred.extend(logits.cpu().argmax(-1).tolist())

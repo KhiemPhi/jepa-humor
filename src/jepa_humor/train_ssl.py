@@ -12,21 +12,9 @@ from torch import amp
 import torch.nn.functional as F
 import math
 
-def freeze_distilbert_layers(encoder, unfreeze_last_n=2):
-    # DistilBERT has encoder.transformer.layer[i]
-    for p in encoder.parameters():
-        p.requires_grad = False
-    # unfreeze last N layers
-    for i in range(6 - unfreeze_last_n, 6):
-        for p in encoder.transformer.layer[i].parameters():
-            p.requires_grad = True
-    # keep LayerNorms trainable in the whole stack (optional)
-    for m in encoder.modules():
-        if isinstance(m, torch.nn.LayerNorm):
-            for p in m.parameters():
-                p.requires_grad = True
 
-def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=0.01, total_steps=1000, warmup_ratio=0.06):
+
+def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=0.01, total_steps=1000, warmup_ratio=0.1):
     # param groups: predictor (higher LR), encoder (lower LR), target is frozen
     pred_params = list(jepa.predictor.parameters())
     enc_params  = [p for p in jepa.encoder.parameters() if p.requires_grad]
@@ -55,18 +43,17 @@ ending_names = ["ending0", "ending1", "ending2", "ending3"]
 next_sentences = ["next_sentence0", "next_sentence1", "next_sentence2", "next_sentence3"]
 
 def make_next_sentence(example):
-    res = {}
-    for i in range(4):
-        res[next_sentences[i]] = example["sent2"] + " " + example[ending_names[i]]
-    res['true_next_sentence'] = example["sent2"] + " " + example[ending_names[example['label']]]
-    return res
+    example = dict(example)  # clone input
+    example['true_next_sentence'] =  example[ending_names[example['label']]]
+    example["true_start_sentence"] = example["sent1"] + " " + example["sent2"]
+    return example
 
 def pretrain(cfg):
     set_seed(cfg["seed"])
     dev = device()
 
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_name"])
-    base = AutoModel.from_pretrained(cfg["model_name"])
+    base = AutoModel.from_pretrained(cfg["model_name"], trust_remote_code=True)
     if tokenizer.mask_token_id is None:
         raise ValueError("Tokenizer must have a [MASK] token.")
 
@@ -79,7 +66,7 @@ def pretrain(cfg):
     ds = load_hf_splits(cfg["dataset"], "regular")
     ds['test'] = ds['validation']
     del ds['validation']
-    ds = ds.map( make_next_sentence)
+    ds = ds.map( make_next_sentence, load_from_cache_file=False,)
     # split train/val from train_ds
     
     split = ds
@@ -89,7 +76,7 @@ def pretrain(cfg):
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")
-    opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=cfg["lr"])
+    opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=1e-5, lr_enc=cfg["lr"])
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 
     best = float("inf")
@@ -99,9 +86,9 @@ def pretrain(cfg):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
-            sent1 = list(batch["sent1"])
+            sent1 = list(batch["true_start_sentence"])
             sent2 = list(batch["true_next_sentence"])
-            
+          
             keep_tok, target_tok, mask, _ = make_next_phrases_mask_views(
                 startphrase=sent1, nextphrase = sent2, tokenizer=tokenizer, max_length=cfg["max_length"],
             )
