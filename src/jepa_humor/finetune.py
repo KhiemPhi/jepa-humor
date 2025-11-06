@@ -48,7 +48,7 @@ def finetune(cfg, encoder_ckpt: str):
     print(f"Test dataset size: {len(ds['validation'])}")
 
     model = ContradictionSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.17)
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.01)
     criterion = nn.CrossEntropyLoss()
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 

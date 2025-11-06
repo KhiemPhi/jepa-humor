@@ -11,12 +11,14 @@ python -m scripts.finetune --config configs/finetune_fresh.yml --encoder_ckpt fr
 
 
 
-Comparision score = [Finetune] epoch 15: loss=0.0075 acc=1.0000 f1=1.0000                                                                                                  
-          val: acc=0.8214 f1=0.8397
-          Best val: acc=0.8214 f1=0.8397
+Comparision Bert_base_score = [Finetune] epoch 15: loss=0.0205 acc=1.0000 f1=1.0000                                                                                             
+          val: acc=0.8393 f1=0.8284
+          Best val: acc=0.8393 f1=0.8284
 
+Bert_large_score: [Finetune] epoch 15: loss=0.0051 acc=1.0000 f1=1.0000                                                                                             
+          val: acc=0.8571 f1=0.8502
+          Best val: acc=0.8750 f1=0.8821
 
-
-          epoch6 [Finetune] epoch 15: loss=0.0196 acc=1.0000 f1=1.0000                                                                                                  
-          val: acc=0.8571 f1=0.8272
-          Best val: acc=0.8571 f1=0.8272
+Bert_base + JEPA: pretrain 10: [Finetune] epoch 15: loss=0.0163 acc=1.0000 f1=1.0000                                                                                                  
+          val: acc=0.85393 f1=0.8135
+          Best val: acc=0.8571 f1=0.8650
