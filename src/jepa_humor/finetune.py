@@ -2,16 +2,18 @@ from dataclasses import dataclass
 from tqdm import tqdm
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler
+from torch.cuda.amp import autocast, GradScaler
 from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
-from transformers import AutoTokenizer, AutoModel, get_linear_schedule_with_warmup
-from sklearn.metrics import accuracy_score
+from transformers import AutoTokenizer, AutoModel
+from sklearn.metrics import accuracy_score, f1_score
 from .utils import set_seed, device, load_encoder_state
 from .data import load_hf_splits, make_dataloaders, load_hf_splits_test
+from .train_ssl import pretrain
 import os
+from torch import amp
+from transformers import get_linear_schedule_with_warmup
 import torch.nn.utils as nn_utils
 import numpy as np
-
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
@@ -38,47 +40,76 @@ class EntailmentSentenceClassifier(nn.Module):
         return self.classifier(self.dropout(pooled))
 
 
+# --- PGD Adversarial Attack (Minimal, In-Place) ---
+def pgd_attack(model, input_ids, attention_mask, labels, epsilon=1.0, alpha=0.3, iters=3):
+    embed = model.encoder.get_input_embeddings()
+    orig_embeddings = embed(input_ids).detach()  # [B, L, D] - detach original
+    delta = torch.zeros_like(orig_embeddings).uniform_(-epsilon, epsilon)
+    delta = delta.to(input_ids.device)
+    delta.requires_grad = True
+
+    for _ in range(iters):
+        delta.grad = None
+        adv_embeds = orig_embeddings + delta
+
+        # Forward through encoder + classifier
+        outputs = model.encoder(inputs_embeds=adv_embeds, attention_mask=attention_mask)
+        pooled = outputs.pooler_output if outputs.pooler_output is not None else outputs.last_hidden_state[:, 0, :]
+        logits = model.classifier(model.dropout(pooled))
+        loss = nn.CrossEntropyLoss()(logits, labels)
+
+        # Backward only for PGD update
+        loss.backward()
+
+        # Update delta
+        delta.data = delta.data + alpha * delta.grad.sign()
+        delta.data = torch.clamp(delta.data, -epsilon, epsilon)
+        delta.grad = None
+
+        # CRITICAL: Detach to break graph
+        delta = delta.detach()
+        delta.requires_grad = True
+
+    return delta.detach()
+
+
 def finetune(cfg, encoder_ckpt: str):
     dev = device()
-
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_name"])
     base = AutoModel.from_pretrained(cfg["model_name"]) if encoder_ckpt is None else AutoModel.from_pretrained(cfg["model_name"])
-
     if encoder_ckpt != "fresh":
         print(f"Loading pretrained encoder from {encoder_ckpt}")
         base = load_encoder_state(base, encoder_ckpt, map_location="cpu")
 
-    ds = load_hf_splits(cfg["dataset"])
-    test_ds = load_hf_splits_test(cfg["test_dataset"])
-    train_loader, val_loader = make_dataloaders(ds["train"], test_ds["validation"], cfg["batch_size"], cfg["num_workers"])
+    ds = load_hf_splits(cfg["dataset"]) 
+    ds_test = load_hf_splits_test(cfg["test_dataset"])
+    train_loader, val_loader = make_dataloaders(ds["train"], ds_test["validation"], cfg["batch_size"], cfg["num_workers"])
 
     model = EntailmentSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
-
-    lr = float(cfg["lr"])
-    weight_decay = float(cfg.get("weight_decay", 0.01))
-    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.0)
     total_steps = len(train_loader) * cfg["epochs"]
-    warmup_steps = int(cfg.get("warmup_ratio", 0.1) * total_steps)
+    warmup_steps = int(0.1 * total_steps)
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, total_steps)
-
     criterion = nn.CrossEntropyLoss()
+
+    # Track best run across all runs
     best_run_val_acc = 0.0
     best_model_state = None
 
     set_seed(cfg["seed"])
-
     for run in range(1, 10):
         print(f"\n{'='*60}")
         print(f"Run {run}/10")
         print(f"{'='*60}")
 
+        # Reinitialize model for each run
         model = EntailmentSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
-        opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+        opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.0)
+        total_steps = len(train_loader) * cfg["epochs"]
+        warmup_steps = int(0.1 * total_steps)
         scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, total_steps)
         scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
         best_val_acc = 0.0
-
         set_seed(cfg["seed"] + run)
 
         for epoch in range(1, cfg["epochs"] + 1):
@@ -100,9 +131,28 @@ def finetune(cfg, encoder_ckpt: str):
                 enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
 
                 opt.zero_grad(set_to_none=True)
-                with torch.cuda.amp.autocast(enabled=cfg.get("mixed_precision", True)):
-                    logits = model(enc["input_ids"], enc["attention_mask"])
-                    loss = criterion(logits, labels)
+
+                with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
+                    # --- Clean forward ---
+                    logits_clean = model(enc["input_ids"], enc["attention_mask"])
+                    loss_clean = criterion(logits_clean, labels)
+
+                    # --- Adversarial forward ---
+                    embed = model.encoder.get_input_embeddings()
+                    orig_embeds = embed(enc["input_ids"]).detach()  # ← Detach
+
+                    delta = pgd_attack(
+                        model, enc["input_ids"], enc["attention_mask"], labels,
+                        epsilon=1.0, alpha=0.3, iters=3
+                    )
+                    adv_embeds = orig_embeds + delta
+                    adv_out = model.encoder(inputs_embeds=adv_embeds, attention_mask=enc["attention_mask"])
+                    adv_pooled = adv_out.pooler_output if adv_out.pooler_output is not None else adv_out.last_hidden_state[:, 0, :]
+                    adv_logits = model.classifier(model.dropout(adv_pooled))
+                    loss_adv = criterion(adv_logits, labels)
+
+                    # --- Combined loss ---
+                    loss = (loss_clean + loss_adv) / 2
 
                 scaler.scale(loss).backward()
                 scaler.unscale_(opt)
@@ -113,10 +163,11 @@ def finetune(cfg, encoder_ckpt: str):
 
                 running += loss.item()
                 y_true.extend(labels.cpu().tolist())
-                y_pred.extend(logits.detach().cpu().argmax(-1).tolist())
+                y_pred.extend(logits_clean.detach().cpu().argmax(-1).tolist())
 
             print(f"[Finetune] epoch {epoch}: loss={running/len(train_loader):.4f} | acc={accuracy_score(y_true,y_pred):.4f}")
 
+            # ---- Validation Pass (clean only) ----
             model.eval()
             v_true, v_pred = [], []
             with torch.no_grad():
@@ -124,7 +175,6 @@ def finetune(cfg, encoder_ckpt: str):
                     sent1 = batch["sentence1"]
                     sent2 = batch["sentence2"]
                     labels = torch.tensor(batch["label"], dtype=torch.long).to(dev, non_blocking=True)
-
                     enc = tokenizer(
                         list(sent1), list(sent2),
                         return_tensors="pt",
@@ -133,27 +183,25 @@ def finetune(cfg, encoder_ckpt: str):
                         max_length=cfg["max_length"]
                     )
                     enc = {k: v.to(dev, non_blocking=True) for k, v in enc.items()}
-
                     logits = model(enc["input_ids"], enc["attention_mask"])
                     v_true.extend(labels.cpu().tolist())
                     v_pred.extend(logits.cpu().argmax(-1).tolist())
+                val_acc = accuracy_score(v_true, v_pred)
+                best_val_acc = max(best_val_acc, val_acc)
+            print(f" val: acc={val_acc:.4f} (best={best_val_acc:.4f})")
 
-            val_acc = accuracy_score(v_true, v_pred)
-            best_val_acc = max(best_val_acc, val_acc)
-            print(f"          val: acc={val_acc:.4f} (best={best_val_acc:.4f})")
-
+        # Track best run across all runs
         if best_val_acc > best_run_val_acc:
             best_run_val_acc = best_val_acc
             best_model_state = model.state_dict().copy()
-            print(f"  ✓ New best run! Validation acc: {best_run_val_acc:.4f}")
+            print(f" New best run! Validation acc: {best_run_val_acc:.4f}")
         else:
-            print(f"  Run {run} best val acc: {best_val_acc:.4f} (overall best: {best_run_val_acc:.4f})")
+            print(f" Run {run} best val acc: {best_val_acc:.4f} (overall best: {best_run_val_acc:.4f})")
 
+    # Load the best model
     print(f"\n{'='*60}")
     print(f"Best run validation accuracy: {best_run_val_acc:.4f}")
     print(f"{'='*60}\n")
-
     model = EntailmentSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
     model.load_state_dict(best_model_state)
-
     return model
