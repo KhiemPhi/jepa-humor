@@ -7,7 +7,7 @@ from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
 from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score
 from .utils import set_seed, device, load_encoder_state
-from .data import load_hf_splits, make_dataloaders
+from .data import load_hf_splits, make_dataloaders, load_hf_splits_test
 from .train_ssl import pretrain
 import os
 from torch import amp
@@ -27,6 +27,38 @@ class CorrectEnglishSentenceClassifier(nn.Module):
         return self.classifier(pooled)
 
 
+# --- PGD Adversarial Attack (Minimal, In-Place) ---
+def pgd_attack(model, input_ids, attention_mask, labels, epsilon=1.0, alpha=0.3, iters=3):
+    embed = model.encoder.get_input_embeddings()
+    orig_embeddings = embed(input_ids).detach()  # [B, L, D] - detach original
+    delta = torch.zeros_like(orig_embeddings).uniform_(-epsilon, epsilon)
+    delta = delta.to(input_ids.device)
+    delta.requires_grad = True
+
+    for _ in range(iters):
+        delta.grad = None
+        adv_embeds = orig_embeddings + delta
+
+        # Forward through encoder + classifier
+        outputs = model.encoder(inputs_embeds=adv_embeds, attention_mask=attention_mask)
+        pooled = outputs.pooler_output if outputs.pooler_output is not None else outputs.last_hidden_state[:, 0, :]
+        logits = model.classifier(model.dropout(pooled))
+        loss = nn.CrossEntropyLoss()(logits, labels)
+
+        # Backward only for PGD update
+        loss.backward()
+
+        # Update delta
+        delta.data = delta.data + alpha * delta.grad.sign()
+        delta.data = torch.clamp(delta.data, -epsilon, epsilon)
+        delta.grad = None
+
+        # CRITICAL: Detach to break graph
+        delta = delta.detach()
+        delta.requires_grad = True
+
+    return delta.detach()
+
 def finetune(cfg, encoder_ckpt: str):
     set_seed(cfg["seed"])
     dev = device()
@@ -41,11 +73,11 @@ def finetune(cfg, encoder_ckpt: str):
         print(f"Loading fresh encoder")
 
     ds = load_hf_splits(cfg["dataset"])
-   
+    ds_test = load_hf_splits_test(cfg["test_dataset"])
     # split train/val from train_ds
-    train_loader, val_loader = make_dataloaders(ds["train"], ds["validation"], cfg["batch_size"], cfg["num_workers"])
+    train_loader, val_loader = make_dataloaders(ds["train"], ds_test["validation"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(ds['train'])}")
-    print(f"Test dataset size: {len(ds['validation'])}")
+    print(f"Test dataset size: {len(ds_test['validation'])}")
 
     model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.17)
@@ -54,7 +86,7 @@ def finetune(cfg, encoder_ckpt: str):
     swa_start_epoch = max(1, int(cfg["epochs"] * 0.9))  # Start SWA after 75% of training
     swa_model = AveragedModel(model)
     swa_scheduler = SWALR(opt, swa_lr=cfg["lr"] * 0.5)  # Lower LR for averaging phase
-    use_swa = cfg.get("use_swa", True)
+    use_swa = False #cfg.get("use_swa", True)
     
     if use_swa:
         print(f"SWA will start at epoch {swa_start_epoch}/{cfg['epochs']}")
@@ -95,8 +127,32 @@ def finetune(cfg, encoder_ckpt: str):
 
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
-                logits = model(enc["input_ids"], enc["attention_mask"])
-                loss = criterion(logits, labels)
+                # --- Clean forward ---
+                logits_clean = model(enc["input_ids"], enc["attention_mask"])
+                loss_clean = criterion(logits_clean, labels)
+
+                # --- Adversarial forward ---
+                embed = model.encoder.get_input_embeddings()
+                orig_embeds = embed(enc["input_ids"]).detach()
+
+                delta = pgd_attack(
+                    model, enc["input_ids"], enc["attention_mask"], labels,
+                    epsilon=1.0, alpha=0.3, iters=3
+                )
+
+                adv_embeds = orig_embeds + delta
+                adv_out = model.encoder(inputs_embeds=adv_embeds, attention_mask=enc["attention_mask"])
+                adv_pooled = (
+                    adv_out.pooler_output
+                    if adv_out.pooler_output is not None
+                    else adv_out.last_hidden_state[:, 0, :]
+                )
+                adv_logits = model.classifier(model.dropout(adv_pooled))
+                loss_adv = criterion(adv_logits, labels)
+
+                # --- Combined loss ---
+                loss = (loss_clean + loss_adv) / 2
+
             scaler.scale(loss).backward()
             scaler.step(opt)
             scaler.update()
@@ -108,9 +164,9 @@ def finetune(cfg, encoder_ckpt: str):
 
             running += float(loss.item())
             y_true.extend(labels.detach().cpu().tolist())
-            y_pred.extend(logits.detach().cpu().argmax(-1).tolist())
+            y_pred.extend(logits_clean.detach().cpu().argmax(-1).tolist())
             # collect probabilities for class 1
-            probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
+            probs_batch = torch.softmax(logits_clean.detach().cpu(), dim=-1)[:, 1].numpy()
             y_prob.append(probs_batch)
             
 
