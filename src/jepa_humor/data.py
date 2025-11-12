@@ -11,6 +11,11 @@ def load_hf_splits(name: str, test_size=0.2, seed=42):
    
     return ds
 
+def load_hf_splits_test(name: str, test_size=0.2, seed=42):
+    ds = load_dataset(name, 'adv_rte')
+   
+    return ds
+
 def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True, tokenizer=None):
     # Both datasets must yield dicts with at least {"text", "humor"}
     collate = lambda batch: {
