@@ -114,12 +114,12 @@ def finetune(cfg, encoder_ckpt: str):
     print(f"Test dataset size: {len(ds['test'])}")
 
     model = NextPhrasePredictor(base, hidden_dim=base.config.hidden_size).to(dev)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg.get("weight_decay", 0.01))
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg.get("weight_decay", 0.1))
     criterion = nn.CrossEntropyLoss()
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
      # ✅ Standard GLUE schedule: linear warmup → linear decay
     total_steps = len(train_loader) * cfg["epochs"]
-    warmup_steps = int(0.1 * total_steps)
+    warmup_steps = int(0.3 * total_steps)
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, total_steps)
     
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
@@ -133,7 +133,7 @@ def finetune(cfg, encoder_ckpt: str):
             input_ids, attention_mask, labels = encode_multiple_choice(batch, tokenizer, cfg["max_length"], dev)
             input_ids = input_ids.to(dev, non_blocking=True)
             attention_mask = attention_mask.to(dev, non_blocking=True)
-            
+          
             #labels = torch.tensor(batch["label"], dtype=torch.long)
             labels = labels.to(dev, non_blocking=True)
 

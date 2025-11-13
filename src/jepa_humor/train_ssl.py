@@ -4,7 +4,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from transformers import AutoTokenizer, AutoModel
 from .utils import set_seed, device, save_ckpt
-from .masking import make_next_phrases_mask_views
+from .masking import make_next_phrases_mask_views, encode_multiple_choice
 from .jepa import JEPA
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import os
@@ -89,14 +89,8 @@ def pretrain(cfg):
             sent1 = list(batch["true_start_sentence"])
             sent2 = list(batch["true_next_sentence"])
           
-            keep_tok, target_tok, mask, _ = make_next_phrases_mask_views(
-                startphrase=sent1, nextphrase = sent2, tokenizer=tokenizer, max_length=cfg["max_length"],
-            )
+            keep_tok, target_tok = encode_multiple_choice(batch, tokenizer, cfg["max_length"], dev)
             
-            
-            keep_tok   = {k: v.to(dev, non_blocking=True) for k, v in keep_tok.items()}
-            target_tok = {k: v.to(dev, non_blocking=True) for k, v in target_tok.items()}
-            mask       = mask.to(dev, non_blocking=True)
             # # Decode a single tensor (e.g. from keep_tok)
             # decoded_keep = tokenizer.batch_decode(
             #     keep_tok["input_ids"], 
@@ -112,7 +106,7 @@ def pretrain(cfg):
 
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
-                loss, pred, target = jepa(keep_tok, target_tok, mask)
+                loss, pred, target = jepa(keep_tok, target_tok, mask=None)
             
           
 
