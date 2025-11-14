@@ -104,7 +104,7 @@ def finetune(cfg, encoder_ckpt: str):
 
         # Reinitialize model for each run
         model = EntailmentSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
-        opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.0)
+        opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.01)
         total_steps = len(train_loader) * cfg["epochs"]
         warmup_steps = int(0.1 * total_steps)
         scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, total_steps)
@@ -136,23 +136,7 @@ def finetune(cfg, encoder_ckpt: str):
                     # --- Clean forward ---
                     logits_clean = model(enc["input_ids"], enc["attention_mask"])
                     loss_clean = criterion(logits_clean, labels)
-
-                    # --- Adversarial forward ---
-                    embed = model.encoder.get_input_embeddings()
-                    orig_embeds = embed(enc["input_ids"]).detach()  # ← Detach
-
-                    delta = pgd_attack(
-                        model, enc["input_ids"], enc["attention_mask"], labels,
-                        epsilon=1.0, alpha=0.3, iters=3
-                    )
-                    adv_embeds = orig_embeds + delta
-                    adv_out = model.encoder(inputs_embeds=adv_embeds, attention_mask=enc["attention_mask"])
-                    adv_pooled = adv_out.pooler_output if adv_out.pooler_output is not None else adv_out.last_hidden_state[:, 0, :]
-                    adv_logits = model.classifier(model.dropout(adv_pooled))
-                    loss_adv = criterion(adv_logits, labels)
-
-                    # --- Combined loss ---
-                    loss = (loss_clean + loss_adv) / 2
+                    loss = loss_clean
 
                 scaler.scale(loss).backward()
                 scaler.unscale_(opt)

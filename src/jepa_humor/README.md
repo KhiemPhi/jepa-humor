@@ -28,6 +28,7 @@ Run 5/10
  val: acc=0.4074 (best=0.4198)
 
 
+ No PDG attack:Run 3 best val acc: 0.4568 (overall best: 0.4938)
 
 
 
@@ -47,3 +48,6 @@ Run 5/10
  val: acc=0.3827 (best=0.4444)
 [Finetune] epoch 4: loss=0.3477 | acc=0.9984                                                                   
  val: acc=0.3951 (best=0.4444)
+
+
+No PGD attack: Run 3 best val acc: 0.3210 (overall best: 0.5802)

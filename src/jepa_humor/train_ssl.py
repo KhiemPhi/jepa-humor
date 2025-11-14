@@ -155,7 +155,7 @@ def pretrain(cfg):
             }, os.path.join(cfg["ckpt_dir"], "best.pt"))
         else:
             patience += 1
-            if patience >= cfg["early_stop_patience"]:
+            if çpatience >= cfg["early_stop_patience"]:
                 print(f"Early stopping at epoch {epoch} (best={best:.4f}).")
                 break
 
