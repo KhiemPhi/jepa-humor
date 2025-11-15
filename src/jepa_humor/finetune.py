@@ -2,12 +2,13 @@ from dataclasses import dataclass
 from tqdm import tqdm
 import torch
 import torch.nn as nn
-from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import autocast
+from torch.amp import GradScaler
 from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
 from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score
 from .utils import set_seed, device, load_encoder_state, save_ckpt
-from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, load_hf_splits_test_mismatched, preprocess_dataset, load_mnli_test_from_json, load_mnli_mm_test_from_json
+from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, preprocess_dataset, load_qqp_test_from_json
 from .train_ssl import pretrain
 import os
 from torch import amp
@@ -15,7 +16,7 @@ import numpy as np
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class CorrectEnglishSentenceClassifier(nn.Module):
-    def __init__(self, encoder, hidden_size=768, num_labels=3, dropout=0.5):
+    def __init__(self, encoder, hidden_size=768, num_labels=2, dropout=0.1):
         super().__init__()
         self.encoder = encoder
         self.dropout = nn.Dropout(dropout)
@@ -74,34 +75,23 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
 
     ds = load_hf_splits(cfg["dataset"])
     ds_test_matched = load_hf_splits_test(cfg["test_dataset"])
-    ds_test_mismatched = load_hf_splits_test_mismatched(cfg["test_dataset"])
-    
-    # Load MNLI and MNLI-MM test sets from test_ann.json
-    ds_mnli_test = load_mnli_test_from_json(json_path=os.path.join(os.path.dirname(__file__), "test_ann.json"))
-    ds_mnli_mm_test = load_mnli_mm_test_from_json(json_path=os.path.join(os.path.dirname(__file__), "test_ann.json"))
+    # Load QQP test set from test_ann.json
+    ds_qqp_test = load_qqp_test_from_json(json_path=os.path.join(os.path.dirname(__file__), "test_ann.json"))
     
     # Pre-tokenize datasets once before training
     print("Pre-tokenizing training dataset...")
     ds["train"] = preprocess_dataset(ds["train"], tokenizer, max_length=cfg["max_length"])
-    print("Pre-tokenizing validation dataset (matched)...")
+    print("Pre-tokenizing validation dataset")
     ds_test_matched["validation"] = preprocess_dataset(ds_test_matched["validation"], tokenizer, max_length=cfg["max_length"])
-    print("Pre-tokenizing validation dataset (mismatched)...")
-    ds_test_mismatched["validation"] = preprocess_dataset(ds_test_mismatched["validation"], tokenizer, max_length=cfg["max_length"])
-    print("Pre-tokenizing MNLI test dataset...")
-    ds_mnli_test["test"] = preprocess_dataset(ds_mnli_test["test"], tokenizer, max_length=cfg["max_length"])
-    print("Pre-tokenizing MNLI-MM test dataset...")
-    ds_mnli_mm_test["test"] = preprocess_dataset(ds_mnli_mm_test["test"], tokenizer, max_length=cfg["max_length"])
+    print("Pre-tokenizing QQP test dataset...")
+    ds_qqp_test["test"] = preprocess_dataset(ds_qqp_test["test"], tokenizer, max_length=cfg["max_length"])
     
     # split train/val from train_ds
     train_loader, val_loader_matched = make_dataloaders(ds["train"], ds_test_matched["validation"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
-    _, val_loader_mismatched = make_dataloaders(ds["train"], ds_test_mismatched["validation"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
-    _, test_loader_mnli = make_dataloaders(ds["train"], ds_mnli_test["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
-    _, test_loader_mnli_mm = make_dataloaders(ds["train"], ds_mnli_mm_test["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
+    _, test_loader_qqp = make_dataloaders(ds["train"], ds_qqp_test["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
     print(f"Train dataset size: {len(ds['train'])}")
     print(f"Validation dataset size (matched): {len(ds_test_matched['validation'])}")
-    print(f"Validation dataset size (mismatched): {len(ds_test_mismatched['validation'])}")
-    print(f"Test dataset size (MNLI): {len(ds_mnli_test['test'])}")
-    print(f"Test dataset size (MNLI-MM): {len(ds_mnli_mm_test['test'])}")
+    print(f"Test dataset size (QQP): {len(ds_qqp_test['test'])}")
 
     model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.17)
@@ -128,11 +118,11 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     except Exception as e:
         print(f"Warning: falling back to unweighted CE (reason: {e})")
         criterion = nn.CrossEntropyLoss(label_smoothing=0.01)
-    scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
+    scaler = GradScaler('cuda', enabled=cfg.get("mixed_precision", True))
     best_t = 0.5  # Default threshold, will be updated during training
     
     # Track best model for saving
-    best_val_mcc = -1.0
+    best_val_acc = -1.0
     best_model_state = None
     
     # If eval_only mode, load the model checkpoint and skip training
@@ -241,62 +231,29 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             val_acc_matched = accuracy_score(v_true_matched, preds_matched)
             print(f"          val (matched): mcc={val_mcc_matched:.4f} f1={val_f1_matched:.4f} acc={val_acc_matched:.4f}")
 
-            # validate on mismatched
-            v_true_mismatched, v_pred_mismatched, v_prob_mismatched = [], [], []
+            # Evaluate on QQP test set (binary classification, use thresholding)
+            t_true_qqp, t_pred_qqp, t_prob_qqp = [], [], []
             with torch.no_grad():
-                for batch in val_loader_mismatched:
-                    # Data is already tokenized
+                for batch in test_loader_qqp:
                     input_ids = batch["input_ids"].to(dev, non_blocking=True)
                     attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                     labels = batch["label"].to(dev, non_blocking=True)
                     logits = model(input_ids, attention_mask)
-                    v_true_mismatched.extend(labels.cpu().tolist())
-                    v_pred_mismatched.extend(logits.cpu().argmax(-1).tolist())
+                    t_true_qqp.extend(labels.cpu().tolist())
+                    t_pred_qqp.extend(logits.cpu().argmax(-1).tolist())
                     probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
-                    v_prob_mismatched.append(probs_batch)
-
-            probs_mismatched = np.concatenate(v_prob_mismatched, axis=0) 
-            preds_mismatched = (probs_mismatched >= best_t).astype(int)
-            val_mcc_mismatched = matthews_corrcoef(v_true_mismatched, preds_mismatched)
-            val_f1_mismatched = f1_score(v_true_mismatched, preds_mismatched, average='macro')
-            val_acc_mismatched = accuracy_score(v_true_mismatched, preds_mismatched)
-            print(f"          val (mismatched): mcc={val_mcc_mismatched:.4f} f1={val_f1_mismatched:.4f} acc={val_acc_mismatched:.4f}")
+                    t_prob_qqp.append(probs_batch)
             
-            # Evaluate on MNLI test set
-            t_true_mnli, t_pred_mnli = [], []
-            with torch.no_grad():
-                for batch in test_loader_mnli:
-                    input_ids = batch["input_ids"].to(dev, non_blocking=True)
-                    attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
-                    labels = batch["label"].to(dev, non_blocking=True)
-                    logits = model(input_ids, attention_mask)
-                    t_true_mnli.extend(labels.cpu().tolist())
-                    t_pred_mnli.extend(logits.cpu().argmax(-1).tolist())
+            probs_qqp = np.concatenate(t_prob_qqp, axis=0)
+            preds_qqp = (probs_qqp >= best_t).astype(int)
+            test_mcc_qqp = matthews_corrcoef(t_true_qqp, preds_qqp)
+            test_f1_qqp = f1_score(t_true_qqp, preds_qqp, average='macro')
+            test_acc_qqp = accuracy_score(t_true_qqp, preds_qqp)
+            print(f"          test (QQP): mcc={test_mcc_qqp:.4f} f1={test_f1_qqp:.4f} acc={test_acc_qqp:.4f}")
             
-            test_mcc_mnli = matthews_corrcoef(t_true_mnli, t_pred_mnli)
-            test_f1_mnli = f1_score(t_true_mnli, t_pred_mnli, average='macro')
-            test_acc_mnli = accuracy_score(t_true_mnli, t_pred_mnli)
-            print(f"          test (MNLI): mcc={test_mcc_mnli:.4f} f1={test_f1_mnli:.4f} acc={test_acc_mnli:.4f}")
-            
-            # Evaluate on MNLI-MM test set
-            t_true_mnli_mm, t_pred_mnli_mm = [], []
-            with torch.no_grad():
-                for batch in test_loader_mnli_mm:
-                    input_ids = batch["input_ids"].to(dev, non_blocking=True)
-                    attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
-                    labels = batch["label"].to(dev, non_blocking=True)
-                    logits = model(input_ids, attention_mask)
-                    t_true_mnli_mm.extend(labels.cpu().tolist())
-                    t_pred_mnli_mm.extend(logits.cpu().argmax(-1).tolist())
-            
-            test_mcc_mnli_mm = matthews_corrcoef(t_true_mnli_mm, t_pred_mnli_mm)
-            test_f1_mnli_mm = f1_score(t_true_mnli_mm, t_pred_mnli_mm, average='macro')
-            test_acc_mnli_mm = accuracy_score(t_true_mnli_mm, t_pred_mnli_mm)
-            print(f"          test (MNLI-MM): mcc={test_mcc_mnli_mm:.4f} f1={test_f1_mnli_mm:.4f} acc={test_acc_mnli_mm:.4f}")
-            
-            # Save best model based on matched validation MCC
-            if val_mcc_matched > best_val_mcc:
-                best_val_mcc = val_mcc_matched
+            # Save best model based on validation accuracy
+            if val_acc_matched > best_val_acc:
+                best_val_acc = val_acc_matched
                 best_model_state = model.state_dict().copy()
                 # Save checkpoint
                 ckpt_dir = cfg.get("ckpt_dir", "checkpoints/finetune")
@@ -304,17 +261,16 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 save_ckpt({
                     "epoch": epoch,
                     "val_mcc_matched": val_mcc_matched,
-                    "val_mcc_mismatched": val_mcc_mismatched,
+                    "val_acc_matched": val_acc_matched,
                     "val_f1_matched": val_f1_matched,
-                    "val_f1_mismatched": val_f1_mismatched,
                     "model_state_dict": model.state_dict(),
                     "best_threshold": best_t,
                 }, os.path.join(ckpt_dir, "best.pt"))
-                print(f"          Saved best model (MCC={val_mcc_matched:.4f}) to {os.path.join(ckpt_dir, 'best.pt')}")
+                print(f"          Saved best model (Acc={val_acc_matched:.4f}) to {os.path.join(ckpt_dir, 'best.pt')}")
         
         # After training, load best model if we saved one
         if best_model_state is not None:
-            print(f"Loading best model (MCC={best_val_mcc:.4f}) for final evaluation...")
+            print(f"Loading best model (Acc={best_val_acc:.4f}) for final evaluation...")
             model.load_state_dict(best_model_state)
         
         # After training, update BN stats for SWA model and replace regular model
@@ -341,7 +297,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             model.load_state_dict(swa_model.module.state_dict())
             print("SWA model loaded!")
     
-    # Final validation on both matched and mismatched
+    # Final validation
     model.eval()
     
     # Matched validation
@@ -363,66 +319,30 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     val_mcc_matched = matthews_corrcoef(v_true_matched, preds_matched)
     val_f1_matched = f1_score(v_true_matched, preds_matched, average='macro')
     val_acc_matched = accuracy_score(v_true_matched, preds_matched)
-    print(f"Final validation (matched): mcc={val_mcc_matched:.4f} f1={val_f1_matched:.4f} acc={val_acc_matched:.4f}")
-
-    # Mismatched validation
-    v_true_mismatched, v_pred_mismatched, v_prob_mismatched = [], [], []
+    print(f"Final validation: mcc={val_mcc_matched:.4f} f1={val_f1_matched:.4f} acc={val_acc_matched:.4f}")
+    
+    # Test set evaluation - QQP
+    print("\n" + "="*50)
+    print("Evaluating on QQP test set...")
+    t_true_qqp, t_pred_qqp, t_prob_qqp = [], [], []
     with torch.no_grad():
-        for batch in val_loader_mismatched:
-            # Data is already tokenized
+        for batch in test_loader_qqp:
             input_ids = batch["input_ids"].to(dev, non_blocking=True)
             attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
             labels = batch["label"].to(dev, non_blocking=True)
             logits = model(input_ids, attention_mask)
-            v_true_mismatched.extend(labels.cpu().tolist())
-            v_pred_mismatched.extend(logits.cpu().argmax(-1).tolist())
+            t_true_qqp.extend(labels.cpu().tolist())
+            t_pred_qqp.extend(logits.cpu().argmax(-1).tolist())
             probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
-            v_prob_mismatched.append(probs_batch)
-
-    probs_mismatched = np.concatenate(v_prob_mismatched, axis=0)
-    preds_mismatched = (probs_mismatched >= best_t).astype(int)
-    val_mcc_mismatched = matthews_corrcoef(v_true_mismatched, preds_mismatched)
-    val_f1_mismatched = f1_score(v_true_mismatched, preds_mismatched, average='macro')
-    val_acc_mismatched = accuracy_score(v_true_mismatched, preds_mismatched)
-    print(f"Final validation (mismatched): mcc={val_mcc_mismatched:.4f} f1={val_f1_mismatched:.4f} acc={val_acc_mismatched:.4f}")
+            t_prob_qqp.append(probs_batch)
     
-    # Test set evaluation - MNLI
-    print("\n" + "="*50)
-    print("Evaluating on MNLI test set...")
-    t_true_mnli, t_pred_mnli = [], []
-    with torch.no_grad():
-        for batch in test_loader_mnli:
-            input_ids = batch["input_ids"].to(dev, non_blocking=True)
-            attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
-            labels = batch["label"].to(dev, non_blocking=True)
-            logits = model(input_ids, attention_mask)
-            t_true_mnli.extend(labels.cpu().tolist())
-            t_pred_mnli.extend(logits.cpu().argmax(-1).tolist())
-    
-    # For 3-class classification, use argmax predictions directly
-    test_mcc_mnli = matthews_corrcoef(t_true_mnli, t_pred_mnli)
-    test_f1_mnli = f1_score(t_true_mnli, t_pred_mnli, average='macro')
-    test_acc_mnli = accuracy_score(t_true_mnli, t_pred_mnli)
-    print(f"Test (MNLI): mcc={test_mcc_mnli:.4f} f1={test_f1_mnli:.4f} acc={test_acc_mnli:.4f}")
-    
-    # Test set evaluation - MNLI-MM
-    print("\n" + "="*50)
-    print("Evaluating on MNLI-MM test set...")
-    t_true_mnli_mm, t_pred_mnli_mm = [], []
-    with torch.no_grad():
-        for batch in test_loader_mnli_mm:
-            input_ids = batch["input_ids"].to(dev, non_blocking=True)
-            attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
-            labels = batch["label"].to(dev, non_blocking=True)
-            logits = model(input_ids, attention_mask)
-            t_true_mnli_mm.extend(labels.cpu().tolist())
-            t_pred_mnli_mm.extend(logits.cpu().argmax(-1).tolist())
-    
-    # For 3-class classification, use argmax predictions directly
-    test_mcc_mnli_mm = matthews_corrcoef(t_true_mnli_mm, t_pred_mnli_mm)
-    test_f1_mnli_mm = f1_score(t_true_mnli_mm, t_pred_mnli_mm, average='macro')
-    test_acc_mnli_mm = accuracy_score(t_true_mnli_mm, t_pred_mnli_mm)
-    print(f"Test (MNLI-MM): mcc={test_mcc_mnli_mm:.4f} f1={test_f1_mnli_mm:.4f} acc={test_acc_mnli_mm:.4f}")
+    # For binary classification, use thresholding
+    probs_qqp = np.concatenate(t_prob_qqp, axis=0)
+    preds_qqp = (probs_qqp >= best_t).astype(int)
+    test_mcc_qqp = matthews_corrcoef(t_true_qqp, preds_qqp)
+    test_f1_qqp = f1_score(t_true_qqp, preds_qqp, average='macro')
+    test_acc_qqp = accuracy_score(t_true_qqp, preds_qqp)
+    print(f"Test (QQP): mcc={test_mcc_qqp:.4f} f1={test_f1_qqp:.4f} acc={test_acc_qqp:.4f}")
     
     # If in eval_only mode, we're done
     if eval_only:

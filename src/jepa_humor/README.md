@@ -58,7 +58,7 @@ Final validation: mcc=0.6849 f1=0.9072, val_acc=0.8676
 Test-Set MNLI 
 ==================================================
 Evaluating on MNLI test set...
-Test (MNLI): mcc=-0.0730 f1=0.2780 acc=0.2820
+Test (MNLI): mcc=-0.0730 f1=0.2780 acc=0.2895
 
 ==================================================
 Evaluating on MNLI-MM test set...
