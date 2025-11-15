@@ -9,17 +9,17 @@ import os
 
 
 def load_hf_splits(name: str, test_size=0.2, seed=42):
-    ds = load_dataset(name, 'qqp')
+    ds = load_dataset(name, 'qnli')
    
     return ds
     
 def load_hf_splits_test(name: str, test_size=0.2, seed=42):
-    ds = load_dataset(name, 'adv_qqp')
+    ds = load_dataset(name, 'adv_qnli')
    
     return ds
 
 def load_hf_splits_test_mismatched(name: str, test_size=0.2, seed=42):
-    ds = load_dataset(name, 'adv_qqp')
+    ds = load_dataset(name, 'adv_qnli')
    
     return ds
 
@@ -116,12 +116,43 @@ def load_qqp_test_from_json(json_path: str = None):
     # Return in the same format as load_dataset (with "test" key)
     return {"test": dataset}
 
+def load_qnli_test_from_json(json_path: str = None):
+    """Load QNLI test set from test_ann.json file."""
+    if json_path is None:
+        # Default path relative to this file
+        json_path = os.path.join(os.path.dirname(__file__), "test_ann.json")
+    
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    # Extract QQP test data
+    qnli_data = data.get("qnli", [])
+    
+    # Convert to format expected by the model (question1, question2, label)
+    # Filter out any entries missing required fields and exclude items with method="glue"
+    processed_data = []
+    for item in qnli_data:
+        if "question" in item and "sentence" in item and "label" in item:
+            # Exclude items with method="glue"
+            if item.get("method") != "glue":
+                processed_data.append({
+                    "question": item["question"],
+                    "sentence": item["sentence"],
+                    "label": item["label"]
+                })
+    
+    # Create Dataset from list
+    dataset = Dataset.from_list(processed_data)
+    
+    # Return in the same format as load_dataset (with "test" key)
+    return {"test": dataset}
+
 def preprocess_dataset(ds, tokenizer, max_length=256):
     """Pre-tokenize dataset to avoid tokenizing during training."""
     def tokenize_function(examples):
         return tokenizer(
-            examples["question1"],
-            examples["question2"],
+            examples["question"],
+            examples["sentence"],
             truncation=True,
             padding="max_length",
             max_length=max_length,
@@ -140,14 +171,14 @@ def preprocess_dataset_ssl(ds, tokenizer, max_length=256):
     def tokenize_function(examples):
         # Tokenize question1 (sent1) separately
         keep_tok = tokenizer(
-            examples["question1"],
+            examples["question"],
             truncation=True,
             padding="max_length",
             max_length=max_length,
         )
         # Tokenize question2 (sent2) separately
         target_tok = tokenizer(
-            examples["question2"],
+            examples["sentence"],
             truncation=True,
             padding="max_length",
             max_length=max_length,
@@ -200,8 +231,8 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
     else:
         # Original collate for non-tokenized data
         collate = lambda batch: {
-            "question1": [b["question1"] for b in batch],
-            "question2": [b["question2"] for b in batch],
+            "question": [b["question"] for b in batch],
+            "sentence": [b["sentence"] for b in batch],
             "label": [bool(b["label"]) for b in batch]
         }
     # fixed generator for deterministic shuffling
