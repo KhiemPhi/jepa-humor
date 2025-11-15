@@ -53,4 +53,15 @@ Replacing model with SWA model...
 SWA model loaded!
 Final validation: mcc=0.6849 f1=0.9072, val_acc=0.8676
 
-QQP-Adv-Glue: Acc=51.28 F1=36.67
+
+
+Test-Set MNLI 
+==================================================
+Evaluating on MNLI test set...
+Test (MNLI): mcc=-0.0730 f1=0.2780 acc=0.2820
+
+==================================================
+Evaluating on MNLI-MM test set...
+Test (MNLI-MM): mcc=-0.1236 f1=0.2479 acc=0.2495
+
+Test-Set QQP 
