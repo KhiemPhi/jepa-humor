@@ -5,7 +5,7 @@ test_dataset: AI-Secure/adv_glue
 max_length: 256
 batch_size: 16
 num_workers: 4
-epochs: 15
+epochs: 3
 lr: 1.0e-5
 mixed_precision: true
 log_dir: runs/finetune

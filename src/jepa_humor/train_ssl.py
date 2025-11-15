@@ -4,7 +4,6 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from transformers import AutoTokenizer, AutoModel
 from .utils import set_seed, device, save_ckpt
-from .masking import make_second_sent_mask_views
 from .jepa import JEPA
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import os
@@ -64,15 +63,23 @@ def pretrain(cfg):
                 pred_hid=512, ema_decay=cfg["ema_decay"], use_cls=True).to(dev)
     jepa.train()
 
-    from .data import load_hf_splits, make_dataloaders
+    from .data import load_hf_splits, make_dataloaders, preprocess_dataset_ssl
     ds = load_hf_splits(cfg["dataset"])
     
     split = {}
     split['train'] = ds['train']
-    split['train'] = split['train'].filter(lambda x: x['label'] == 1)
-    split['test'] = ds['validation']
+    #split['train'] = split['train'].filter(lambda x: x['label'] == 1)
+    
+    split['test'] = ds['validation_matched']
+    
+    # Pre-tokenize datasets once before training
+    print("Pre-tokenizing training dataset for SSL...")
+    split['train'] = preprocess_dataset_ssl(split['train'], tokenizer, max_length=cfg["max_length"])
+    print("Pre-tokenizing validation dataset for SSL...")
+    split['test'] = preprocess_dataset_ssl(split['test'], tokenizer, max_length=cfg["max_length"])
+    
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
-    train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
+    train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True, ssl_mode=True)
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")
     opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=cfg["lr"])
@@ -85,18 +92,17 @@ def pretrain(cfg):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
-            sent1 = batch["question1"]
-            sent2 = batch["question2"]
-
-
-            keep_tok, target_tok, mask, _ = make_second_sent_mask_views(
-                sent1 = sent1, sent2 = sent2, tokenizer=tokenizer, max_length=cfg["max_length"]
-            )
-            
-            
-            keep_tok   = {k: v.to(dev, non_blocking=True) for k, v in keep_tok.items()}
-            target_tok = {k: v.to(dev, non_blocking=True) for k, v in target_tok.items()}
-            mask       = mask.to(dev, non_blocking=True)
+            # Data is already tokenized
+            keep_tok = {
+                "input_ids": batch["keep_input_ids"].to(dev, non_blocking=True),
+                "attention_mask": batch["keep_attention_mask"].to(dev, non_blocking=True)
+            }
+            target_tok = {
+                "input_ids": batch["target_input_ids"].to(dev, non_blocking=True),
+                "attention_mask": batch["target_attention_mask"].to(dev, non_blocking=True)
+            }
+            # Create mask from target attention_mask (same as make_second_sent_mask_views does)
+            mask = target_tok["attention_mask"].float().to(dev, non_blocking=True)
             # # Decode a single tensor (e.g. from keep_tok)
             # decoded_keep = tokenizer.batch_decode(
             #     keep_tok["input_ids"], 

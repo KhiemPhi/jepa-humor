@@ -52,3 +52,5 @@ Final validation: mcc=0.6969 f1=0.9110, val_acc=0.8725
 Replacing model with SWA model...                                                                                                                 
 SWA model loaded!
 Final validation: mcc=0.6849 f1=0.9072, val_acc=0.8676
+
+QQP-Adv-Glue: Acc=51.28 F1=36.67
