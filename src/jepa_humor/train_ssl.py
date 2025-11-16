@@ -70,7 +70,7 @@ def pretrain(cfg):
     split['train'] = ds['train']
     #split['train'] = split['train'].filter(lambda x: x['label'] == 1)
     
-    split['test'] = ds['validation_matched']
+    split['test'] = ds['validation']
     
     # Pre-tokenize datasets once before training
     print("Pre-tokenizing training dataset for SSL...")

@@ -8,7 +8,7 @@ from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
 from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score
 from .utils import set_seed, device, load_encoder_state, save_ckpt
-from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, preprocess_dataset, load_qqp_test_from_json
+from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, preprocess_dataset, load_qqp_test_from_json, load_qnli_test_from_json
 from .train_ssl import pretrain
 import os
 from torch import amp
@@ -76,7 +76,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     ds = load_hf_splits(cfg["dataset"])
     ds_test_matched = load_hf_splits_test(cfg["test_dataset"])
     # Load QQP test set from test_ann.json
-    ds_qqp_test = load_qqp_test_from_json(json_path=os.path.join(os.path.dirname(__file__), "test_ann.json"))
+    ds_qqp_test = load_qnli_test_from_json(json_path=os.path.join(os.path.dirname(__file__), "test_ann.json"))
     
     # Pre-tokenize datasets once before training
     print("Pre-tokenizing training dataset...")

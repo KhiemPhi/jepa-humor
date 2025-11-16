@@ -166,39 +166,84 @@ def preprocess_dataset(ds, tokenizer, max_length=256):
     )
     return ds
 
-def preprocess_dataset_ssl(ds, tokenizer, max_length=256):
-    """Pre-tokenize dataset for SSL training (tokenizes sent1 and sent2 separately)."""
+def preprocess_dataset_ssl(ds, tokenizer, max_length=256,
+                           mask_probability=0.15, span_mean=3):
+    """Tokenize question + sentence together, then create masked target versions
+    using SpanBERT-style random span masking."""
+
+    import numpy as np
+
+    MASK_ID = tokenizer.mask_token_id
+    PAD_ID = tokenizer.pad_token_id
+
+    def random_span_mask(ids, mask_prob, span_mean):
+        """SpanBERT-style random contiguous span masking."""
+        ids = ids.copy()
+        length = len(ids)
+
+        # how many tokens to mask total
+        num_to_mask = int(length * mask_prob)
+        if num_to_mask == 0:
+            return ids
+
+        masked = 0
+        while masked < num_to_mask:
+            # choose random span length (Poisson)
+            span_len = max(1, np.random.poisson(span_mean))
+            start = np.random.randint(0, max(1, length - span_len))
+
+            for i in range(start, min(start + span_len, length)):
+                if masked >= num_to_mask:
+                    break
+                if ids[i] != PAD_ID:   # don't mask padding
+                    ids[i] = MASK_ID
+                    masked += 1
+
+        return ids
+
     def tokenize_function(examples):
-        # Tokenize question1 (sent1) separately
-        keep_tok = tokenizer(
+        # Tokenize question + sentence together
+        encoded = tokenizer(
             examples["question"],
-            truncation=True,
-            padding="max_length",
-            max_length=max_length,
-        )
-        # Tokenize question2 (sent2) separately
-        target_tok = tokenizer(
             examples["sentence"],
             truncation=True,
             padding="max_length",
             max_length=max_length,
         )
-        # Return both tokenizations with prefixed keys
+
+        keep_ids = encoded["input_ids"]
+        keep_mask = encoded["attention_mask"]
+
+        # Now create masked copies
+        target_ids = [
+            random_span_mask(seq, mask_probability, span_mean)
+            for seq in keep_ids
+        ]
+
         return {
-            "keep_input_ids": keep_tok["input_ids"],
-            "keep_attention_mask": keep_tok["attention_mask"],
-            "target_input_ids": target_tok["input_ids"],
-            "target_attention_mask": target_tok["attention_mask"],
+            "keep_input_ids": keep_ids,      # original text
+            "keep_attention_mask": keep_mask,
+            "target_input_ids": target_ids,  # masked version for SSL
+            "target_attention_mask": keep_mask,
         }
-    
+
     ds = ds.map(
         tokenize_function,
         batched=True,
         desc="Tokenizing SSL dataset",
-        remove_columns=[col for col in ds.column_names if col not in ["keep_input_ids", "keep_attention_mask", "target_input_ids", "target_attention_mask", "label"]]
+        remove_columns=[
+            col for col in ds.column_names
+            if col not in [
+                "keep_input_ids",
+                "keep_attention_mask",
+                "target_input_ids",
+                "target_attention_mask",
+                "label",
+            ]
+        ]
     )
-    return ds
 
+    return dsFp
 def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True, pre_tokenized=False, ssl_mode=False):
     # Collate function for pre-tokenized SSL data
     if pre_tokenized and ssl_mode:
