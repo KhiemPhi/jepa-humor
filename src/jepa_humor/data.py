@@ -40,6 +40,80 @@ def sample_dataset(ds, sample_percent=10.0, seed=42):
         return ds.shuffle(seed=seed).select(range(num_samples))
 
 
+def load_anli_splits(name: str = "facebook/anli", train_rounds: list = [1, 2, 3], seed: int = 42):
+    """
+    Load ANLI dataset and aggregate training sets from specified rounds.
+    
+    Args:
+        name: Dataset name (default: "facebook/anli")
+        train_rounds: List of rounds to aggregate (e.g., [1, 2, 3] for all, [1] for only r1)
+        seed: Random seed for shuffling
+    
+    Returns:
+        Dataset dict with aggregated train split and validation split
+    """
+    ds = load_dataset(name)
+    
+    # Aggregate training sets from specified rounds
+    train_datasets = []
+    for r in train_rounds:
+        split_name = f"train_r{r}"
+        if split_name in ds:
+            train_datasets.append(ds[split_name])
+            print(f"Loaded {split_name}: {len(ds[split_name])} examples")
+        else:
+            print(f"Warning: {split_name} not found in dataset")
+    
+    if not train_datasets:
+        raise ValueError(f"No training data found for rounds {train_rounds}")
+    
+    # Concatenate all training datasets
+    from datasets import concatenate_datasets
+    aggregated_train = concatenate_datasets(train_datasets)
+    print(f"Aggregated training set size: {len(aggregated_train)} examples")
+    
+    # Use dev_r1 as validation (or first available dev split)
+    validation_split = None
+    for r in [1, 2, 3]:
+        if f"dev_r{r}" in ds:
+            validation_split = ds[f"dev_r{r}"]
+            print(f"Using dev_r{r} as validation: {len(validation_split)} examples")
+            break
+    
+    if validation_split is None:
+        raise ValueError("No validation split found in ANLI dataset")
+    
+    return {
+        "train": aggregated_train,
+        "validation": validation_split
+    }
+
+
+def load_anli_test_splits(name: str = "facebook/anli"):
+    """
+    Load ANLI test sets for all rounds separately.
+    
+    Args:
+        name: Dataset name (default: "facebook/anli")
+    
+    Returns:
+        Dictionary with test_r1, test_r2, test_r3 (if available)
+    """
+    ds = load_dataset(name)
+    
+    test_splits = {}
+    for r in [1, 2, 3]:
+        test_split_name = f"test_r{r}"
+        if test_split_name in ds:
+            test_splits[test_split_name] = ds[test_split_name]
+            print(f"Loaded {test_split_name}: {len(ds[test_split_name])} examples")
+    
+    if not test_splits:
+        raise ValueError("No test splits found in ANLI dataset")
+    
+    return test_splits
+
+
 def load_hf_splits(name: str, config: str = None, test_size=0.2, seed=42):
     """
     Load HuggingFace dataset splits.

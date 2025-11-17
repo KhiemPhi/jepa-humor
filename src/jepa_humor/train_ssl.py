@@ -57,9 +57,18 @@ def pretrain(cfg):
                 pred_hid=512, ema_decay=cfg["ema_decay"], use_cls=True).to(dev)
     jepa.train()
 
-    from .data import load_hf_splits, make_dataloaders, preprocess_dataset_ssl, sample_dataset
+    from .data import load_hf_splits, make_dataloaders, preprocess_dataset_ssl, sample_dataset, load_anli_splits
     dataset_config = cfg.get("dataset_config", None)
-    ds = load_hf_splits(cfg["dataset"], config=dataset_config)
+    is_anli = dataset_config == "anli" or (dataset_config is None and "anli" in cfg["dataset"].lower())
+    
+    if is_anli:
+        # ANLI: aggregate training sets from specified rounds
+        train_rounds = cfg.get("train_rounds", [1, 2, 3])  # Default: use all rounds
+        if isinstance(train_rounds, int):
+            train_rounds = [train_rounds]  # Convert single int to list
+        ds = load_anli_splits(cfg["dataset"], train_rounds=train_rounds, seed=cfg["seed"])
+    else:
+        ds = load_hf_splits(cfg["dataset"], config=dataset_config)
     
     # Sample datasets if sample_percent is specified
     sample_percent = cfg.get("sample_percent", None)
@@ -70,13 +79,20 @@ def pretrain(cfg):
     split = {}
     split['train'] = ds['train']
     #split['train'] = split['train'].filter(lambda x: x['label'] == 1)
-    if dataset_config == 'mnli':
+    if is_anli:
+        split['test'] = ds['validation']
+    elif dataset_config == 'mnli':
         split['test'] = ds['validation_matched']
     else:
         split['test'] = ds['validation']
     
     # Get text keys from config (defaults to ["question", "sentence"])
-    text_keys = cfg.get("text_keys", ["question", "sentence"])
+    if is_anli:
+        text_keys = cfg.get("text_keys", ["premise", "hypothesis"])  # ANLI uses premise/hypothesis like MNLI
+    elif dataset_config == 'mnli':
+        text_keys = cfg.get("text_keys", ["premise", "hypothesis"])
+    else:
+        text_keys = cfg.get("text_keys", ["question", "sentence"])
     print(f"Using text keys: {text_keys}")
     
     # Pre-tokenize datasets once before training

@@ -8,7 +8,7 @@ from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
 from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score
 from .utils import set_seed, device, load_encoder_state, save_ckpt
-from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, load_hf_splits_test_mismatched, preprocess_dataset, load_test_set_from_json, sample_dataset
+from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, load_hf_splits_test_mismatched, preprocess_dataset, load_test_set_from_json, sample_dataset, load_anli_splits, load_anli_test_splits
 from .train_ssl import pretrain
 import os
 from torch import amp
@@ -48,16 +48,32 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
 
     # Determine dataset type from config
     dataset_name = cfg["dataset"]
-    dataset_config = cfg.get("dataset_config", None)  # e.g., "qnli", "mnli", "rte"
+    dataset_config = cfg.get("dataset_config", None)  # e.g., "qnli", "mnli", "rte", "anli"
     is_mnli = dataset_config == "mnli" or (dataset_config is None and "mnli" in dataset_name.lower())
+    is_anli = dataset_config == "anli" or (dataset_config is None and "anli" in dataset_name.lower())
     
-    # Load training and validation datasets from HuggingFace
-    ds = load_hf_splits(dataset_name, config=dataset_config)
-    ds_test_matched = load_hf_splits_test(cfg.get("test_dataset", dataset_name), config=dataset_config)
+    # Load training and validation datasets
+    if is_anli:
+        # ANLI: aggregate training sets from specified rounds
+        train_rounds = cfg.get("train_rounds", [1, 2, 3])  # Default: use all rounds
+        if isinstance(train_rounds, int):
+            train_rounds = [train_rounds]  # Convert single int to list
+        ds = load_anli_splits(dataset_name, train_rounds=train_rounds, seed=cfg["seed"]) 
+        # For ANLI, we'll use dev_r1 as validation (already loaded in load_anli_splits)
+        ds_test_matched = {"validation": ds["validation"]}
+        # Load test splits separately
+        anli_test_splits = load_anli_test_splits(dataset_name)
+    else:
+        # Standard HuggingFace datasets
+        ds = load_hf_splits(dataset_name, config=dataset_config)
+        ds_test_matched = load_hf_splits_test(cfg.get("test_dataset", dataset_name), config=dataset_config)
+        anli_test_splits = None
     
     # For MNLI, also load mismatched validation set
     if is_mnli:
         ds_test_mismatched = load_hf_splits_test_mismatched(cfg.get("test_dataset", dataset_name), config=dataset_config)
+    elif is_anli:
+        ds_test_mismatched = None  # ANLI doesn't have matched/mismatched splits
     else:
         ds_test_mismatched = None
     
@@ -103,9 +119,17 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             ds_test_mismatched_json = sample_dataset(ds_test_mismatched_json, sample_percent=sample_percent, seed=cfg["seed"])
         if ds_test_other:
             ds_test_other = sample_dataset(ds_test_other, sample_percent=sample_percent, seed=cfg["seed"])
+        if anli_test_splits:
+            for split_name in anli_test_splits:
+                anli_test_splits[split_name] = sample_dataset(anli_test_splits[split_name], sample_percent=sample_percent, seed=cfg["seed"])
     
     # Get text keys from config (defaults to ["question", "sentence"])
-    text_keys = cfg.get("text_keys", ["question", "sentence"] if not is_mnli else ["premise", "hypothesis"])
+    if is_anli:
+        text_keys = cfg.get("text_keys", ["premise", "hypothesis"])  # ANLI uses premise/hypothesis like MNLI
+    elif is_mnli:
+        text_keys = cfg.get("text_keys", ["premise", "hypothesis"])
+    else:
+        text_keys = cfg.get("text_keys", ["question", "sentence"])
     print(f"Using text keys: {text_keys}")
     
     # Pre-tokenize datasets once before training
@@ -127,6 +151,12 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         if ds_test_mismatched_json:
             print("Pre-tokenizing MNLI-MM test dataset (from JSON)...")
             ds_test_mismatched_json["test"] = preprocess_dataset(ds_test_mismatched_json["test"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+    elif is_anli:
+        # Pre-tokenize ANLI test splits
+        if anli_test_splits:
+            for split_name in anli_test_splits:
+                print(f"Pre-tokenizing ANLI {split_name}...")
+                anli_test_splits[split_name] = preprocess_dataset(anli_test_splits[split_name], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
     else:
         if ds_test_other:
             print(f"Pre-tokenizing {dataset_config or 'test'} test dataset (from JSON)...")
@@ -135,7 +165,18 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     # Create dataloaders
     train_loader, val_loader_matched = make_dataloaders(ds["train"], ds_test_matched["validation"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
     
-    if is_mnli and ds_test_mismatched:
+    if is_anli:
+        # ANLI: create separate test loaders for each round
+        val_loader_mismatched = None
+        test_loader_matched = None
+        test_loader_mismatched = None
+        test_loader_other = None
+        anli_test_loaders = {}
+        if anli_test_splits:
+            for split_name, test_ds in anli_test_splits.items():
+                _, test_loader = make_dataloaders(ds["train"], test_ds, cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
+                anli_test_loaders[split_name] = test_loader
+    elif is_mnli and ds_test_mismatched:
         _, val_loader_mismatched = make_dataloaders(ds["train"], ds_test_mismatched["validation"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
         test_loader_matched = None
         test_loader_mismatched = None
@@ -143,6 +184,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             _, test_loader_matched = make_dataloaders(ds["train"], ds_test_matched_json["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
         if ds_test_mismatched_json:
             _, test_loader_mismatched = make_dataloaders(ds["train"], ds_test_mismatched_json["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
+        anli_test_loaders = None
     else:
         val_loader_mismatched = None
         test_loader_other = None
@@ -150,17 +192,22 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             _, test_loader_other = make_dataloaders(ds["train"], ds_test_other["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
         test_loader_matched = None
         test_loader_mismatched = None
+        anli_test_loaders = None
     
     print(f"Train dataset size: {len(ds['train'])}")
     print(f"Validation dataset size (matched): {len(ds_test_matched['validation'])}")
-    if is_mnli and ds_test_mismatched:
+    if is_anli:
+        if anli_test_splits:
+            for split_name, test_ds in anli_test_splits.items():
+                print(f"Test dataset size ({split_name}): {len(test_ds)}")
+    elif is_mnli and ds_test_mismatched:
         print(f"Validation dataset size (mismatched): {len(ds_test_mismatched['validation'])}")
     if is_mnli:
         if ds_test_matched_json:
             print(f"Test dataset size (MNLI from JSON): {len(ds_test_matched_json['test'])}")
         if ds_test_mismatched_json:
             print(f"Test dataset size (MNLI-MM from JSON): {len(ds_test_mismatched_json['test'])}")
-    elif ds_test_other:
+    elif not is_anli and ds_test_other:
         print(f"Test dataset size ({dataset_config or 'test'} from JSON): {len(ds_test_other['test'])}")
 
     # Get number of labels from config (defaults to 2 for binary classification)
@@ -396,7 +443,29 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 return {"acc": test_acc, "mcc": test_mcc, "f1": test_f1}
 
             test_results = []
-            if is_mnli:
+            if is_anli:
+                # Evaluate on each ANLI test round separately
+                if anli_test_loaders:
+                    for split_name, test_loader in sorted(anli_test_loaders.items()):
+                        res = evaluate_loader(test_loader, split_name)
+                        if res:
+                            test_results.append((split_name, res))
+                    # Use test_r3 accuracy for best model selection (hardest round)
+                    if "test_r3" in anli_test_loaders and "test_r3" in [r[0] for r in test_results]:
+                        test_r3_res = next(r[1] for r in test_results if r[0] == "test_r3")
+                        test_acc = test_r3_res["acc"]
+                        test_mcc = test_r3_res["mcc"]
+                        test_f1 = test_r3_res["f1"]
+                    elif test_results:
+                        # Fallback to first available result
+                        test_acc = test_results[0][1]["acc"]
+                        test_mcc = test_results[0][1]["mcc"]
+                        test_f1 = test_results[0][1]["f1"]
+                    else:
+                        test_acc = test_mcc = test_f1 = 0.0
+                else:
+                    test_acc = test_mcc = test_f1 = 0.0
+            elif is_mnli:
                 res_matched = evaluate_loader(test_loader_matched, "MNLI") if test_loader_matched else None
                 if res_matched:
                     test_results.append(("MNLI", res_matched))
