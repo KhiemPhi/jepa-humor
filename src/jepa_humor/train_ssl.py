@@ -11,20 +11,6 @@ from torch import amp
 import torch.nn.functional as F
 import math
 
-def freeze_distilbert_layers(encoder, unfreeze_last_n=2):
-    # DistilBERT has encoder.transformer.layer[i]
-    for p in encoder.parameters():
-        p.requires_grad = False
-    # unfreeze last N layers
-    for i in range(6 - unfreeze_last_n, 6):
-        for p in encoder.transformer.layer[i].parameters():
-            p.requires_grad = True
-    # keep LayerNorms trainable in the whole stack (optional)
-    for m in encoder.modules():
-        if isinstance(m, torch.nn.LayerNorm):
-            for p in m.parameters():
-                p.requires_grad = True
-
 def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=0.01, total_steps=1000, warmup_ratio=0.06):
     # param groups: predictor (higher LR), encoder (lower LR), target is frozen
     pred_params = list(jepa.predictor.parameters())
@@ -65,13 +51,21 @@ def pretrain(cfg):
         raise ValueError("Tokenizer must have a [MASK] token.")
 
     
+    embedding_matrix = base.get_input_embeddings().weight.detach().cpu().numpy()
+
     jepa = JEPA(base, hidden_size=base.config.hidden_size,
                 pred_hid=512, ema_decay=cfg["ema_decay"], use_cls=True).to(dev)
     jepa.train()
 
-    from .data import load_hf_splits, make_dataloaders, preprocess_dataset_ssl
+    from .data import load_hf_splits, make_dataloaders, preprocess_dataset_ssl, sample_dataset
     dataset_config = cfg.get("dataset_config", None)
     ds = load_hf_splits(cfg["dataset"], config=dataset_config)
+    
+    # Sample datasets if sample_percent is specified
+    sample_percent = cfg.get("sample_percent", None)
+    if sample_percent is not None and sample_percent < 100.0:
+        print(f"Sampling {sample_percent}% of datasets for quick prototyping...")
+        ds = sample_dataset(ds, sample_percent=sample_percent, seed=cfg["seed"])
     
     split = {}
     split['train'] = ds['train']
@@ -86,10 +80,31 @@ def pretrain(cfg):
     print(f"Using text keys: {text_keys}")
     
     # Pre-tokenize datasets once before training
+    mask_prob = cfg.get("mask_ratio", 0.15)
+    span_len = cfg.get("mean_span_len", 3.0)
+    mask_type = cfg.get("mask_type", "random_span")
+
     print("Pre-tokenizing training dataset for SSL...")
-    split['train'] = preprocess_dataset_ssl(split['train'], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+    split['train'] = preprocess_dataset_ssl(
+        split['train'],
+        tokenizer,
+        max_length=cfg["max_length"],
+        text_keys=text_keys,
+        mask_probability=mask_prob,
+        span_mean=span_len,
+        mask_type=mask_type,
+    )
     print("Pre-tokenizing validation dataset for SSL...")
-    split['test'] = preprocess_dataset_ssl(split['test'], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+    split['test'] = preprocess_dataset_ssl(
+        split['test'],
+        tokenizer,
+        max_length=cfg["max_length"],
+        text_keys=text_keys,
+        mask_probability=mask_prob,
+        span_mean=span_len,
+        mask_type=mask_type,
+        
+    )
     
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True, ssl_mode=True)

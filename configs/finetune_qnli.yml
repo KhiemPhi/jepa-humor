@@ -3,7 +3,7 @@ experiment_name: finetune_qnli_exp1  # Prefix for all saved checkpoints
 model_name: google-bert/bert-base-uncased   # ignored if --ckpt provided
 dataset: nyu-mll/glue
 dataset_config: qnli  # Specify QNLI configuration
-test_dataset: AI-Secure/adv_glue
+test_dataset: nyu-mll/glue
 text_keys: ["question", "sentence"]  # Column names to tokenize (e.g., ["premise", "hypothesis"] for MNLI)
 num_labels: 2  # Number of classification labels (2 for binary, 3 for MNLI, etc.)
 max_length: 256

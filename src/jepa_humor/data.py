@@ -7,6 +7,38 @@ import json
 import os
 
 
+def sample_dataset(ds, sample_percent=10.0, seed=42):
+    """
+    Sample a percentage of a dataset for quick prototyping.
+    
+    Args:
+        ds: HuggingFace Dataset or DatasetDict to sample from
+        sample_percent: Percentage of data to keep (default 10.0)
+        seed: Random seed for reproducibility
+    
+    Returns:
+        Sampled dataset (same type as input)
+    """
+    if sample_percent is None or sample_percent >= 100.0:
+        return ds
+    
+    if isinstance(ds, dict):
+        # DatasetDict: sample each split
+        sampled = {}
+        for split_name, split_ds in ds.items():
+            if len(split_ds) == 0:
+                sampled[split_name] = split_ds
+                continue
+            num_samples = max(1, int(len(split_ds) * sample_percent / 100.0))
+            sampled[split_name] = split_ds.shuffle(seed=seed).select(range(num_samples))
+        return type(ds)(sampled)
+    else:
+        # Single Dataset
+        if len(ds) == 0:
+            return ds
+        num_samples = max(1, int(len(ds) * sample_percent / 100.0))
+        return ds.shuffle(seed=seed).select(range(num_samples))
+
 
 def load_hf_splits(name: str, config: str = None, test_size=0.2, seed=42):
     """
@@ -298,8 +330,15 @@ def preprocess_dataset(ds, tokenizer, max_length=256, text_keys=None):
     )
     return ds
 
-def preprocess_dataset_ssl(ds, tokenizer, max_length=256,
-                           mask_probability=0.15, span_mean=3, text_keys=None):
+def preprocess_dataset_ssl(
+    ds,
+    tokenizer,
+    max_length=256,
+    mask_probability=0.15,
+    span_mean=3,
+    text_keys=None,
+    mask_type="random_span",
+):
     """
     Tokenize text fields together, then create masked target versions
     using SpanBERT-style random span masking.
@@ -347,6 +386,187 @@ def preprocess_dataset_ssl(ds, tokenizer, max_length=256,
 
         return ids
 
+    def sentiment_aware_mask(ids, tokenizer, mask_prob, span_mean):
+        """
+        Mask tokens using a sentiment-aware strategy.
+        Higher probability to mask sentiment-bearing tokens.
+        Avoids masking negations and uninformative tokens.
+        Designed for SST-2 sentiment classification tasks.
+        """
+        # Simple sentiment lexicon (extend with your own)
+        SENTIMENT_WORDS = {
+            "good", "great", "excellent", "amazing", "positive", "wonderful",
+            "bad", "terrible", "awful", "horrible", "negative", "worst",
+            "love", "hate", "like", "dislike", "boring", "fantastic"
+        }
+
+        NEGATION_WORDS = {"not", "never", "no", "n't"}
+
+        ids = ids.copy()
+        length = len(ids)
+
+        # identify which tokens correspond to sentiment words
+        tokens = tokenizer.convert_ids_to_tokens(ids)
+
+        # assign masking weights
+        weights = []
+        for tok in tokens:
+            w = 1.0
+            base = tok.lower().strip()
+
+            if base in SENTIMENT_WORDS:
+                w = 5.0   # strong mask probability
+            elif base in NEGATION_WORDS:
+                w = 0.2   # rarely mask negations
+            elif base.startswith("##"):
+                w = 0.7   # subword pieces: moderate
+            else:
+                w = 1.0   # normal
+
+            # don't mask pad tokens or special tokens
+            if tok == tokenizer.pad_token or tok in (tokenizer.cls_token, tokenizer.sep_token):
+                w = 0.0
+
+            weights.append(w)
+
+        weights = np.array(weights)
+        if weights.sum() == 0:
+            return ids
+
+        # Get indices with non-zero weights (maskable tokens)
+        maskable_indices = np.where(weights > 0)[0]
+        if len(maskable_indices) == 0:
+            return ids
+
+        # Normalize weights only for maskable tokens
+        maskable_weights = weights[maskable_indices]
+        maskable_weights = maskable_weights / maskable_weights.sum()
+
+        # Calculate how many tokens to mask
+        num_to_mask = max(1, int(mask_prob * length))
+        # Don't try to mask more tokens than we have maskable tokens
+        num_to_mask = min(num_to_mask, len(maskable_indices))
+        
+        if num_to_mask == 0:
+            return ids
+
+        # Sample from maskable indices only
+        chosen_maskable = np.random.choice(
+            len(maskable_indices), 
+            size=num_to_mask, 
+            replace=False, 
+            p=maskable_weights
+        )
+        chosen = maskable_indices[chosen_maskable]
+
+        # expand into small spans
+        MASK_ID = tokenizer.mask_token_id
+        PAD_ID = tokenizer.pad_token_id
+        CLS_ID = tokenizer.cls_token_id
+        SEP_ID = tokenizer.sep_token_id
+
+        for idx in chosen:
+            if ids[idx] not in (PAD_ID, CLS_ID, SEP_ID):
+                ids[idx] = MASK_ID
+
+            # contiguous span around sentiment words
+            span = max(1, np.random.poisson(span_mean))
+            for j in range(1, span + 1):
+                if idx + j < length and ids[idx + j] not in (PAD_ID, CLS_ID, SEP_ID):
+                    ids[idx + j] = MASK_ID
+                if idx - j >= 0 and ids[idx - j] not in (PAD_ID, CLS_ID, SEP_ID):
+                    ids[idx - j] = MASK_ID
+
+        return ids
+
+    def adversarial_mask(ids, tokenizer, mask_prob, span_mean):
+        """
+        ADVGLUE-style adversarial masking:
+        - span masking
+        - typos
+        - synonym replacement
+        - contextual MLM replacement
+        - distraction appending (URL/noise phrase)
+        """
+
+        MASK = tokenizer.mask_token_id
+        PAD = tokenizer.pad_token_id
+        CLS = tokenizer.cls_token_id
+        SEP = tokenizer.sep_token_id
+        vocab_size = tokenizer.vocab_size
+
+        ids = ids.copy()
+        L = len(ids)
+
+        num_to_modify = max(1, int(L * mask_prob))
+
+        for _ in range(num_to_modify):
+            i = random.randint(1, max(1, L - 2))  # avoid CLS/SEP as much as possible
+            tok = ids[i]
+
+            if tok in (PAD, CLS, SEP):
+                continue
+
+            r = random.random()
+
+            if r < 0.40:
+                span_len = max(1, np.random.poisson(span_mean))
+                for j in range(i, min(i + span_len, L)):
+                    if ids[j] not in (PAD, CLS, SEP):
+                        ids[j] = MASK
+
+            elif r < 0.55: # TextBugger 
+                token_str = tokenizer.decode([tok])
+                if len(token_str) >= 2:
+                    idx = np.random.randint(0, len(token_str) - 1)
+                    typo = list(token_str)
+                    typo[idx], typo[idx + 1] = typo[idx + 1], typo[idx]
+                    new_tok = tokenizer.encode("".join(typo), add_special_tokens=False)
+                    if new_tok:
+                        ids[i] = new_tok[0]
+
+            elif r < 0.75: # TextFooler
+                ids[i] = random.randint(100, max(100, vocab_size - 10))
+
+            elif r < 0.95: #  BERT-ATTACK
+                ids[i] = MASK
+
+            else: # StressTest
+                distraction_tokens = tokenizer.encode(
+                    random.choice(
+                        [
+                            "and true is true",
+                            "and false is not true",
+                            "https://t.co/abc123",
+                            "@random_user",
+                        ]
+                    ),
+                    add_special_tokens=False,
+                )
+                tail_start = max(1, L - len(distraction_tokens) - 1)
+                for j, tok2 in enumerate(distraction_tokens):
+                    pos = tail_start + j
+                    if pos >= L - 1:
+                        break
+                    if ids[pos] in (PAD, CLS, SEP):
+                        continue
+                    ids[pos] = tok2
+        # SCPN
+        return ids
+
+    mask_type = (mask_type or "random_span").lower()
+    if mask_type == "adversarial":
+        def mask_function(seq):
+            return adversarial_mask(seq, tokenizer, mask_probability, span_mean)
+    elif mask_type == "sentiment_aware":
+        def mask_function(seq):
+            return sentiment_aware_mask(seq, tokenizer, mask_probability, span_mean)
+    elif mask_type in ("random_span", "span"):
+        def mask_function(seq):
+            return random_span_mask(seq, mask_probability, span_mean)
+    else:
+        raise ValueError(f"Unknown mask_type '{mask_type}'. Expected 'random_span', 'adversarial', or 'sentiment_aware'.")
+
     def tokenize_function(examples):
         # Tokenize text fields together
         texts = [examples[key] for key in text_keys]
@@ -361,10 +581,7 @@ def preprocess_dataset_ssl(ds, tokenizer, max_length=256,
         keep_mask = encoded["attention_mask"]
 
         # Now create masked copies
-        target_ids = [
-            random_span_mask(seq, mask_probability, span_mean)
-            for seq in keep_ids
-        ]
+        target_ids = [mask_function(seq) for seq in keep_ids]
 
         return {
             "keep_input_ids": keep_ids,      # original text

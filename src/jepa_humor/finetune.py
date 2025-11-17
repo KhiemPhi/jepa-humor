@@ -8,7 +8,7 @@ from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
 from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score
 from .utils import set_seed, device, load_encoder_state, save_ckpt
-from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, load_hf_splits_test_mismatched, preprocess_dataset, load_test_set_from_json
+from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, load_hf_splits_test_mismatched, preprocess_dataset, load_test_set_from_json, sample_dataset
 from .train_ssl import pretrain
 import os
 from torch import amp
@@ -88,6 +88,21 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             else:
                 ds_test_other = None
                 print(f"Warning: Could not determine test set to load from JSON for dataset '{dataset_name}'")
+    
+    # Sample datasets if sample_percent is specified
+    sample_percent = cfg.get("sample_percent", None)
+    if sample_percent is not None and sample_percent < 100.0:
+        print(f"Sampling {sample_percent}% of datasets for quick prototyping...")
+        ds = sample_dataset(ds, sample_percent=sample_percent, seed=cfg["seed"])
+        ds_test_matched = sample_dataset(ds_test_matched, sample_percent=sample_percent, seed=cfg["seed"])
+        if ds_test_mismatched:
+            ds_test_mismatched = sample_dataset(ds_test_mismatched, sample_percent=sample_percent, seed=cfg["seed"])
+        if ds_test_matched_json:
+            ds_test_matched_json = sample_dataset(ds_test_matched_json, sample_percent=sample_percent, seed=cfg["seed"])
+        if ds_test_mismatched_json:
+            ds_test_mismatched_json = sample_dataset(ds_test_mismatched_json, sample_percent=sample_percent, seed=cfg["seed"])
+        if ds_test_other:
+            ds_test_other = sample_dataset(ds_test_other, sample_percent=sample_percent, seed=cfg["seed"])
     
     # Get text keys from config (defaults to ["question", "sentence"])
     text_keys = cfg.get("text_keys", ["question", "sentence"] if not is_mnli else ["premise", "hypothesis"])
@@ -347,33 +362,27 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 val_acc_mismatched = accuracy_score(v_true_mismatched, preds_mismatched)
                 print(f"          val (MNLI mismatched): mcc={val_mcc_mismatched:.4f} f1={val_f1_mismatched:.4f} acc={val_acc_mismatched:.4f}")
 
-            # Evaluate on test set (all from JSON)
-            if is_mnli:
-                # For MNLI, use mismatched test set for best model selection (standard practice)
-                test_loader = test_loader_mismatched if test_loader_mismatched else test_loader_matched
-                test_set_name = "MNLI-MM" if test_loader_mismatched else "MNLI"
-            else:
-                test_loader = test_loader_other
-                test_set_name = dataset_config.upper() if dataset_config else "TEST"
-            
-            if test_loader:
-                t_true, t_pred, t_prob = [], [], []
+            def evaluate_loader(loader, set_name):
+                if loader is None:
+                    return None
+                t_true, t_prob = [], []
                 with torch.no_grad():
-                    for batch in test_loader:
+                    for batch in loader:
                         input_ids = batch["input_ids"].to(dev, non_blocking=True)
                         attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                         labels = batch["label"].to(dev, non_blocking=True)
                         logits = model(input_ids, attention_mask)
                         t_true.extend(labels.cpu().tolist())
-                        t_pred.extend(logits.cpu().argmax(-1).tolist())
-                        # For multi-class, get probabilities for all classes
                         if num_labels > 2:
                             probs_batch = torch.softmax(logits.detach().cpu(), dim=-1).numpy()
                             t_prob.append(probs_batch)
                         else:
                             probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
                             t_prob.append(probs_batch)
-                
+
+                if not t_prob:
+                    return None
+
                 if num_labels > 2:
                     probs_test = np.concatenate(t_prob, axis=0)
                     preds_test = np.argmax(probs_test, axis=1)
@@ -383,11 +392,39 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 test_mcc = matthews_corrcoef(t_true, preds_test)
                 test_f1 = f1_score(t_true, preds_test, average='macro')
                 test_acc = accuracy_score(t_true, preds_test)
-                print(f"          test ({test_set_name}): mcc={test_mcc:.4f} f1={test_f1:.4f} acc={test_acc:.4f}")
+                print(f"          test ({set_name}): mcc={test_mcc:.4f} f1={test_f1:.4f} acc={test_acc:.4f}")
+                return {"acc": test_acc, "mcc": test_mcc, "f1": test_f1}
+
+            test_results = []
+            if is_mnli:
+                res_matched = evaluate_loader(test_loader_matched, "MNLI") if test_loader_matched else None
+                if res_matched:
+                    test_results.append(("MNLI", res_matched))
+                res_mismatched = evaluate_loader(test_loader_mismatched, "MNLI-MM") if test_loader_mismatched else None
+                if res_mismatched:
+                    test_results.append(("MNLI-MM", res_mismatched))
+                if res_mismatched:
+                    test_acc = res_mismatched["acc"]
+                    test_mcc = res_mismatched["mcc"]
+                    test_f1 = res_mismatched["f1"]
+                elif res_matched:
+                    test_acc = res_matched["acc"]
+                    test_mcc = res_matched["mcc"]
+                    test_f1 = res_matched["f1"]
+                else:
+                    test_acc = test_mcc = test_f1 = 0.0
             else:
-                test_acc = 0.0
-                test_mcc = 0.0
-                test_f1 = 0.0
+                res_other = evaluate_loader(
+                    test_loader_other,
+                    dataset_config.upper() if dataset_config else "TEST",
+                )
+                if res_other:
+                    test_results.append((dataset_config.upper() if dataset_config else "TEST", res_other))
+                    test_acc = res_other["acc"]
+                    test_mcc = res_other["mcc"]
+                    test_f1 = res_other["f1"]
+                else:
+                    test_acc = test_mcc = test_f1 = 0.0
             
             # Save best model based on test accuracy
             ckpt_dir = cfg.get("ckpt_dir", "checkpoints/finetune")

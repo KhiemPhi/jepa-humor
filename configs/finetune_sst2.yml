@@ -16,5 +16,6 @@ max_grad_norm: 0.0  # Gradient clipping norm (set to 0 to disable)
 log_dir: runs/finetune
 ckpt_dir: checkpoints/finetune
 val_split: 0.8
-gpu_id: 1
+gpu_id: 4
 weight_decay: 0.001
+sample_percent: 10.0
