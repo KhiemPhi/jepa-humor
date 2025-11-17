@@ -1,6 +1,9 @@
 seed: 42
+experiment_name: pretrain_mnli_exp1  # Prefix for all saved checkpoints
 model_name: google-bert/bert-base-uncased
 dataset: nyu-mll/glue
+dataset_config: mnli  # Specify MNLI configuration
+text_keys: ["premise", "hypothesis"]  # MNLI uses premise and hypothesis
 max_length: 256
 batch_size: 32
 num_workers: 4
@@ -15,3 +18,5 @@ log_dir: runs/pretrain
 ckpt_dir: checkpoints/pretrain
 early_stop_patience: 3
 val_split: 0.8
+gpu_id: 0
+

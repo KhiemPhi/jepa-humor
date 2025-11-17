@@ -51,7 +51,13 @@ def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=
 
 def pretrain(cfg):
     set_seed(cfg["seed"])
-    dev = device()
+    # Get GPU ID from config, default to None (which will use cuda:0 or cpu)
+    gpu_id = cfg.get("gpu_id", None)
+    dev = device(gpu_id)
+    if gpu_id is not None:
+        print(f"Using device: {dev}")
+    else:
+        print(f"Using device: {dev} (default)")
 
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_name"])
     base = AutoModel.from_pretrained(cfg["model_name"])
@@ -64,19 +70,26 @@ def pretrain(cfg):
     jepa.train()
 
     from .data import load_hf_splits, make_dataloaders, preprocess_dataset_ssl
-    ds = load_hf_splits(cfg["dataset"])
+    dataset_config = cfg.get("dataset_config", None)
+    ds = load_hf_splits(cfg["dataset"], config=dataset_config)
     
     split = {}
     split['train'] = ds['train']
     #split['train'] = split['train'].filter(lambda x: x['label'] == 1)
+    if dataset_config == 'mnli':
+        split['test'] = ds['validation_matched']
+    else:
+        split['test'] = ds['validation']
     
-    split['test'] = ds['validation']
+    # Get text keys from config (defaults to ["question", "sentence"])
+    text_keys = cfg.get("text_keys", ["question", "sentence"])
+    print(f"Using text keys: {text_keys}")
     
     # Pre-tokenize datasets once before training
     print("Pre-tokenizing training dataset for SSL...")
-    split['train'] = preprocess_dataset_ssl(split['train'], tokenizer, max_length=cfg["max_length"])
+    split['train'] = preprocess_dataset_ssl(split['train'], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
     print("Pre-tokenizing validation dataset for SSL...")
-    split['test'] = preprocess_dataset_ssl(split['test'], tokenizer, max_length=cfg["max_length"])
+    split['test'] = preprocess_dataset_ssl(split['test'], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
     
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True, ssl_mode=True)
@@ -136,7 +149,10 @@ def pretrain(cfg):
 
         # checkpoint & early stopping on train loss (SSL)
         os.makedirs(cfg["ckpt_dir"], exist_ok=True)
-        path = os.path.join(cfg["ckpt_dir"], f"jepa_epoch{epoch}_loss{epoch_loss:.4f}.pt")
+        exp_name = cfg.get("experiment_name", "")
+        prefix = f"{exp_name}_" if exp_name else ""
+        
+        path = os.path.join(cfg["ckpt_dir"], f"{prefix}jepa_epoch{epoch}_loss{epoch_loss:.4f}.pt")
         save_ckpt({
             "epoch": epoch,
             "loss": epoch_loss,
@@ -147,12 +163,13 @@ def pretrain(cfg):
         if epoch_loss + 1e-6 < best:
             best = epoch_loss
             patience = 0
+            best_ckpt_path = os.path.join(cfg["ckpt_dir"], f"best_{prefix}.pt")
             save_ckpt({
                 "epoch": epoch,
                 "loss": epoch_loss,
                 "encoder_state_dict": jepa.encoder.state_dict(),
                 "jepa_state_dict": jepa.state_dict()
-            }, os.path.join(cfg["ckpt_dir"], "best.pt"))
+            }, best_ckpt_path)
         else:
             patience += 1
             if patience >= cfg["early_stop_patience"]:
@@ -160,4 +177,6 @@ def pretrain(cfg):
                 break
 
     # return path to best encoder
-    return os.path.join(cfg["ckpt_dir"], "best.pt")
+    exp_name = cfg.get("experiment_name", "")
+    prefix = f"{exp_name}_" if exp_name else ""
+    return os.path.join(cfg["ckpt_dir"], f"best_{prefix}.pt")

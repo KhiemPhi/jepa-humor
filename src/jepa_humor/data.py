@@ -8,20 +8,76 @@ import os
 
 
 
-def load_hf_splits(name: str, test_size=0.2, seed=42):
-    ds = load_dataset(name, 'qnli')
-   
+def load_hf_splits(name: str, config: str = None, test_size=0.2, seed=42):
+    """
+    Load HuggingFace dataset splits.
+    
+    Args:
+        name: Dataset name (e.g., "nyu-mll/glue")
+        config: Dataset configuration (e.g., "qnli", "mnli"). If None, will try to infer from name.
+        test_size: Not used, kept for compatibility
+        seed: Not used, kept for compatibility
+    
+    Returns:
+        Dataset dict with train/validation/test splits
+    """
+    if config is None:
+        # Try to infer config from name or default to qnli
+        if 'mnli' in name.lower():
+            config = 'mnli'
+        else:
+            config = 'qnli'
+    
+    ds = load_dataset(name, config)
     return ds
     
-def load_hf_splits_test(name: str, test_size=0.2, seed=42):
-    ds = load_dataset(name, 'adv_qnli')
-   
-    return ds
+def load_hf_splits_test(name: str, config: str = None, test_size=0.2, seed=42):
+    """
+    Load test/validation dataset for evaluation.
+    For MNLI, returns matched validation set.
+    """
+    if config is None:
+        if 'mnli' in name.lower():
+            config = 'mnli'
+        else:
+            config = 'adv_qnli'
+    
+    if config == 'mnli':
+        # For MNLI, return matched validation set
+        # MNLI has separate validation_matched and validation_mismatched splits
+        ds = load_dataset(name, config)
+        if "validation_matched" in ds:
+            return {"validation": ds["validation_matched"]}
+        elif "validation" in ds:
+            return {"validation": ds["validation"]}
+        else:
+            raise ValueError(f"MNLI dataset does not have expected validation splits. Available: {list(ds.keys())}")
+    else:
+        ds = load_dataset(name, config)
+        return ds
 
-def load_hf_splits_test_mismatched(name: str, test_size=0.2, seed=42):
-    ds = load_dataset(name, 'adv_qnli')
-   
-    return ds
+def load_hf_splits_test_mismatched(name: str, config: str = None, test_size=0.2, seed=42):
+    """
+    Load mismatched test/validation dataset.
+    For MNLI, returns mismatched validation set.
+    """
+    if config is None:
+        if 'mnli' in name.lower():
+            config = 'mnli'
+        else:
+            config = 'adv_qnli'
+    
+    if config == 'mnli':
+        # For MNLI, return mismatched validation set
+        # MNLI has separate validation_matched and validation_mismatched splits
+        ds = load_dataset(name, config)
+        if "validation_mismatched" in ds:
+            return {"validation": ds["validation_mismatched"]}
+        else:
+            raise ValueError(f"MNLI dataset does not have validation_mismatched split. Available: {list(ds.keys())}")
+    else:
+        ds = load_dataset(name, config)
+        return ds
 
 def load_mnli_test_from_json(json_path: str = None):
     """Load MNLI test set from test_ann.json file."""
@@ -125,10 +181,10 @@ def load_qnli_test_from_json(json_path: str = None):
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    # Extract QQP test data
+    # Extract QNLI test data
     qnli_data = data.get("qnli", [])
     
-    # Convert to format expected by the model (question1, question2, label)
+    # Convert to format expected by the model (question, sentence, label)
     # Filter out any entries missing required fields and exclude items with method="glue"
     processed_data = []
     for item in qnli_data:
@@ -147,12 +203,88 @@ def load_qnli_test_from_json(json_path: str = None):
     # Return in the same format as load_dataset (with "test" key)
     return {"test": dataset}
 
-def preprocess_dataset(ds, tokenizer, max_length=256):
-    """Pre-tokenize dataset to avoid tokenizing during training."""
+def load_test_set_from_json(dataset_config: str, json_path: str = None):
+    """
+    Load test set from JSON file based on dataset configuration.
+    
+    Args:
+        dataset_config: Dataset configuration name (e.g., "qnli", "mnli", "qqp", "rte")
+        json_path: Path to test_ann.json file. If None, uses default path.
+    
+    Returns:
+        Dictionary with "test" key containing the test dataset, or None if not found
+    """
+    if json_path is None:
+        json_path = os.path.join(os.path.dirname(__file__), "test_ann.json")
+    
+    try:
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        print(f"Warning: test_ann.json not found at {json_path}")
+        return None
+    
+    # Map dataset config to JSON key and expected fields
+    config_map = {
+        "qnli": ("qnli", ["question", "sentence"]),
+        "mnli": ("mnli", ["premise", "hypothesis"]),
+        "mnli-mm": ("mnli-mm", ["premise", "hypothesis"]),
+        "qqp": ("qqp", ["question1", "question2"]),
+        "rte": ("rte", ["sentence1", "sentence2"]),  # RTE typically uses sentence1/sentence2
+        "sst2": ("sst2", ["sentence"]),
+    }
+    
+    if dataset_config not in config_map:
+        print(f"Warning: No test set loader for dataset_config '{dataset_config}'")
+        return None
+    
+    json_key, expected_fields = config_map[dataset_config]
+    test_data = data.get(json_key, [])
+    
+    if not test_data:
+        print(f"Warning: No test data found for '{json_key}' in JSON file")
+        return None
+    
+    # Convert to format expected by the model
+    processed_data = []
+    for item in test_data:
+        # Check if all expected fields are present
+        if all(field in item for field in expected_fields) and "label" in item:
+            # Exclude items with method="glue"
+            if item.get("method") != "glue":
+                processed_item = {field: item[field] for field in expected_fields}
+                processed_item["label"] = item["label"]
+                processed_data.append(processed_item)
+    
+    if not processed_data:
+        print(f"Warning: No valid test data found for '{json_key}' after filtering")
+        return None
+    
+    # Create Dataset from list
+    dataset = Dataset.from_list(processed_data)
+    
+    # Return in the same format as load_dataset (with "test" key)
+    return {"test": dataset}
+
+def preprocess_dataset(ds, tokenizer, max_length=256, text_keys=None):
+    """
+    Pre-tokenize dataset to avoid tokenizing during training.
+    
+    Args:
+        ds: Dataset to preprocess
+        tokenizer: Tokenizer to use
+        max_length: Maximum sequence length
+        text_keys: List of column names to tokenize (e.g., ["question", "sentence"] or ["premise", "hypothesis"])
+                   If None, defaults to ["question", "sentence"]
+    """
+    if text_keys is None:
+        text_keys = ["question", "sentence"]
+    
     def tokenize_function(examples):
+        # Get the text columns to tokenize
+        texts = [examples[key] for key in text_keys]
         return tokenizer(
-            examples["question"],
-            examples["sentence"],
+            *texts,
             truncation=True,
             padding="max_length",
             max_length=max_length,
@@ -167,11 +299,25 @@ def preprocess_dataset(ds, tokenizer, max_length=256):
     return ds
 
 def preprocess_dataset_ssl(ds, tokenizer, max_length=256,
-                           mask_probability=0.15, span_mean=3):
-    """Tokenize question + sentence together, then create masked target versions
-    using SpanBERT-style random span masking."""
+                           mask_probability=0.15, span_mean=3, text_keys=None):
+    """
+    Tokenize text fields together, then create masked target versions
+    using SpanBERT-style random span masking.
+    
+    Args:
+        ds: Dataset to preprocess
+        tokenizer: Tokenizer to use
+        max_length: Maximum sequence length
+        mask_probability: Probability of masking tokens
+        span_mean: Mean span length for masking
+        text_keys: List of column names to tokenize (e.g., ["question", "sentence"] or ["premise", "hypothesis"])
+                   If None, defaults to ["question", "sentence"]
+    """
 
     import numpy as np
+
+    if text_keys is None:
+        text_keys = ["question", "sentence"]
 
     MASK_ID = tokenizer.mask_token_id
     PAD_ID = tokenizer.pad_token_id
@@ -202,10 +348,10 @@ def preprocess_dataset_ssl(ds, tokenizer, max_length=256,
         return ids
 
     def tokenize_function(examples):
-        # Tokenize question + sentence together
+        # Tokenize text fields together
+        texts = [examples[key] for key in text_keys]
         encoded = tokenizer(
-            examples["question"],
-            examples["sentence"],
+            *texts,
             truncation=True,
             padding="max_length",
             max_length=max_length,
@@ -243,7 +389,8 @@ def preprocess_dataset_ssl(ds, tokenizer, max_length=256,
         ]
     )
 
-    return dsFp
+    return ds
+    
 def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True, pre_tokenized=False, ssl_mode=False):
     # Collate function for pre-tokenized SSL data
     if pre_tokenized and ssl_mode:
@@ -275,9 +422,11 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
             }
     else:
         # Original collate for non-tokenized data
+        # This is a fallback and should not be used with the new configurable keys
+        # If needed, text_keys should be passed to make_dataloaders
         collate = lambda batch: {
-            "question": [b["question"] for b in batch],
-            "sentence": [b["sentence"] for b in batch],
+            "question": [b.get("question", b.get("premise", "")) for b in batch],
+            "sentence": [b.get("sentence", b.get("hypothesis", "")) for b in batch],
             "label": [bool(b["label"]) for b in batch]
         }
     # fixed generator for deterministic shuffling

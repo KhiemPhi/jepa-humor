@@ -9,38 +9,10 @@ pip install -e .
 python -m scripts.pretrain --config configs/pretrain.yml && python -m scripts.finetune --config configs/finetune.yml --encoder_ckpt checkpoints/pretrain/best.pt
 python -m scripts.finetune --config configs/finetune_fresh.yml --encoder_ckpt fresh
 
-
-
-Comparision F1 = 0.982
-
-50/50
-Finetune] epoch 1: loss=0.0720 acc=0.9736 f1=0.9736                                                                                              
-          val: acc=0.9847 f1=0.9847
-[Finetune] epoch 2: loss=0.0226 acc=0.9925 f1=0.9925                                                                                              
-          val: acc=0.9835 f1=0.9833
-[Finetune] epoch 3: loss=0.0109 acc=0.9962 f1=0.9962                                                                                              
-          val: acc=0.9850 f1=0.9850
-[Finetune] epoch 4: loss=0.0057 acc=0.9980 f1=0.9980   
-
-80/20 
-[Finetune] epoch 1: loss=0.0632 acc=0.9766 f1=0.9766                                                                                              
-          val: acc=0.9850 f1=0.9849
-[Finetune] epoch 2: loss=0.0221 acc=0.9925 f1=0.9925                                                                                              
-          val: acc=0.9852 f1=0.9851
-[Finetune] epoch 3: loss=0.0106 acc=0.9963 f1=0.9963                                                                                              
-          val: acc=0.9859 f1=0.9858
-[Finetune] epoch 4: loss=0.0075 acc=0.9974 f1=0.9974                                                                                              
-          val: acc=0.9852 f1=0.9852
-[Finetune] epoch 5: loss=0.0055 acc=0.9980 f1=0.9981                                                                                              
-          val: acc=0.9852 f1=0.9851
-
-20/80
-[Finetune] epoch 1: loss=0.0934 acc=0.9666 f1=0.9666                                                                                              
-          val: acc=0.9774 f1=0.9770
-[Finetune] epoch 2: loss=0.0265 acc=0.9908 f1=0.9908                                                                                              
-          val: acc=0.9812 f1=0.9810
-[Finetune] epoch 3: loss=0.0108 acc=0.9965 f1=0.9965                                                                                              
-          val: acc=0.9805 f1=0.9806
+python -m scripts.pretrain --config configs/pretrain_mnli.yml && python -m scripts.finetune --config configs/finetune_mnli.yml --encoder_ckpt checkpoints/pretrain/best_pretrain_mnli_exp1_.pt
+python -m scripts.pretrain --config configs/pretrain_rte.yml && python -m scripts.finetune --config configs/finetune_rte.yml --encoder_ckpt checkpoints/pretrain/best_pretrain_rte_exp1_.pt
+python -m scripts.pretrain --config configs/pretrain_sst2.yml && python -m scripts.finetune --config configs/finetune_sst2.yml --encoder_ckpt checkpoints/pretrain/best_pretrain_sst2_exp1_.pt
+python -m scripts.pretrain --config configs/pretrain_qqp.yml && python -m scripts.finetune --config configs/finetune_qqp.yml --encoder_ckpt checkpoints/pretrain/best_pretrain_qqp_exp1_.pt
 
 BERT-Base Pretrained results
 ---- MRPC with Finetune on Cola Pretrained ---- 
@@ -53,15 +25,38 @@ Replacing model with SWA model...
 SWA model loaded!
 Final validation: mcc=0.6849 f1=0.9072, val_acc=0.8676
 
+Advesarial-Glue
 
-
-Test-Set MNLI 
+----------------------------------------------------
+Test-Set MNLI
 ==================================================
-Evaluating on MNLI test set...
-Test (MNLI): mcc=-0.0730 f1=0.2780 acc=0.2895
 
+----------------------------------------------------
+
+----------------------------------------------------
+Test-Set QNLI
 ==================================================
-Evaluating on MNLI-MM test set...
-Test (MNLI-MM): mcc=-0.1236 f1=0.2479 acc=0.2495
+Evaluating on QNLI test set...
+Test (QNLI): mcc=-0.0471 f1=0.4697 acc=0.4721
+----------------------------------------------------
 
-Test-Set QQP 
+----------------------------------------------------
+Test-Set RTE
+==================================================
+Evaluating on RTE test set (from JSON)...
+Test (RTE, from JSON): mcc=-0.1755 f1=0.4253 acc=0.4474  
+----------------------------------------------------
+
+
+----------------------------------------------------
+Test-Set SST-2
+==================================================
+
+----------------------------------------------------
+
+
+----------------------------------------------------
+Test-Set QQP
+==================================================
+
+----------------------------------------------------
