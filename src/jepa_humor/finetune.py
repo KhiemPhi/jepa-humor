@@ -250,19 +250,26 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     if eval_only:
         if model_ckpt is None:
             raise ValueError("model_ckpt must be provided when eval_only=True")
-        print(f"Loading model checkpoint from {model_ckpt}")
-        checkpoint = torch.load(model_ckpt, map_location=dev, weights_only=False)
-        if "model_state_dict" in checkpoint:
-            model.load_state_dict(checkpoint["model_state_dict"])
-        elif "state_dict" in checkpoint:
-            model.load_state_dict(checkpoint["state_dict"])
+        
+        if "pretrain" in model_ckpt:
+            print("Loading embeddings from pretrained model...")
+            base = load_encoder_state(base, model_ckpt, map_location="cpu")
+            model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels).to(dev)
+            print("Embeddings loaded. Running evaluation only...")
         else:
-            model.load_state_dict(checkpoint)
-        # Load threshold if available
-        if "best_threshold" in checkpoint:
-            best_t = checkpoint["best_threshold"]
-            print(f"Loaded threshold from checkpoint: {best_t:.3f}")
-        print("Model loaded. Running evaluation only...")
+            print(f"Loading model checkpoint from {model_ckpt}")
+            checkpoint = torch.load(model_ckpt, map_location=dev, weights_only=False)
+            if "model_state_dict" in checkpoint:
+                model.load_state_dict(checkpoint["model_state_dict"])
+            elif "state_dict" in checkpoint:
+                model.load_state_dict(checkpoint["state_dict"])
+            else:
+                model.load_state_dict(checkpoint)
+            # Load threshold if available
+            if "best_threshold" in checkpoint:
+                best_t = checkpoint["best_threshold"]
+                print(f"Loaded threshold from checkpoint: {best_t:.3f}")
+            print("Model loaded. Running evaluation only...")
     else:
         # Training loop
         for epoch in range(1, cfg["epochs"] + 1):
