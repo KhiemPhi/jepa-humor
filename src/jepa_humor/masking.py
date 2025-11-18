@@ -5,60 +5,56 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from transformers import AutoModel, AutoTokenizer
 
-def make_second_sent_mask_views(
-    sent1: Sequence[str],
-    sent2: Sequence[str],
-    tokenizer,
-    max_length: int = 256,
-) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor], torch.Tensor, List[List[Tuple[int, int]]]]:
-    """
-    Given sent1 and sent2 pairs:
-    - Tokenize the evidence as the model input (keep_tok)
-    - Mask the claim tokens (target_tok)
-    - Return a prediction mask and span indices for reconstruction
+def make_squad_views(contexts, questions, answer_texts, answer_starts, tokenizer, max_length=256):
+    sent1_list = []
+    sent2_list = []
 
-    Args:
-        claims: Sequence of claim strings (to be masked and predicted)
-        evidences: Sequence of evidence strings (context inputs)
-        tokenizer: HuggingFace tokenizer
-        max_length: Maximum tokenization length
+    import re
+    sep = tokenizer.sep_token
 
-    Returns:
-        keep_tok: Tokenized evidence (model inputs)
-        target_tok: Tokenized claim (model targets)
-        predict_mask: Mask tensor for claim tokens to predict
-        spans_used: List of token spans for each claim
-    """
-    assert len(sent1) == len(sent2), "Claims and evidences must have the same length"
+    for ctx, q, ans, start in zip(contexts, questions, answer_texts, answer_starts):
+        end = start + len(ans)
 
-    # Tokenize evidence as inputs (pad to fixed max_length so time-dim matches target)
+        sents = re.split(r'(?<=[.!?])\s+', ctx)
+
+        chosen = None
+        pos = 0
+        for s in sents:
+            s_start = pos
+            s_end = pos + len(s)
+            if s_start <= start < s_end:
+                chosen = s
+                break
+            pos = s_end + 1
+
+        if chosen is None:
+            chosen = ctx
+
+        sent1_list.append(q)
+        sent2_list.append(chosen)
+
     keep_tok = tokenizer(
-        list(sent1),
+        sent2_list,
+        sent1_list,
         return_tensors="pt",
         padding="max_length",
         truncation=True,
         max_length=max_length,
     )
 
-    # Tokenize claim as target (pad to fixed max_length so time-dim matches context)
     target_tok = tokenizer(
-        list(sent2),
+        answer_texts,
         return_tensors="pt",
         padding="max_length",
         truncation=True,
         max_length=max_length,
     )
 
-    B, T = target_tok["input_ids"].shape
-
-    # Return a prediction mask aligned with the token time-dimension [B, T]
-    # (model hidden states will have shape [B, T, D], the mask is applied along T)
     predict_mask = target_tok["attention_mask"].float()
 
-    # Record the full span of each claim (so model predicts all tokens)
     spans_used = []
-    for b in range(B):
-        seq_len = int(target_tok["attention_mask"][b].sum().item())
+    for b in range(target_tok["input_ids"].shape[0]):
+        seq_len = int(predict_mask[b].sum().item())
         spans_used.append([(0, seq_len)])
 
     return keep_tok, target_tok, predict_mask, spans_used

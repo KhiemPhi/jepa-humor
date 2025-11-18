@@ -10,6 +10,7 @@ import os
 from torch import amp
 import torch.nn.functional as F
 import math
+from .masking import make_squad_views
 
 def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=0.01, total_steps=1000, warmup_ratio=0.06):
     # param groups: predictor (higher LR), encoder (lower LR), target is frozen
@@ -57,73 +58,19 @@ def pretrain(cfg):
                 pred_hid=512, ema_decay=cfg["ema_decay"], use_cls=True).to(dev)
     jepa.train()
 
-    from .data import load_hf_splits, make_dataloaders, preprocess_dataset_ssl, sample_dataset, load_anli_splits
-    dataset_config = cfg.get("dataset_config", None)
-    is_anli = dataset_config == "anli" or (dataset_config is None and "anli" in cfg["dataset"].lower())
+    from .data import load_hf_splits, make_dataloaders
     
-    if is_anli:
-        # ANLI: aggregate training sets from specified rounds
-        train_rounds = cfg.get("train_rounds", [1, 2, 3])  # Default: use all rounds
-        if isinstance(train_rounds, int):
-            train_rounds = [train_rounds]  # Convert single int to list
-        ds = load_anli_splits(cfg["dataset"], train_rounds=train_rounds, seed=cfg["seed"])
-    else:
-        ds = load_hf_splits(cfg["dataset"], config=dataset_config)
-    
-    # Sample datasets if sample_percent is specified
-    sample_percent = cfg.get("sample_percent", None)
-    if sample_percent is not None and sample_percent < 100.0:
-        print(f"Sampling {sample_percent}% of datasets for quick prototyping...")
-        ds = sample_dataset(ds, sample_percent=sample_percent, seed=cfg["seed"])
+    ds = load_hf_splits(cfg["dataset"])
+    print(ds)
     
     split = {}
     split['train'] = ds['train']
     #split['train'] = split['train'].filter(lambda x: x['label'] == 1)
-    if is_anli:
-        split['test'] = ds['validation']
-    elif dataset_config == 'mnli':
-        split['test'] = ds['validation_matched']
-    else:
-        split['test'] = ds['validation']
-    
-    # Get text keys from config (defaults to ["question", "sentence"])
-    if is_anli:
-        text_keys = cfg.get("text_keys", ["premise", "hypothesis"])  # ANLI uses premise/hypothesis like MNLI
-    elif dataset_config == 'mnli':
-        text_keys = cfg.get("text_keys", ["premise", "hypothesis"])
-    else:
-        text_keys = cfg.get("text_keys", ["question", "sentence"])
-    print(f"Using text keys: {text_keys}")
-    
-    # Pre-tokenize datasets once before training
-    mask_prob = cfg.get("mask_ratio", 0.15)
-    span_len = cfg.get("mean_span_len", 3.0)
-    mask_type = cfg.get("mask_type", "random_span")
-
-    print("Pre-tokenizing training dataset for SSL...")
-    split['train'] = preprocess_dataset_ssl(
-        split['train'],
-        tokenizer,
-        max_length=cfg["max_length"],
-        text_keys=text_keys,
-        mask_probability=mask_prob,
-        span_mean=span_len,
-        mask_type=mask_type,
-    )
-    print("Pre-tokenizing validation dataset for SSL...")
-    split['test'] = preprocess_dataset_ssl(
-        split['test'],
-        tokenizer,
-        max_length=cfg["max_length"],
-        text_keys=text_keys,
-        mask_probability=mask_prob,
-        span_mean=span_len,
-        mask_type=mask_type,
-        
-    )
+    split['test'] = ds['validation']
+ 
     
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
-    train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True, ssl_mode=True)
+    train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")
     opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=cfg["lr"])
@@ -136,35 +83,30 @@ def pretrain(cfg):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         for batch in pbar:
-            # Data is already tokenized
-            keep_tok = {
-                "input_ids": batch["keep_input_ids"].to(dev, non_blocking=True),
-                "attention_mask": batch["keep_attention_mask"].to(dev, non_blocking=True)
-            }
-            target_tok = {
-                "input_ids": batch["target_input_ids"].to(dev, non_blocking=True),
-                "attention_mask": batch["target_attention_mask"].to(dev, non_blocking=True)
-            }
-            # Create mask from target attention_mask (same as make_second_sent_mask_views does)
-            mask = target_tok["attention_mask"].float().to(dev, non_blocking=True)
-            # # Decode a single tensor (e.g. from keep_tok)
-            # decoded_keep = tokenizer.batch_decode(
-            #     keep_tok["input_ids"], 
-            #     skip_special_tokens=True
-            # )
+        # Raw text from SQuAD loader
+            contexts = list(batch["context"])
+            questions = list(batch["question"])
+            answers = list(batch["answer_text"])
+            answer_starts = list(batch["answer_start"])
 
-            # # Decode from target_tok as well
-            # decoded_target = tokenizer.batch_decode(
-            #     target_tok["input_ids"], 
-            #     skip_special_tokens=True
-            # )
-         
+            # Build keep_tok, target_tok, mask using your function
+            keep_tok, target_tok, predict_mask, spans_used = make_squad_views(
+                contexts,
+                questions,
+                answers,
+                answer_starts,
+                tokenizer,
+                max_length=cfg["max_length"]
+            )
+
+            keep_tok = {k: v.to(dev, non_blocking=True) for k, v in keep_tok.items()}
+            target_tok = {k: v.to(dev, non_blocking=True) for k, v in target_tok.items()}
+            mask = predict_mask.to(dev, non_blocking=True)
 
             opt.zero_grad(set_to_none=True)
+
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
                 loss, pred, target = jepa(keep_tok, target_tok, mask)
-            
-          
 
             scaler.scale(loss).backward()
             scaler.step(opt)
@@ -172,8 +114,10 @@ def pretrain(cfg):
             scheduler.step()
             jepa.update_target()
 
-            running += float(loss.item()); steps += 1
+            running += float(loss.item())
+            steps += 1
             pbar.set_postfix(loss=f"{running/steps:.4f}")
+
 
         epoch_loss = running / max(1, steps)
         print(f"[Pretrain] epoch {epoch}: loss={epoch_loss:.4f}")
