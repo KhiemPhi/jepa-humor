@@ -2,7 +2,7 @@ seed: 42
 model_name: google-bert/bert-base-uncased
 dataset: rajpurkar/squad
 max_length: 256
-batch_size: 64
+batch_size: 100
 num_workers: 4
 epochs: 5
 lr: 1.0e-5
