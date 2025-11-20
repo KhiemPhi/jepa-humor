@@ -12,23 +12,24 @@ def load_hf_splits(name: str, test_size=0.2, seed=42):
     return ds
 
 
-def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True, tokenizer=None):
+def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True, tokenizer=None, pretrain = False):
     # Both datasets must yield dicts with at least {"text", "humor"}
-    collate_train = lambda batch: {
-        "input_ids": torch.stack([torch.tensor(b["input_ids"]).t() for b in batch]),
-        "token_type_ids": torch.stack([torch.tensor(b["token_type_ids"]) for b in batch]),
-        "attention_mask": torch.stack([torch.tensor(b["attention_mask"]).t() for b in batch]),
-        "start_positions": [b["start_positions"] for b in batch],
-        "end_positions": [b["end_positions"] for b in batch]
-    }
+    if not pretrain:
+        collate_train = lambda batch: {
+            "input_ids": torch.stack([torch.tensor(b["input_ids"]).t() for b in batch]),
+            "token_type_ids": torch.stack([torch.tensor(b["token_type_ids"]) for b in batch]),
+            "attention_mask": torch.stack([torch.tensor(b["attention_mask"]).t() for b in batch]),
+            "start_positions": [b["start_positions"] for b in batch],
+            "end_positions": [b["end_positions"] for b in batch]
+        }
 
-    collate_test = lambda batch: {
-        "input_ids": torch.stack([torch.tensor(b["input_ids"]).t() for b in batch]),
-        "token_type_ids": torch.stack([torch.tensor(b["token_type_ids"]) for b in batch]),
-        "attention_mask": torch.stack([torch.tensor(b["attention_mask"]).t() for b in batch]),
-        "offset_mapping": [b["offset_mapping"] for b in batch],
-        "example_id": [b["example_id"] for b in batch]
-    }
+        collate_test = lambda batch: {
+            "input_ids": torch.stack([torch.tensor(b["input_ids"]).t() for b in batch]),
+            "token_type_ids": torch.stack([torch.tensor(b["token_type_ids"]) for b in batch]),
+            "attention_mask": torch.stack([torch.tensor(b["attention_mask"]).t() for b in batch]),
+            "offset_mapping": [b["offset_mapping"] for b in batch],
+            "example_id": [b["example_id"] for b in batch]
+        }
     # fixed generator for deterministic shuffling
     seed = 42
     g = torch.Generator()
@@ -41,6 +42,32 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
         random.seed(worker_seed)
         torch.manual_seed(worker_seed)
 
+    if pretrain:
+        collate = lambda batch: {
+        "context": [b["context"] for b in batch],
+        "question": [b["question"] for b in batch],
+        "answer_text": [b["answers"]["text"][0] for b in batch],
+        "answer_start": [b["answers"]["answer_start"][0] for b in batch]
+        }
+        train_loader = DataLoader(
+            train_ds,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            collate_fn=collate,
+            pin_memory=True,
+            generator=g,
+            worker_init_fn=seed_worker
+        )
+        test_loader = DataLoader(
+            test_ds,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            collate_fn=collate,
+            pin_memory=True
+        )
+        return train_loader, test_loader
     train_loader = DataLoader(
         train_ds,
         batch_size=batch_size,

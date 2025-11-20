@@ -61,7 +61,7 @@ def pretrain(cfg):
     from .data import load_hf_splits, make_dataloaders
     
     ds = load_hf_splits(cfg["dataset"])
-    print(ds)
+    #print(ds)
     
     split = {}
     split['train'] = ds['train']
@@ -70,7 +70,7 @@ def pretrain(cfg):
  
     
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
-    train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"])
+    train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"], pretrain = True)
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")
     opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=cfg["lr"])
@@ -87,7 +87,7 @@ def pretrain(cfg):
             contexts = list(batch["context"])
             questions = list(batch["question"])
             answers = list(batch["answer_text"])
-            answer_starts = list(batch["answer_start"])
+            answer_starts = batch["answer_start"]
 
             # Build keep_tok, target_tok, mask using your function
             keep_tok, target_tok, predict_mask, spans_used = make_squad_views(

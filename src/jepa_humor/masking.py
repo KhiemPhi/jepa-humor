@@ -34,12 +34,12 @@ def make_squad_views(contexts, questions, answer_texts, answer_starts, tokenizer
         sent2_list.append(chosen)
 
     keep_tok = tokenizer(
-        sent2_list,
         sent1_list,
+        sent2_list,
         return_tensors="pt",
         padding="max_length",
         truncation=True,
-        max_length=max_length,
+        max_length=512,
     )
 
     target_tok = tokenizer(
@@ -47,7 +47,7 @@ def make_squad_views(contexts, questions, answer_texts, answer_starts, tokenizer
         return_tensors="pt",
         padding="max_length",
         truncation=True,
-        max_length=max_length,
+        max_length=512,
     )
 
     predict_mask = target_tok["attention_mask"].float()
