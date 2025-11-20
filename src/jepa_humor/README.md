@@ -49,11 +49,5 @@ Starting SWA at epoch 3
           val: loss=1.2593 EM=0.4473 F1=0.6188
 
 
-Base: [Finetune] epoch 1: loss=2.3185 EM=0.2720 F1=0.4082                                                           
-          val: loss=1.5530 EM=0.4036 F1=0.5701
-[Finetune] epoch 2: loss=1.4554 EM=0.4091 F1=0.5794                                                           
-          val: loss=1.3588 EM=0.4285 F1=0.6010
-Starting SWA at epoch 3
-[Finetune] epoch 3: loss=1.2172 EM=0.4450 F1=0.6154                                                           
-          val: loss=1.3039 EM=0.4366 F1=0.6086
+Base:     val: EM=79.4986 F1=87.2234
 

@@ -5,7 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from transformers import AutoModel, AutoTokenizer
 
-def make_squad_views(contexts, questions, answer_texts, answer_starts, tokenizer, max_length=256):
+def make_squad_views(contexts, questions, answer_texts, answer_starts, tokenizer, max_length=384):
     sent1_list = []
     sent2_list = []
 

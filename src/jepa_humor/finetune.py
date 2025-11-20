@@ -14,6 +14,148 @@ from .data import load_hf_splits, make_dataloaders
 import evaluate
 
 metric = evaluate.load("squad")
+max_length = 384
+stride = 128
+n_best = 20  # Define n_best for compute_metrics
+max_answer_length = 30 # Define max_answer_length for compute_metrics
+
+def preprocess_training_examples(examples,tokenizer):
+    questions = [q.strip() for q in examples["question"]]
+    inputs = tokenizer(
+        questions,
+        examples["context"],
+        max_length=max_length,
+        truncation="only_second",
+        stride=stride,
+        return_overflowing_tokens=True,
+        return_offsets_mapping=True,
+        padding="max_length",
+    )
+
+    offset_mapping = inputs.pop("offset_mapping")
+    sample_map = inputs.pop("overflow_to_sample_mapping")
+    answers = examples["answers"]
+    start_positions = []
+    end_positions = []
+
+    for i, offset in enumerate(offset_mapping):
+        sample_idx = sample_map[i]
+        answer = answers[sample_idx]
+        start_char = answer["answer_start"][0]
+        end_char = answer["answer_start"][0] + len(answer["text"][0])
+        sequence_ids = inputs.sequence_ids(i)
+
+        # Find the start and end of the context
+        idx = 0
+        while sequence_ids[idx] != 1:
+            idx += 1
+        context_start = idx
+        while sequence_ids[idx] == 1:
+            idx += 1
+        context_end = idx - 1
+
+        # If the answer is not fully inside the context, label is (0, 0)
+        if offset[context_start][0] > start_char or offset[context_end][1] < end_char:
+            start_positions.append(0)
+            end_positions.append(0)
+        else:
+            # Otherwise it's the start and end token positions
+            idx = context_start
+            while idx <= context_end and offset[idx][0] <= start_char:
+                idx += 1
+            start_positions.append(idx - 1)
+
+            idx = context_end
+            while idx >= context_start and offset[idx][1] >= end_char:
+                idx -= 1
+            end_positions.append(idx + 1)
+
+    inputs["start_positions"] = start_positions
+    inputs["end_positions"] = end_positions
+    return inputs
+
+
+def preprocess_validation_examples(examples, tokenizer):
+    questions = [q.strip() for q in examples["question"]]
+    inputs = tokenizer(
+        questions,
+        examples["context"],
+        max_length=max_length,
+        truncation="only_second",
+        stride=stride,
+        return_overflowing_tokens=True,
+        return_offsets_mapping=True,
+        padding="max_length",
+    )
+
+    sample_map = inputs.pop("overflow_to_sample_mapping")
+    example_ids = []
+
+    for i in range(len(inputs["input_ids"])):
+        sample_idx = sample_map[i]
+        example_ids.append(examples["id"][sample_idx])
+
+        sequence_ids = inputs.sequence_ids(i)
+        offset = inputs["offset_mapping"][i]
+        inputs["offset_mapping"][i] = [
+            o if sequence_ids[k] == 1 else (0, 0) for k, o in enumerate(offset) # Replace None with (0,0)
+        ]
+
+    inputs["example_id"] = example_ids
+    return inputs
+
+import collections # Import collections
+import numpy as np # Import numpy
+
+def compute_metrics(start_logits, end_logits, features, examples):
+    example_to_features = collections.defaultdict(list)
+    for idx, feature in enumerate(features):
+        example_to_features[feature["example_id"]].append(idx)
+
+    predicted_answers = []
+    for example in examples:
+        example_id = example["id"]
+        context = example["context"]
+        answers = []
+
+        # Loop through all features associated with that example
+        for feature_index in example_to_features[example_id]:
+            start_logit = start_logits[feature_index]
+            end_logit = end_logits[feature_index]
+            offsets = features[feature_index]["offset_mapping"]
+
+            start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+            end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+            for start_index in start_indexes:
+                for end_index in end_indexes:
+                    # Skip answers that are not fully in the context
+                    # Check for placeholder (0,0) instead of None
+                    if offsets[start_index] == (0,0) or offsets[end_index] == (0,0):
+                        continue
+                    # Skip answers with a length that is either < 0 or > max_answer_length
+                    if (
+                        end_index < start_index
+                        or end_index - start_index + 1 > max_answer_length
+                    ):
+                        continue
+
+                    answer = {
+                        "text": context[offsets[start_index][0] : offsets[end_index][1]],
+                        "logit_score": start_logit[start_index] + end_logit[end_index],
+                    }
+                    answers.append(answer)
+
+        # Select the answer with the best score
+        if len(answers) > 0:
+            best_answer = max(answers, key=lambda x: x["logit_score"])
+            predicted_answers.append(
+                {"id": example_id, "prediction_text": best_answer["text"]}
+            )
+        else:
+            predicted_answers.append({"id": example_id, "prediction_text": ""})
+
+    theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
+    return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
 class QAModel(nn.Module):
     def __init__(self, encoder, hidden_size=768):
@@ -21,52 +163,14 @@ class QAModel(nn.Module):
         self.encoder = encoder
         self.hidden_size = hidden_size
         self.qa_outputs = nn.Linear(self.hidden_size, 2)
-    
+
     def forward(self, input_ids, attention_mask):
-        outputs = self.encoder(input_ids = input_ids,
-                               attention_mask=attention_mask)
-
-        sequence_output = outputs[0]
-
-        logits = self.qa_outputs(sequence_output)
+        outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
+        seq = outputs[0]
+        logits = self.qa_outputs(seq)
         start_logits, end_logits = logits.split(1, dim=-1)
-        start_logits = start_logits.squeeze(-1)
-        end_logits = end_logits.squeeze(-1)
+        return start_logits.squeeze(-1), end_logits.squeeze(-1)
 
-        
-        return start_logits, end_logits
-
-def find_answer_positions(enc, answer_starts, answers, max_length):
-    offset_mapping = enc["offset_mapping"]   # [batch, seq, 2]
-    start_positions = []
-    end_positions = []
-
-    for i in range(len(answers)):
-        offsets = offset_mapping[i]
-        answer_text = answers[i]
-        answer_char_start = answer_starts[i]
-        answer_char_end = answer_char_start + len(answer_text)
-
-        start_pos = 0
-        end_pos = 0
-
-        # Search through offset mapping
-        for idx, (start, end) in enumerate(offsets):
-            if start <= answer_char_start < end:
-                start_pos = idx
-            if start < answer_char_end <= end:
-                end_pos = idx
-
-        # Safety: clamp to max_length
-        if start_pos >= max_length:
-            start_pos = max_length - 1
-        if end_pos >= max_length:
-            end_pos = max_length - 1
-
-        start_positions.append(start_pos)
-        end_positions.append(end_pos)
-
-    return start_positions, end_positions
 
 
 def finetune(cfg, encoder_ckpt: str):
@@ -83,12 +187,23 @@ def finetune(cfg, encoder_ckpt: str):
         print(f"Loading fresh encoder")
 
     # Load SQuAD dataset
-    ds = load_hf_splits(cfg["dataset"])
+    raw_datasets = load_hf_splits(cfg["dataset"])
    
-    # Create dataloaders for SQuAD
-    train_loader, val_loader = make_dataloaders(ds["train"], ds["validation"], cfg["batch_size"], cfg["num_workers"])
-    print(f"Train dataset size: {len(ds['train'])}")
-    print(f"Validation dataset size: {len(ds['validation'])}")
+    train_dataset = raw_datasets["train"].map(
+        lambda batch: preprocess_training_examples(batch, tokenizer),
+        batched=True,
+        remove_columns=raw_datasets["train"].column_names,
+    )
+
+    validation_dataset = raw_datasets["validation"].map(
+        lambda batch: preprocess_validation_examples(batch, tokenizer = tokenizer),
+        batched=True,
+        remove_columns=raw_datasets["validation"].column_names,
+    )
+
+    train_loader, val_loader = make_dataloaders(train_dataset, validation_dataset, cfg["batch_size"], cfg["num_workers"])
+    print(f"Train dataset size: {len(train_dataset)}")
+    print(f"Validation dataset size: {len(validation_dataset)}")
 
     # Initialize QA model
     model = QAModel(base, hidden_size=base.config.hidden_size).to(dev)
@@ -99,49 +214,25 @@ def finetune(cfg, encoder_ckpt: str):
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 
     for epoch in range(1, cfg["epochs"] + 1):
-
         model.train()
         running_loss = 0.0
 
-        all_predictions = []
-        all_references = []
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch}"):
+            start_positions, end_positions = batch["start_positions"], batch["end_positions"]
 
-        for batch in tqdm(train_loader, desc=f"Finetune {epoch}/{cfg['epochs']}", leave=False):
+            start_positions = torch.tensor(start_positions).to(dev)
+            end_positions = torch.tensor(end_positions).to(dev)
 
-            contexts = batch["context"]
-            questions = batch["question"]
-            answers = batch["answer_text"]
-            answer_starts = batch["answer_start"]
-
-            enc = tokenizer(
-                questions,
-                contexts,
-                return_tensors="pt",
-                padding="max_length",
-                truncation=True,
-                max_length=cfg["max_length"],
-                return_offsets_mapping=True
-            )
-
-            input_ids = enc["input_ids"].to(dev)
-            attention_mask = enc["attention_mask"].to(dev)
-            offset_mapping = enc["offset_mapping"]
-
-            start_positions, end_positions = find_answer_positions(
-                enc, answer_starts, answers, cfg["max_length"]
-            )
-
-            start_positions = torch.tensor(start_positions, device=dev)
-            end_positions = torch.tensor(end_positions, device=dev)
+            input_ids = batch["input_ids"].to(dev)
+            #input_ids = input_ids.t()
+            attention_mask = batch["attention_mask"].to(dev)
+            #attention_mask = attention_mask.t()
 
             opt.zero_grad(set_to_none=True)
 
-            with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
+            with amp.autocast(device_type='cuda'):
                 start_logits, end_logits = model(input_ids, attention_mask)
-
-                loss_start = criterion(start_logits, start_positions)
-                loss_end = criterion(end_logits, end_positions)
-                loss = (loss_start + loss_end) / 2
+                loss = (criterion(start_logits, start_positions) + criterion(end_logits, end_positions)) / 2
 
             scaler.scale(loss).backward()
             scaler.step(opt)
@@ -149,110 +240,29 @@ def finetune(cfg, encoder_ckpt: str):
 
             running_loss += loss.item()
 
-            # Decode predictions
-            start_idx = start_logits.argmax(dim=-1).cpu().tolist()
-            end_idx = end_logits.argmax(dim=-1).cpu().tolist()
-            offsets = offset_mapping.tolist()
-
-            for i in range(len(contexts)):
-                s = start_idx[i]
-                e = end_idx[i]
-                off = offsets[i]
-
-                if s < len(off) and e < len(off) and s <= e:
-                    start_char = off[s][0]
-                    end_char = off[e][1]
-                    pred = contexts[i][start_char:end_char]
-                else:
-                    pred = ""
-
-                all_predictions.append({
-                    "id": str(len(all_predictions)),
-                    "prediction_text": pred
-                })
-
-                all_references.append({
-                    "id": str(len(all_references)),
-                    "answers": {
-                        "text": [answers[i]],
-                        "answer_start": [answer_starts[i]]
-                    }
-                })
-
-        # Compute EM & F1 for the entire epoch
-        score = metric.compute(
-            predictions=all_predictions,
-            references=all_references
-        )
-        train_em = score["exact_match"]
-        train_f1 = score["f1"]
-        
-        print(f"[Finetune] epoch {epoch}: loss={running_loss/len(train_loader):.4f} EM={train_em:.4f} F1={train_f1:.4f}")
-
-        # Validation
-        # Eval on training set for EM/F1
         model.eval()
+        start_logits = []
+        end_logits = []
+        for batch in tqdm(val_loader, desc=f"[Val] Epoch {epoch}"):
+            input_ids = batch["input_ids"].to(dev)
+            #input_ids = input_ids.t()
+            attention_mask = batch["attention_mask"].to(dev)
+            #attention_mask = attention_mask.t()
+            with torch.no_grad():
+                start,end = model(input_ids,attention_mask)
 
-        all_predictions = []
-        all_references = []
+            start_logits.append((start).cpu().numpy())
+            end_logits.append((end).cpu().numpy())
 
-        with torch.no_grad():
-            for batch in data_loader:
-                contexts = batch["context"]
-                questions = batch["question"]
-                answers = batch["answer_text"]
-                answer_starts = batch["answer_start"]
+        start_logits = np.concatenate(start_logits)
+        end_logits = np.concatenate(end_logits)
+        start_logits = start_logits[: len(validation_dataset)]
+        end_logits = end_logits[: len(validation_dataset)]
 
-                enc = tokenizer(
-                    questions,
-                    contexts,
-                    return_tensors="pt",
-                    padding="max_length",
-                    truncation=True,
-                    max_length=cfg["max_length"],
-                    return_offsets_mapping=True
-                )
-
-                input_ids = enc["input_ids"].to(dev)
-                attention_mask = enc["attention_mask"].to(dev)
-                offset_mapping = enc["offset_mapping"].tolist()
-
-                start_logits, end_logits = model(input_ids, attention_mask)
-
-                start_idx = start_logits.argmax(dim=-1).cpu().tolist()
-                end_idx = end_logits.argmax(dim=-1).cpu().tolist()
-
-                for i in range(len(contexts)):
-                    s = start_idx[i]
-                    e = end_idx[i]
-                    off = offset_mapping[i]
-
-                    if s < len(off) and e < len(off) and s <= e:
-                        start_char = off[s][0]
-                        end_char = off[e][1]
-                        pred_text = contexts[i][start_char:end_char]
-                    else:
-                        pred_text = ""
-
-                    all_predictions.append({
-                        "id": str(len(all_predictions)),
-                        "prediction_text": pred_text
-                    })
-
-                    all_references.append({
-                        "id": str(len(all_references)),
-                        "answers": {
-                            "text": [answers[i]],
-                            "answer_start": [answer_starts[i]]
-                        }
-                    })
-
-        score = metric.compute(
-            predictions=all_predictions,
-            references=all_references
+        val_score = compute_metrics(
+            start_logits, end_logits, validation_dataset, raw_datasets["validation"]
         )
-        val_em = score["exact_match"]
-        val_f1 = score["f1"]
-        
+        val_em = val_score["exact_match"]
+        val_f1 = val_score["f1"]
         print(f"          val: EM={val_em:.4f} F1={val_f1:.4f}")
     return model
