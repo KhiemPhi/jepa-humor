@@ -1,3 +1,8 @@
+max_length = 384
+stride = 128
+n_best = 20  # Define n_best for compute_metrics
+max_answer_length = 30 # Define max_answer_length for compute_metrics
+
 def preprocess_training_examples(examples,tokenizer):
     questions = [q.strip() for q in examples["question"]]
     inputs = tokenizer(

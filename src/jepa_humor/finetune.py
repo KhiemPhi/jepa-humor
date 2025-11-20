@@ -14,12 +14,6 @@ from .data import load_hf_splits, make_dataloaders
 import evaluate
 from .process_data import preprocess_training_examples, preprocess_validation_examples, compute_metrics
 
-metric = evaluate.load("squad")
-max_length = 384
-stride = 128
-n_best = 20  # Define n_best for compute_metrics
-max_answer_length = 30 # Define max_answer_length for compute_metrics
-
 
 class QAModel(nn.Module):
     def __init__(self, encoder, hidden_size=768):
