@@ -1,3 +1,4 @@
+import evaluate
 max_length = 384
 stride = 128
 n_best = 20  # Define n_best for compute_metrics
@@ -96,6 +97,7 @@ def compute_metrics(start_logits, end_logits, features, examples):
     for idx, feature in enumerate(features):
         example_to_features[feature["example_id"]].append(idx)
 
+    metric = evaluate.load("squad")
     predicted_answers = []
     for example in examples:
         example_id = example["id"]
