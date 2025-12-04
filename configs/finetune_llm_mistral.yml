@@ -1,0 +1,22 @@
+seed: 42
+experiment_name: finetune_llm_mistral_exp1  # Prefix for all saved checkpoints
+model_name: google-bert/bert-base-uncased   # Base encoder model (ignored if --ckpt provided)
+llm_model_name: mistralai/Ministral-3-3B-Base-2512 # LLM tokenizer model (adjust to your Mistral 3B model name, e.g., "mistralai/Mistral-3B-v0.1" or community model)
+llm_mode: true  # Enable LLM mode for preprocessing
+dataset: nyu-mll/glue
+dataset_config: qnli  # Specify QNLI configuration
+test_dataset: nyu-mll/glue
+text_keys: ["question", "sentence"]  # Column names to tokenize
+num_labels: 2  # Number of classification labels (2 for binary, 3 for MNLI, etc.)
+max_length: 256
+batch_size: 1  # Batch size set to 1 as requested
+num_workers: 4
+epochs: 3
+lr: 1.0e-5
+mixed_precision: true
+max_grad_norm: 0  # Gradient clipping norm (set to 0 to disable)
+log_dir: runs/finetune_llm
+ckpt_dir: checkpoints/finetune_llm
+val_split: 0.8
+gpu_id: 0
+

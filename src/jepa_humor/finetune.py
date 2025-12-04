@@ -37,9 +37,23 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     else:
         print(f"Using device: {dev} (default)")
 
+    mode = "LLM"
     # 1. Load Encoder
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_name"])
     base = AutoModel.from_pretrained(cfg["model_name"]) if encoder_ckpt is None else AutoModel.from_pretrained(cfg["model_name"])
+    
+    # Load LLM tokenizer if LLM mode is enabled
+    llm_mode = cfg.get("llm_mode", False)
+    llm_tokenizer = None
+    if llm_mode:
+        llm_model_name = cfg.get("llm_model_name", None)
+        if llm_model_name is None:
+            raise ValueError("llm_model_name must be provided when llm_mode=True")
+        print(f"Loading LLM tokenizer from {llm_model_name}")
+        llm_tokenizer = AutoTokenizer.from_pretrained(llm_model_name)
+    
+    
+    
     if encoder_ckpt != "fresh" and not eval_only:
         print(f"Loading pretrained encoder from {encoder_ckpt}")
         base = load_encoder_state(base, encoder_ckpt, map_location="cpu")
@@ -160,29 +174,29 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         ds_test_matched["validation"] = preprocess_swag_multiple_choice(ds_test_matched["validation"], tokenizer, max_length=cfg["max_length"])
     else:
         print("Pre-tokenizing training dataset...")
-        ds["train"] = preprocess_dataset(ds["train"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+        ds["train"] = preprocess_dataset(ds["train"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys, llm_mode=llm_mode, llm_tokenizer=llm_tokenizer)
         print("Pre-tokenizing validation dataset (matched)...")
-        ds_test_matched["validation"] = preprocess_dataset(ds_test_matched["validation"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+        ds_test_matched["validation"] = preprocess_dataset(ds_test_matched["validation"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys, llm_mode=llm_mode, llm_tokenizer=llm_tokenizer)
     
     # Pre-tokenize mismatched validation set for MNLI
     if is_mnli and ds_test_mismatched:
         print("Pre-tokenizing validation dataset (mismatched)...")
-        ds_test_mismatched["validation"] = preprocess_dataset(ds_test_mismatched["validation"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+        ds_test_mismatched["validation"] = preprocess_dataset(ds_test_mismatched["validation"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys, llm_mode=llm_mode, llm_tokenizer=llm_tokenizer)
     
     # Pre-tokenize test sets from JSON
     if is_mnli:
         if ds_test_matched_json:
             print("Pre-tokenizing MNLI test dataset (from JSON)...")
-            ds_test_matched_json["test"] = preprocess_dataset(ds_test_matched_json["test"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+            ds_test_matched_json["test"] = preprocess_dataset(ds_test_matched_json["test"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys, llm_mode=llm_mode, llm_tokenizer=llm_tokenizer)
         if ds_test_mismatched_json:
             print("Pre-tokenizing MNLI-MM test dataset (from JSON)...")
-            ds_test_mismatched_json["test"] = preprocess_dataset(ds_test_mismatched_json["test"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+            ds_test_mismatched_json["test"] = preprocess_dataset(ds_test_mismatched_json["test"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys, llm_mode=llm_mode, llm_tokenizer=llm_tokenizer)
     elif is_anli:
         # Pre-tokenize ANLI test splits
         if anli_test_splits:
             for split_name in anli_test_splits:
                 print(f"Pre-tokenizing ANLI {split_name}...")
-                anli_test_splits[split_name] = preprocess_dataset(anli_test_splits[split_name], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+                anli_test_splits[split_name] = preprocess_dataset(anli_test_splits[split_name], tokenizer, max_length=cfg["max_length"], text_keys=text_keys, llm_mode=llm_mode, llm_tokenizer=llm_tokenizer)
     elif is_swag:
         # Pre-tokenize SWAG test dataset (uses validation split) with multiple-choice format
         if ds_test_other:
@@ -191,7 +205,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     else:
         if ds_test_other:
             print(f"Pre-tokenizing {dataset_config or 'test'} test dataset (from JSON)...")
-            ds_test_other["test"] = preprocess_dataset(ds_test_other["test"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+            ds_test_other["test"] = preprocess_dataset(ds_test_other["test"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys, llm_mode=llm_mode, llm_tokenizer=llm_tokenizer)
     
     # Create dataloaders
     train_loader, val_loader_matched = make_dataloaders(ds["train"], ds_test_matched["validation"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
@@ -301,6 +315,9 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 best_t = checkpoint["best_threshold"]
                 print(f"Loaded threshold from checkpoint: {best_t:.3f}")
             print("Model loaded. Running evaluation only...")
+        # Load an LLM 
+    
+    
     else:
         # Training loop
         for epoch in range(1, cfg["epochs"] + 1):
