@@ -5,6 +5,7 @@ dataset: facebook/anli
 dataset_config: anli  # Specify ANLI configuration
 text_keys: ["premise", "hypothesis"]  # ANLI uses premise and hypothesis
 train_rounds: [1, 2, 3]  # Which training rounds to aggregate: [1], [1, 2], or [1, 2, 3]
+num_labels: 3
 max_length: 256
 batch_size: 32
 num_workers: 4

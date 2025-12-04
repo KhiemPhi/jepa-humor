@@ -8,7 +8,7 @@ from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
 from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score
 from .utils import set_seed, device, load_encoder_state, save_ckpt
-from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, load_hf_splits_test_mismatched, preprocess_dataset, load_test_set_from_json, sample_dataset, load_anli_splits, load_anli_test_splits
+from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, load_hf_splits_test_mismatched, preprocess_dataset, load_test_set_from_json, sample_dataset, load_anli_splits, load_anli_test_splits, load_swag, preprocess_swag_multiple_choice
 from .train_ssl import pretrain
 import os
 from torch import amp
@@ -51,6 +51,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     dataset_config = cfg.get("dataset_config", None)  # e.g., "qnli", "mnli", "rte", "anli"
     is_mnli = dataset_config == "mnli" or (dataset_config is None and "mnli" in dataset_name.lower())
     is_anli = dataset_config == "anli" or (dataset_config is None and "anli" in dataset_name.lower())
+    is_swag = dataset_config == "swag" or (dataset_config is None and "swag" in dataset_name.lower())
     
     # Load training and validation datasets
     if is_anli:
@@ -63,6 +64,14 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         ds_test_matched = {"validation": ds["validation"]}
         # Load test splits separately
         anli_test_splits = load_anli_test_splits(dataset_name)
+    elif is_swag:
+        swag = load_swag()
+        ds = {
+            "train": swag["train"],
+            "validation": swag["validation"],
+        }
+        ds_test_matched = {"validation": swag["validation"]}
+        anli_test_splits = None
     else:
         # Standard HuggingFace datasets
         ds = load_hf_splits(dataset_name, config=dataset_config)
@@ -72,7 +81,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     # For MNLI, also load mismatched validation set
     if is_mnli:
         ds_test_mismatched = load_hf_splits_test_mismatched(cfg.get("test_dataset", dataset_name), config=dataset_config)
-    elif is_anli:
+    elif is_anli or is_swag:
         ds_test_mismatched = None  # ANLI doesn't have matched/mismatched splits
     else:
         ds_test_mismatched = None
@@ -85,6 +94,15 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         ds_test_matched_json = load_test_set_from_json("mnli", json_path=json_path)
         ds_test_mismatched_json = load_test_set_from_json("mnli-mm", json_path=json_path)
         ds_test_other = None
+    elif is_swag:
+        ds_test_matched_json = None
+        ds_test_mismatched_json = None
+        # Use test split for SWAG if available, otherwise fall back to validation
+        if "test" in swag:
+            ds_test_other = {"test": swag["test"]}
+        else:
+            print("Warning: SWAG test split not available, using validation split instead")
+            ds_test_other = {"test": ds["validation"]}
     else:
         # For other datasets, load test set from JSON based on dataset_config
         ds_test_matched_json = None
@@ -128,15 +146,23 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         text_keys = cfg.get("text_keys", ["premise", "hypothesis"])  # ANLI uses premise/hypothesis like MNLI
     elif is_mnli:
         text_keys = cfg.get("text_keys", ["premise", "hypothesis"])
+    elif is_swag:
+        text_keys = None  # SWAG uses special preprocessing
     else:
         text_keys = cfg.get("text_keys", ["question", "sentence"])
     print(f"Using text keys: {text_keys}")
     
     # Pre-tokenize datasets once before training
-    print("Pre-tokenizing training dataset...")
-    ds["train"] = preprocess_dataset(ds["train"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
-    print("Pre-tokenizing validation dataset (matched)...")
-    ds_test_matched["validation"] = preprocess_dataset(ds_test_matched["validation"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+    if is_swag:
+        print("Pre-tokenizing SWAG training dataset (multiple-choice format)...")
+        ds["train"] = preprocess_swag_multiple_choice(ds["train"], tokenizer, max_length=cfg["max_length"])
+        print("Pre-tokenizing SWAG validation dataset (multiple-choice format)...")
+        ds_test_matched["validation"] = preprocess_swag_multiple_choice(ds_test_matched["validation"], tokenizer, max_length=cfg["max_length"])
+    else:
+        print("Pre-tokenizing training dataset...")
+        ds["train"] = preprocess_dataset(ds["train"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+        print("Pre-tokenizing validation dataset (matched)...")
+        ds_test_matched["validation"] = preprocess_dataset(ds_test_matched["validation"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
     
     # Pre-tokenize mismatched validation set for MNLI
     if is_mnli and ds_test_mismatched:
@@ -157,6 +183,11 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             for split_name in anli_test_splits:
                 print(f"Pre-tokenizing ANLI {split_name}...")
                 anli_test_splits[split_name] = preprocess_dataset(anli_test_splits[split_name], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+    elif is_swag:
+        # Pre-tokenize SWAG test dataset (uses validation split) with multiple-choice format
+        if ds_test_other:
+            print("Pre-tokenizing swag test dataset (multiple-choice format)...")
+            ds_test_other["test"] = preprocess_swag_multiple_choice(ds_test_other["test"], tokenizer, max_length=cfg["max_length"])
     else:
         if ds_test_other:
             print(f"Pre-tokenizing {dataset_config or 'test'} test dataset (from JSON)...")
@@ -195,7 +226,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         anli_test_loaders = None
     
     print(f"Train dataset size: {len(ds['train'])}")
-    print(f"Validation dataset size (matched): {len(ds_test_matched['validation'])}")
+    print(f"Validation dataset size: {len(ds_test_matched['validation'])}")
     if is_anli:
         if anli_test_splits:
             for split_name, test_ds in anli_test_splits.items():
@@ -208,7 +239,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         if ds_test_mismatched_json:
             print(f"Test dataset size (MNLI-MM from JSON): {len(ds_test_mismatched_json['test'])}")
     elif not is_anli and ds_test_other:
-        print(f"Test dataset size ({dataset_config or 'test'} from JSON): {len(ds_test_other['test'])}")
+        print(f"Test dataset size ({dataset_config or 'test'}): {len(ds_test_other['test'])}")
 
     # Get number of labels from config (defaults to 2 for binary classification)
     num_labels = cfg.get("num_labels", 2)
@@ -354,7 +385,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
 
             # validate on matched
             model.eval()
-            v_true_matched, v_pred_matched, v_prob_matched = [], [], []
+            v_true_matched, v_prob_matched = [], []
+            example_indices_matched = []  # For SWAG grouping
             with torch.no_grad():
                 for batch in val_loader_matched:
                     # Data is already tokenized
@@ -363,24 +395,74 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                     labels = batch["label"].to(dev, non_blocking=True)
                     logits = model(input_ids, attention_mask)
                     v_true_matched.extend(labels.cpu().tolist())
-                    v_pred_matched.extend(logits.cpu().argmax(-1).tolist())
-                    if num_labels > 2:
-                        probs_batch = torch.softmax(logits.detach().cpu(), dim=-1).numpy()
-                        v_prob_matched.append(probs_batch)
+                    
+                    if is_swag:
+                        # For SWAG, collect example indices for grouping
+                        if "example_idx" in batch:
+                            example_indices_matched.extend(batch["example_idx"].cpu().tolist())
+                        # Get scores for all choices (we'll group by example_idx later)
+                        logits_batch = logits.detach().cpu()
+                        if num_labels > 2:
+                            scores_batch = logits_batch.max(dim=-1)[0].numpy()
+                        else:
+                            probs_batch = torch.softmax(logits_batch, dim=-1)[:, 1].numpy()
+                            scores_batch = probs_batch
+                        v_prob_matched.append(scores_batch)
                     else:
-                        probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
-                        v_prob_matched.append(probs_batch)
+                        if num_labels > 2:
+                            probs_batch = torch.softmax(logits.detach().cpu(), dim=-1).numpy()
+                            v_prob_matched.append(probs_batch)
+                        else:
+                            probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
+                            v_prob_matched.append(probs_batch)
 
-            if num_labels > 2:
-                probs_matched = np.concatenate(v_prob_matched, axis=0)
-                preds_matched = np.argmax(probs_matched, axis=1)
+            if is_swag:
+                # Group every 4 examples (choices) together and select the best one
+                scores_all = np.concatenate(v_prob_matched, axis=0)
+                if example_indices_matched:
+                    from collections import defaultdict
+                    grouped_scores = defaultdict(list)
+                    grouped_labels = defaultdict(list)
+                    for idx, score, label in zip(example_indices_matched, scores_all, v_true_matched):
+                        grouped_scores[idx].append(score)
+                        grouped_labels[idx].append(label)
+                    preds_matched = []
+                    true_labels_matched = []
+                    for ex_idx in sorted(grouped_scores.keys()):
+                        choice_scores = grouped_scores[ex_idx]
+                        best_choice = np.argmax(choice_scores)
+                        preds_matched.append(best_choice)
+                        true_labels_matched.append(grouped_labels[ex_idx][0])  # All 4 have same label
+                    preds_matched = np.array(preds_matched)
+                    true_labels_matched = np.array(true_labels_matched)
+                else:
+                    # Fallback: group every 4 consecutive examples
+                    num_questions = len(scores_all) // 4
+                    preds_matched = []
+                    true_labels_matched = []
+                    for i in range(num_questions):
+                        start_idx = i * 4
+                        end_idx = start_idx + 4
+                        choice_scores = scores_all[start_idx:end_idx]
+                        best_choice = np.argmax(choice_scores)
+                        preds_matched.append(best_choice)
+                        true_labels_matched.append(v_true_matched[start_idx])
+                    preds_matched = np.array(preds_matched)
+                    true_labels_matched = np.array(true_labels_matched)
             else:
-                probs_matched = np.concatenate(v_prob_matched, axis=0) 
-                preds_matched = (probs_matched >= best_t).astype(int)
-            val_mcc_matched = matthews_corrcoef(v_true_matched, preds_matched)
-            val_f1_matched = f1_score(v_true_matched, preds_matched, average='macro')
-            val_acc_matched = accuracy_score(v_true_matched, preds_matched)
-            dataset_label = "MNLI" if is_mnli else cfg["dataset_config"].upper() if cfg["dataset_config"] else "TEST"
+                if num_labels > 2:
+                    probs_matched = np.concatenate(v_prob_matched, axis=0)
+                    preds_matched = np.argmax(probs_matched, axis=1)
+                    true_labels_matched = np.array(v_true_matched)
+                else:
+                    probs_matched = np.concatenate(v_prob_matched, axis=0) 
+                    preds_matched = (probs_matched >= best_t).astype(int)
+                    true_labels_matched = np.array(v_true_matched)
+            
+            val_mcc_matched = matthews_corrcoef(true_labels_matched, preds_matched)
+            val_f1_matched = f1_score(true_labels_matched, preds_matched, average='macro')
+            val_acc_matched = accuracy_score(true_labels_matched, preds_matched)
+            dataset_label = "MNLI" if is_mnli else (cfg["dataset_config"].upper() if cfg["dataset_config"] else "TEST")
             print(f"          val ({dataset_label} matched): mcc={val_mcc_matched:.4f} f1={val_f1_matched:.4f} acc={val_acc_matched:.4f}")
 
             # Evaluate on mismatched validation set for MNLI
@@ -416,10 +498,11 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 val_acc_mismatched = accuracy_score(v_true_mismatched, preds_mismatched)
                 print(f"          val (MNLI mismatched): mcc={val_mcc_mismatched:.4f} f1={val_f1_mismatched:.4f} acc={val_acc_mismatched:.4f}")
 
-            def evaluate_loader(loader, set_name):
+            def evaluate_loader(loader, set_name, is_swag=False):
                 if loader is None:
                     return None
                 t_true, t_prob = [], []
+                example_indices = []  # For SWAG grouping
                 with torch.no_grad():
                     for batch in loader:
                         input_ids = batch["input_ids"].to(dev, non_blocking=True)
@@ -427,25 +510,82 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                         labels = batch["label"].to(dev, non_blocking=True)
                         logits = model(input_ids, attention_mask)
                         t_true.extend(labels.cpu().tolist())
-                        if num_labels > 2:
-                            probs_batch = torch.softmax(logits.detach().cpu(), dim=-1).numpy()
-                            t_prob.append(probs_batch)
+                        
+                        if is_swag:
+                            # For SWAG, collect example indices for grouping
+                            if "example_idx" in batch:
+                                example_indices.extend(batch["example_idx"].cpu().tolist())
+                            # Get logits for all choices (we'll group by example_idx later)
+                            logits_batch = logits.detach().cpu()  # [B, num_labels]
+                            # For multiple-choice, we use the logit for the positive class (class 1)
+                            # or the max logit across all classes
+                            if num_labels > 2:
+                                # Use the max logit as the score for this choice
+                                scores_batch = logits_batch.max(dim=-1)[0].numpy()  # [B]
+                            else:
+                                # Binary: use class 1 probability
+                                probs_batch = torch.softmax(logits_batch, dim=-1)[:, 1].numpy()
+                                scores_batch = probs_batch
+                            t_prob.append(scores_batch)
                         else:
-                            probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
-                            t_prob.append(probs_batch)
+                            if num_labels > 2:
+                                probs_batch = torch.softmax(logits.detach().cpu(), dim=-1).numpy()
+                                t_prob.append(probs_batch)
+                            else:
+                                probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
+                                t_prob.append(probs_batch)
 
                 if not t_prob:
                     return None
 
-                if num_labels > 2:
-                    probs_test = np.concatenate(t_prob, axis=0)
-                    preds_test = np.argmax(probs_test, axis=1)
+                if is_swag:
+                    # Group every 4 examples (choices) together and select the best one
+                    scores_all = np.concatenate(t_prob, axis=0)  # [N*4] where N is number of questions
+                    if example_indices:
+                        # Group by example_idx
+                        from collections import defaultdict
+                        grouped_scores = defaultdict(list)
+                        grouped_labels = defaultdict(list)
+                        for idx, score, label in zip(example_indices, scores_all, t_true):
+                            grouped_scores[idx].append(score)
+                            grouped_labels[idx].append(label)
+                        # For each group, select the choice with highest score
+                        preds_test = []
+                        true_labels = []
+                        for ex_idx in sorted(grouped_scores.keys()):
+                            choice_scores = grouped_scores[ex_idx]
+                            best_choice = np.argmax(choice_scores)
+                            preds_test.append(best_choice)
+                            # Get the true label (should be the same for all 4 choices of same example)
+                            true_labels.append(grouped_labels[ex_idx][0])  # All 4 have same label
+                    else:
+                        # Fallback: group every 4 consecutive examples
+                        num_questions = len(scores_all) // 4
+                        preds_test = []
+                        true_labels = []
+                        for i in range(num_questions):
+                            start_idx = i * 4
+                            end_idx = start_idx + 4
+                            choice_scores = scores_all[start_idx:end_idx]
+                            best_choice = np.argmax(choice_scores)
+                            preds_test.append(best_choice)
+                            true_labels.append(t_true[start_idx])  # All 4 have same label
+                    
+                    preds_test = np.array(preds_test)
+                    true_labels = np.array(true_labels)
                 else:
-                    probs_test = np.concatenate(t_prob, axis=0)
-                    preds_test = (probs_test >= best_t).astype(int)
-                test_mcc = matthews_corrcoef(t_true, preds_test)
-                test_f1 = f1_score(t_true, preds_test, average='macro')
-                test_acc = accuracy_score(t_true, preds_test)
+                    if num_labels > 2:
+                        probs_test = np.concatenate(t_prob, axis=0)
+                        preds_test = np.argmax(probs_test, axis=1)
+                        true_labels = np.array(t_true)
+                    else:
+                        probs_test = np.concatenate(t_prob, axis=0)
+                        preds_test = (probs_test >= best_t).astype(int)
+                        true_labels = np.array(t_true)
+                
+                test_mcc = matthews_corrcoef(true_labels, preds_test)
+                test_f1 = f1_score(true_labels, preds_test, average='macro')
+                test_acc = accuracy_score(true_labels, preds_test)
                 print(f"          test ({set_name}): mcc={test_mcc:.4f} f1={test_f1:.4f} acc={test_acc:.4f}")
                 return {"acc": test_acc, "mcc": test_mcc, "f1": test_f1}
 
@@ -493,6 +633,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 res_other = evaluate_loader(
                     test_loader_other,
                     dataset_config.upper() if dataset_config else "TEST",
+                    is_swag=is_swag,
                 )
                 if res_other:
                     test_results.append((dataset_config.upper() if dataset_config else "TEST", res_other))
@@ -659,7 +800,12 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     val_mcc_matched = matthews_corrcoef(v_true_matched, preds_matched)
     val_f1_matched = f1_score(v_true_matched, preds_matched, average='macro')
     val_acc_matched = accuracy_score(v_true_matched, preds_matched)
-    dataset_label = "MNLI" if is_mnli else "QNLI"
+    if is_anli:
+        dataset_label = "ANLI"
+    elif is_mnli:
+        dataset_label = "MNLI"
+    else:
+        dataset_label = cfg["dataset_config"].upper() if cfg.get("dataset_config") else "QNLI"
     print(f"Final validation ({dataset_label} matched): mcc={val_mcc_matched:.4f} f1={val_f1_matched:.4f} acc={val_acc_matched:.4f}")
     
     # Mismatched validation for MNLI
@@ -752,6 +898,39 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             test_f1_mismatched = f1_score(t_true_mismatched, preds_test_mismatched, average='macro')
             test_acc_mismatched = accuracy_score(t_true_mismatched, preds_test_mismatched)
             print(f"Test (MNLI mismatched, from JSON): mcc={test_mcc_mismatched:.4f} f1={test_f1_mismatched:.4f} acc={test_acc_mismatched:.4f}")
+    elif is_anli:
+        # ANLI: Evaluate on each test round separately
+        if anli_test_loaders:
+            for split_name, test_loader in sorted(anli_test_loaders.items()):
+                print(f"Evaluating on ANLI {split_name}...")
+                t_true, t_pred, t_prob = [], [], []
+                with torch.no_grad():
+                    for batch in test_loader:
+                        input_ids = batch["input_ids"].to(dev, non_blocking=True)
+                        attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
+                        labels = batch["label"].to(dev, non_blocking=True)
+                        logits = model(input_ids, attention_mask)
+                        t_true.extend(labels.cpu().tolist())
+                        t_pred.extend(logits.cpu().argmax(-1).tolist())
+                        if num_labels > 2:
+                            probs_batch = torch.softmax(logits.detach().cpu(), dim=-1).numpy()
+                            t_prob.append(probs_batch)
+                        else:
+                            probs_batch = torch.softmax(logits.detach().cpu(), dim=-1)[:, 1].numpy()
+                            t_prob.append(probs_batch)
+                
+                if num_labels > 2:
+                    probs_test = np.concatenate(t_prob, axis=0)
+                    preds_test = np.argmax(probs_test, axis=1)
+                else:
+                    probs_test = np.concatenate(t_prob, axis=0)
+                    preds_test = (probs_test >= best_t).astype(int)
+                test_mcc = matthews_corrcoef(t_true, preds_test)
+                test_f1 = f1_score(t_true, preds_test, average='macro')
+                test_acc = accuracy_score(t_true, preds_test)
+                print(f"Test ({split_name}): mcc={test_mcc:.4f} f1={test_f1:.4f} acc={test_acc:.4f}")
+        else:
+            print("Warning: No ANLI test loaders available for evaluation")
     else:
         # Test set evaluation from JSON
         if test_loader_other:

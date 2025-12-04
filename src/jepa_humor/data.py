@@ -114,6 +114,223 @@ def load_anli_test_splits(name: str = "facebook/anli"):
     return test_splits
 
 
+def load_composite_nli_dataset(
+    snli_subset: str = None,
+    mnli_splits: list = None,
+    anli_train_rounds: list = None,
+    anli_val_rounds: list = None,
+    anli_val_type: str = "test",  # "test" or "dev"
+):
+    """
+    Build a composite dataset from any combination of SNLI, MNLI, and ANLI rounds.
+    
+    Args:
+        snli_subset: SNLI split to include (e.g., "train", None to skip)
+        mnli_splits: List of MNLI splits to include (e.g., ["validation_matched"], None to skip)
+        anli_train_rounds: List of ANLI train rounds to include (e.g., [1, 2, 3], None to skip)
+        anli_val_rounds: List of ANLI rounds to use for validation (e.g., [1, 2, 3])
+        anli_val_type: Type of ANLI splits for validation ("test" or "dev")
+    
+    Returns:
+        Dictionary with "train" and "validation" datasets
+    """
+    from datasets import concatenate_datasets
+
+    train_parts = []
+    
+    # Load SNLI if specified
+    if snli_subset is not None:
+        snli = load_dataset("snli")
+        if snli_subset not in snli:
+            raise ValueError(f"SNLI split '{snli_subset}' not found. Available: {list(snli.keys())}")
+        snli_split = snli[snli_subset]
+        snli_split = snli_split.filter(lambda x: x["label"] != -1)
+        train_parts.append(snli_split)
+        print(f"Loaded SNLI {snli_subset}: {len(snli_split)} examples")
+
+    # Load MNLI splits if specified
+    if mnli_splits is not None and len(mnli_splits) > 0:
+        mnli = load_dataset("nyu-mll/glue", "mnli")
+        mnli_parts = []
+        for split_name in mnli_splits:
+            if split_name not in mnli:
+                print(f"Warning: MNLI split '{split_name}' not found. Available: {list(mnli.keys())}")
+                continue
+            mnli_part = mnli[split_name]
+            mnli_parts.append(mnli_part)
+            print(f"Loaded MNLI {split_name}: {len(mnli_part)} examples")
+        
+        if mnli_parts:
+            if len(mnli_parts) > 1:
+                mnli_combined = concatenate_datasets(mnli_parts)
+            else:
+                mnli_combined = mnli_parts[0]
+            train_parts.append(mnli_combined)
+            print(f"Combined MNLI size: {len(mnli_combined)} examples")
+
+    # Load ANLI train rounds if specified
+    if anli_train_rounds is not None and len(anli_train_rounds) > 0:
+        anli = load_dataset("facebook/anli")
+        anli_train_parts = []
+        for r in anli_train_rounds:
+            split_name = f"train_r{r}"
+            if split_name in anli:
+                anli_train_parts.append(anli[split_name])
+                print(f"Loaded ANLI {split_name}: {len(anli[split_name])} examples")
+            else:
+                print(f"Warning: {split_name} not found in ANLI dataset")
+        
+        if anli_train_parts:
+            if len(anli_train_parts) > 1:
+                anli_train_combined = concatenate_datasets(anli_train_parts)
+            else:
+                anli_train_combined = anli_train_parts[0]
+            train_parts.append(anli_train_combined)
+            print(f"Combined ANLI train size: {len(anli_train_combined)} examples")
+
+    # Combine all training parts
+    if not train_parts:
+        raise ValueError("No training data specified. At least one of snli_subset, mnli_splits, or anli_train_rounds must be provided.")
+    
+    if len(train_parts) > 1:
+        train_concat = concatenate_datasets(train_parts)
+    else:
+        train_concat = train_parts[0]
+    print(f"Total combined training size: {len(train_concat)} examples")
+
+    # Load validation from ANLI
+    if anli_val_rounds is not None and len(anli_val_rounds) > 0:
+        anli = load_dataset("facebook/anli")
+        val_parts = []
+        for r in anli_val_rounds:
+            split_name = f"{anli_val_type}_r{r}"
+            if split_name in anli:
+                val_parts.append(anli[split_name])
+                print(f"Included ANLI {split_name} for validation: {len(anli[split_name])} examples")
+            else:
+                print(f"Warning: {split_name} not found in ANLI dataset")
+
+        if not val_parts:
+            raise ValueError(f"No ANLI {anli_val_type} splits were found to use as validation.")
+
+        validation_concat = concatenate_datasets(val_parts) if len(val_parts) > 1 else val_parts[0]
+        print(f"Validation (ANLI {anli_val_type}) size: {len(validation_concat)} examples")
+    else:
+        # Fallback: use first available dev split from one of the datasets
+        print("Warning: No ANLI validation rounds specified. Using first available dev split.")
+        validation_concat = None
+
+    return {
+        "train": train_concat,
+        "validation": validation_concat,
+    }
+
+
+def expand_swag_for_pretraining(ds_split):
+    """
+    Expand SWAG multiple-choice examples for pretraining.
+    Creates one example per ending (context + ending) for SSL pretraining.
+    Labels are preserved for reference but not used in pretraining.
+    """
+    records = []
+    for ex in ds_split:
+        sent1 = ex.get("sent1", "")
+        sent2 = ex.get("sent2", "")
+        prompt = f"{sent1} {sent2}".strip()
+        endings = [ex.get(f"ending{i}", "") for i in range(4)]
+        label = ex.get("label", -1)
+        for idx, ending in enumerate(endings):
+            records.append({
+                "question": prompt,
+                "sentence": ending,
+                "label": label,  # Keep original label (0-3) for reference
+            })
+    return Dataset.from_list(records)
+
+
+def load_swag():
+    """
+    Load SWAG dataset in native multiple-choice format.
+    Returns train/validation/test splits with original SWAG fields: sent1, sent2, ending0-3, label.
+    """
+    swag = load_dataset("swag", "regular")
+    data = {}
+    for split_name in ["train", "validation", "test"]:
+        if split_name in swag:
+            print(f"Loaded SWAG {split_name} split: {len(swag[split_name])} examples")
+            data[split_name] = swag[split_name]
+        elif split_name in ["train", "validation"]:
+            # train and validation are required
+            raise ValueError(f"SWAG dataset missing '{split_name}' split.")
+        # test split is optional, so we don't raise an error if it's missing
+    return data
+
+
+def load_snli_mnli_for_anli(
+    snli_subset: str = "train",
+    mnli_splits: list = ["validation_matched", "validation_mismatched"],
+    anli_rounds = (1, 2, 3),
+):
+    """
+    Build a composite dataset where training data comes from SNLI (train)
+    concatenated with MNLI dev (both matched and mismatched), and validation data comes from ANLI dev rounds.
+    This is handy for pretraining on SNLI+MNLI dev while monitoring on ANLI.
+    """
+    from datasets import concatenate_datasets
+
+    # Load SNLI and drop unlabeled items (label == -1)
+    snli = load_dataset("snli")
+    snli_split = snli[snli_subset]
+    snli_split = snli_split.filter(lambda x: x["label"] != -1)
+    print(f"Loaded SNLI {snli_subset}: {len(snli_split)} examples")
+
+    # Load MNLI dev splits (both matched and mismatched by default)
+    mnli = load_dataset("nyu-mll/glue", "mnli")
+    mnli_parts = []
+    for split_name in mnli_splits:
+        if split_name not in mnli:
+            print(f"Warning: MNLI split '{split_name}' not found. Available: {list(mnli.keys())}")
+            continue
+        mnli_part = mnli[split_name]
+        mnli_parts.append(mnli_part)
+        print(f"Loaded MNLI {split_name}: {len(mnli_part)} examples")
+    
+    if not mnli_parts:
+        raise ValueError(f"No valid MNLI splits found. Requested: {mnli_splits}, Available: {list(mnli.keys())}")
+    
+    # Concatenate all MNLI parts
+    if len(mnli_parts) > 1:
+        mnli_dev = concatenate_datasets(mnli_parts)
+    else:
+        mnli_dev = mnli_parts[0]
+    print(f"Combined MNLI dev size: {len(mnli_dev)} examples")
+
+    train_concat = concatenate_datasets([snli_split, mnli_dev])
+    print(f"Combined SNLI+MNLI train size: {len(train_concat)} examples")
+
+    # Validation from ANLI dev rounds
+    anli = load_dataset("facebook/anli")
+    val_parts = []
+    for r in anli_rounds:
+        split_name = f"dev_r{r}"
+        if split_name in anli:
+            val_parts.append(anli[split_name])
+            print(f"Included ANLI {split_name}: {len(anli[split_name])} examples")
+        else:
+            print(f"Warning: {split_name} not found in ANLI dataset")
+
+    if not val_parts:
+        raise ValueError("No ANLI dev splits were found to use as validation.")
+
+    validation_concat = concatenate_datasets(val_parts) if len(val_parts) > 1 else val_parts[0]
+    print(f"Validation (ANLI dev) size: {len(validation_concat)} examples")
+
+    return {
+        "train": train_concat,
+        "validation": validation_concat,
+    }
+
+
 def load_hf_splits(name: str, config: str = None, test_size=0.2, seed=42):
     """
     Load HuggingFace dataset splits.
@@ -372,6 +589,44 @@ def load_test_set_from_json(dataset_config: str, json_path: str = None):
     # Return in the same format as load_dataset (with "test" key)
     return {"test": dataset}
 
+def preprocess_swag_multiple_choice(ds, tokenizer, max_length=256):
+    """
+    Preprocess SWAG dataset for multiple-choice classification.
+    Expands each example into 4 examples (one per ending) for training.
+    Each example has: context (sent1 + sent2) + ending, with label indicating correct choice (0-3).
+    Also includes example_idx to group choices back together during evaluation.
+    """
+    from datasets import Dataset
+    
+    records = []
+    for ex_idx, ex in enumerate(ds):
+        sent1 = ex.get("sent1", "")
+        sent2 = ex.get("sent2", "")
+        context = f"{sent1} {sent2}".strip()
+        endings = [ex.get(f"ending{i}", "") for i in range(4)]
+        label = ex.get("label", -1)
+        
+        # Create 4 examples, one per ending
+        for choice_idx, ending in enumerate(endings):
+            # Tokenize context + ending
+            tokenized = tokenizer(
+                context,
+                ending,
+                truncation=True,
+                padding="max_length",
+                max_length=max_length,
+            )
+            records.append({
+                "input_ids": tokenized["input_ids"],
+                "attention_mask": tokenized["attention_mask"],
+                "label": label,  # Original label (0-3) indicating correct choice
+                "choice_idx": choice_idx,  # Which choice this is (0-3)
+                "example_idx": ex_idx,  # Original example index for grouping
+            })
+    
+    return Dataset.from_list(records)
+
+
 def preprocess_dataset(ds, tokenizer, max_length=256, text_keys=None):
     """
     Pre-tokenize dataset to avoid tokenizing during training.
@@ -434,6 +689,38 @@ def preprocess_dataset_ssl(
 
     MASK_ID = tokenizer.mask_token_id
     PAD_ID = tokenizer.pad_token_id
+
+    def random_token_mask(ids, mask_prob, span_mean=None):
+        """
+        BERT-style random token masking.
+        Randomly selects individual tokens to mask (not contiguous spans).
+        """
+        ids = ids.copy()
+        length = len(ids)
+
+        # Get maskable token indices (exclude padding and special tokens)
+        CLS_ID = tokenizer.cls_token_id if tokenizer.cls_token_id is not None else -1
+        SEP_ID = tokenizer.sep_token_id if tokenizer.sep_token_id is not None else -1
+        maskable_indices = [
+            i for i in range(length)
+            if ids[i] not in (PAD_ID, CLS_ID, SEP_ID)
+        ]
+
+        if not maskable_indices:
+            return ids
+
+        # Calculate how many tokens to mask
+        num_to_mask = max(1, int(len(maskable_indices) * mask_prob))
+        num_to_mask = min(num_to_mask, len(maskable_indices))
+
+        # Randomly sample tokens to mask
+        selected_indices = np.random.choice(maskable_indices, size=num_to_mask, replace=False)
+
+        # Mask the selected tokens
+        for idx in selected_indices:
+            ids[idx] = MASK_ID
+
+        return ids
 
     def random_span_mask(ids, mask_prob, span_mean):
         """SpanBERT-style random contiguous span masking."""
@@ -635,11 +922,14 @@ def preprocess_dataset_ssl(
     elif mask_type == "sentiment_aware":
         def mask_function(seq):
             return sentiment_aware_mask(seq, tokenizer, mask_probability, span_mean)
+    elif mask_type == "random_token":
+        def mask_function(seq):
+            return random_token_mask(seq, mask_probability, span_mean)
     elif mask_type in ("random_span", "span"):
         def mask_function(seq):
             return random_span_mask(seq, mask_probability, span_mean)
     else:
-        raise ValueError(f"Unknown mask_type '{mask_type}'. Expected 'random_span', 'adversarial', or 'sentiment_aware'.")
+        raise ValueError(f"Unknown mask_type '{mask_type}'. Expected 'random_token', 'random_span', 'adversarial', or 'sentiment_aware'.")
 
     def tokenize_function(examples):
         # Tokenize text fields together
@@ -706,11 +996,15 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
             input_ids = torch.tensor([b["input_ids"] for b in batch], dtype=torch.long)
             attention_mask = torch.tensor([b["attention_mask"] for b in batch], dtype=torch.long)
             labels = torch.tensor([b["label"] for b in batch], dtype=torch.long)
-            return {
+            result = {
                 "input_ids": input_ids,
                 "attention_mask": attention_mask,
                 "label": labels
             }
+            # Preserve example_idx for SWAG multiple-choice grouping
+            if "example_idx" in batch[0]:
+                result["example_idx"] = torch.tensor([b["example_idx"] for b in batch], dtype=torch.long)
+            return result
     else:
         # Original collate for non-tokenized data
         # This is a fallback and should not be used with the new configurable keys

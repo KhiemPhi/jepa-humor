@@ -1,0 +1,34 @@
+seed: 42
+experiment_name: pretrain_composite_nli_exp1  # Prefix for checkpoints
+model_name: google-bert/bert-base-uncased
+dataset: custom/composite_nli  # symbolic, handled via dataset_config flag
+dataset_config: composite_nli  # trigger composite loader
+
+# Training data sources (set to null to exclude, or specify values)
+snli_subset: train  # SNLI split to include (e.g., "train", null to skip)
+mnli_splits: ["validation_matched", "validation_mismatched"]  # MNLI splits to include (null to skip)
+anli_train_rounds: [1, 2, 3]  # ANLI train rounds to include (e.g., [1], [1,2], [1,2,3], null to skip)
+
+# Validation data
+anli_val_rounds: [1, 2, 3]  # ANLI rounds to use for validation
+anli_val_type: test  # "test" or "dev" - type of ANLI splits for validation
+
+text_keys: ["premise", "hypothesis"]
+max_length: 256
+batch_size: 32
+num_workers: 4
+epochs: 5
+lr: 1.0e-5
+ema_decay: 0.996
+mask_ratio: 0.4
+mean_span_len: 3.0
+mask_type: adversarial
+tail_bias: 5.0
+mixed_precision: true
+log_dir: runs/pretrain
+ckpt_dir: checkpoints/pretrain
+early_stop_patience: 3
+val_split: 0.8
+gpu_id: 0
+sample_percent: null  # set e.g. 10.0 for quick experiments
+
