@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.cuda.amp import autocast
 from torch.amp import GradScaler
 from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score
 from .utils import set_seed, device, load_encoder_state, save_ckpt
 from .data import load_hf_splits, make_dataloaders, load_hf_splits_test, load_hf_splits_test_mismatched, preprocess_dataset, load_test_set_from_json, sample_dataset, load_anli_splits, load_anli_test_splits, load_swag, preprocess_swag_multiple_choice
@@ -259,7 +259,66 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     num_labels = cfg.get("num_labels", 2)
     print(f"Number of labels: {num_labels}")
     
-    model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels).to(dev)
+    # Replace or modify this section:
+    if llm_mode:
+        print(f"Loading LLM: {cfg['llm_model_name']}")
+        # Load LLM for text generation
+        llm_base = AutoModelForCausalLM.from_pretrained(cfg["llm_model_name"])
+        
+        # Simple wrapper that formats prompt and gets 0/1 output
+        class PromptBasedLLM(nn.Module):
+            def __init__(self, llm_base, tokenizer):
+                super().__init__()
+                self.llm = llm_base
+                self.tokenizer = tokenizer
+                
+            def forward(self, input_ids, attention_mask, labels=None):
+                # Decode input to get text
+                texts = self.tokenizer.batch_decode(input_ids, skip_special_tokens=True)
+                
+                # Create prompts
+                prompt_prefix = "Given the question and sentence, answer with only 1 if correct and 0 if false. "
+                prompts = [prompt_prefix + text for text in texts]
+                
+                # Tokenize prompts
+                prompt_inputs = self.tokenizer(
+                    prompts, 
+                    return_tensors="pt", 
+                    padding=True, 
+                    truncation=True,
+                    max_length=cfg["max_length"]
+                ).to(input_ids.device)
+                
+                # Generate outputs
+                with torch.no_grad():
+                    outputs = self.llm.generate(
+                        **prompt_inputs,
+                        max_new_tokens=3,
+                        temperature=0.1,
+                        do_sample=False,
+                        pad_token_id=self.tokenizer.pad_token_id
+                    )
+                
+                # Decode outputs and extract 0/1
+                decoded = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+                
+                # Convert to logits (simple approach)
+                batch_size = len(decoded)
+                logits = torch.zeros((batch_size, 2), device=input_ids.device)  # Binary classification
+                
+                for i, text in enumerate(decoded):
+                    if '1' in text or 'yes' in text.lower() or 'true' in text.lower():
+                        logits[i, 1] = 1.0  # Positive class
+                    elif '0' in text or 'no' in text.lower() or 'false' in text.lower():
+                        logits[i, 0] = 1.0  # Negative class
+                    else:
+                        logits[i, 0] = 0.5  # Neutral/uncertain
+                
+                return (None, logits) if labels is not None else logits
+        
+        model = PromptBasedLLM(llm_base, llm_tokenizer).to(dev)
+    else:
+        model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg.get("weight_decay", 0.17))
     
     # Setup SWA (Stochastic Weight Averaging)
