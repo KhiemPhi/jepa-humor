@@ -1,10 +1,15 @@
 seed: 42
 experiment_name: finetune_llm_mistral
-model_name: google-bert/bert-base-uncased  # Still needed for tokenizer
-llm_model_name: mistralai/Mistral-7B-v0.1
+model_name: mistralai/Mistral-7B-v0.1
 llm_mode: true
 dataset: nyu-mll/glue
 dataset_config: qnli
+prompt_technique: zero-shot # Options: zero-shot, few-shot, chain_of_thought, self-consistency
+num_shots: 0
+"lora_r": 8,  # LoRA rank
+"lora_alpha": 32,  # LoRA alpha
+"lora_target_modules": ["q_proj", "v_proj"],  # Modules to apply LoRA to
+"lora_dropout": 0.1,
 text_keys: ["question", "sentence"]
 num_labels: 2
 max_length: 512

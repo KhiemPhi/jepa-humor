@@ -627,7 +627,7 @@ def preprocess_swag_multiple_choice(ds, tokenizer, max_length=256):
     return Dataset.from_list(records)
 
 
-def preprocess_dataset(ds, tokenizer, max_length=256, text_keys=None, llm_mode=False, llm_tokenizer=None):
+def preprocess_dataset(ds, tokenizer, max_length=256, text_keys=None, llm_mode=False, llm_tokenizer=None, prompt_template=None):
     """
     Pre-tokenize dataset to avoid tokenizing during training.
     
@@ -650,35 +650,40 @@ def preprocess_dataset(ds, tokenizer, max_length=256, text_keys=None, llm_mode=F
     else:
         active_tokenizer = tokenizer
     
-    def tokenize_function(examples):
-        # Get the text columns to tokenize
-        # When batched=True, examples[key] returns a list of values
-        texts = [examples[key] for key in text_keys]
+    if llm_mode:
+        # Create prompt template
+        # Note: We need to pass test_keys which are the input field names
+        prompt_template = get_prompt_template(
+            cfg=cfg,
+            ds=ds,  # Optional: dataset for few-shot examples
+            test_keys=text_keys,  # Pass the actual text field names
+        )
         
-        if llm_mode:
-            # Create prompt template and prepend to text
-            # Combine text fields for each example into a single string
-            prompt_template = "Task: Given the following inputs, provide the answer.\n\n{text}"
-            prompted_texts = []
-            for i in range(len(texts[0])):  # Iterate over batch examples
-                # Combine all text fields for this example
-                combined_text = " ".join([text_list[i] for text_list in texts])
-                prompted_text = prompt_template.format(text=combined_text)
-                prompted_texts.append(prompted_text)
+        prompted_texts = []
+        for i in range(len(texts[0])):  # Iterate over batch examples
+            # Create a dictionary with values for each placeholder
+            # The template expects placeholders like {sentence1}, {sentence2}, etc.
+            example_data = {}
+            for j, key in enumerate(text_keys):
+                example_data[key] = texts[j][i]
             
-            return active_tokenizer(
-                prompted_texts,
-                truncation=True,
-                padding="max_length",
-                max_length=max_length,
+            # Format the template with the example data
+            prompted_text = prompt_template.format(**example_data)
+            prompted_texts.append(prompted_text)
+            
+        return active_tokenizer(
+            prompted_texts,
+            truncation=True,
+                adding="max_length",
+            max_length=max_length,
             )
-        else:
-            return active_tokenizer(
-                *texts,
-                truncation=True,
-                padding="max_length",
-                max_length=max_length,
-            )
+    else:
+        return active_tokenizer(
+            *texts,
+            truncation=True,
+            padding="max_length",
+            max_length=max_length,
+        )
     
     ds = ds.map(
         tokenize_function,

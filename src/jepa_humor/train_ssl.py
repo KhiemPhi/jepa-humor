@@ -5,6 +5,15 @@ from torch.cuda.amp import autocast, GradScaler
 from transformers import AutoTokenizer, AutoModel
 from .utils import set_seed, device, save_ckpt
 from .jepa import JEPA, MLMJEPA
+
+# Import LoRA components
+try:
+    from .lora_finetuning import LoRATransformer, LoRAConfig, create_lora_model_for_glue
+    LORA_AVAILABLE = True
+except ImportError:
+    LORA_AVAILABLE = False
+    print("Warning: LoRA modules not available. Install peft package for LoRA support.")
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import os
 from torch import amp
@@ -22,24 +31,41 @@ from .data import (
     expand_swag_for_pretraining,
 )
 
-def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=0.01, total_steps=1000, warmup_ratio=0.06, model_type="jepa"):
+def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=0.01, total_steps=1000, warmup_ratio=0.06, model_type="jepa", llm_mode=False):
     # param groups: predictor/vocab_projection (higher LR), encoder (lower LR), target is frozen
-    if model_type == "mlm":
-        # MLMJEPA: has vocab_projection instead of predictor
-        pred_params = list(jepa.vocab_projection.parameters())
-    else:
-        # Standard JEPA: has predictor
-        pred_params = list(jepa.predictor.parameters())
     
-    enc_params  = [p for p in jepa.encoder.parameters() if p.requires_grad]
+    if llm_mode:
+        # In LLM mode with LoRA, we only optimize LoRA parameters
+        # Get all trainable parameters (should only be LoRA parameters)
+        trainable_params = [p for p in jepa.parameters() if p.requires_grad]
+        
+        optimizer = torch.optim.AdamW(
+            trainable_params,
+            lr=lr_enc,  # Use encoder LR for LoRA
+            weight_decay=weight_decay,
+            betas=(0.9, 0.98),
+            eps=1e-8
+        )
+        print(f"LLM mode: Optimizing {len(trainable_params)} parameter groups (LoRA only)")
+    else:
+        # Original logic for non-LLM mode
+        if model_type == "mlm":
+            # MLMJEPA: has vocab_projection instead of predictor
+            pred_params = list(jepa.vocab_projection.parameters())
+        else:
+            # Standard JEPA: has predictor
+            pred_params = list(jepa.predictor.parameters())
+        
+        enc_params  = [p for p in jepa.encoder.parameters() if p.requires_grad]
 
-    optimizer = torch.optim.AdamW(
-        [
-            {"params": pred_params, "lr": lr_pred},
-            {"params": enc_params,  "lr": lr_enc}
-        ],
-        lr=lr_pred, weight_decay=weight_decay, betas=(0.9, 0.98), eps=1e-8
-    )
+        optimizer = torch.optim.AdamW(
+            [
+                {"params": pred_params, "lr": lr_pred},
+                {"params": enc_params,  "lr": lr_enc}
+            ],
+            lr=lr_pred, weight_decay=weight_decay, betas=(0.9, 0.98), eps=1e-8
+        )
+        print(f"Standard mode: Optimizing 2 parameter groups")
 
     warmup_steps = max(1, int(total_steps * warmup_ratio))
     def lr_lambda(step):
@@ -67,33 +93,69 @@ def pretrain(cfg):
     if tokenizer.mask_token_id is None:
         raise ValueError("Tokenizer must have a [MASK] token.")
 
+    # Check if LLM mode is enabled
+    llm_mode = cfg.get("llm_mode", False)
+    
     # Choose model type: "jepa" (embedding reconstruction) or "mlm" (token ID prediction)
     model_type = cfg.get("model_type", "jepa").lower()
     
-    if model_type == "mlm":
-        # BERT-style MLM: single encoder + vocab projection (no EMA target encoder)
-        jepa = MLMJEPA(
-            base, 
-            vocab_size=tokenizer.vocab_size,
-            hidden_size=base.config.hidden_size,
-            use_cls=True
-        ).to(dev)
-        print("Using BERT-style MLM (single encoder, no EMA target encoder)")
+    if llm_mode and LORA_AVAILABLE:
+        # LLM mode with LoRA fine-tuning
+        print(f"LLM mode enabled - Using LoRA fine-tuning with model: {cfg['model_name']}")
+        
+        # Determine task type based on dataset
+        task_type = "CAUSAL_LM"  # Default for pretraining
+        task_name = cfg.get("task_name", "sst-2")  # Default task
+        
+        # Create LoRA model
+        lora_config = LoRAConfig(
+            r=cfg.get("lora_r", 8),
+            lora_alpha=cfg.get("lora_alpha", 32),
+            target_modules=cfg.get("lora_target_modules", ["q_proj", "v_proj"]),
+            lora_dropout=cfg.get("lora_dropout", 0.1),
+            task_type=task_type,
+            inference_mode=False
+        )
+        
+        # Create LoRA-wrapped model
+        jepa = LoRATransformer(
+            model_name_or_path=cfg["model_name"],
+            lora_config=lora_config,
+            num_labels=None,  # No classification head for pretraining
+            use_peft=True
+        )
+        
+        # Print trainable parameters
+        jepa.print_trainable_parameters()
+        
+        # For LLM mode, we'll use MLM-style training
+        model_type = "mlm"  # Force MLM for LLM mode
+        
     else:
-        # Original JEPA that reconstructs embeddings
-        embedding_matrix = base.get_input_embeddings().weight.detach().cpu().numpy()
-        jepa = JEPA(
-            base, 
-            hidden_size=base.config.hidden_size,
-            pred_hid=512, 
-            ema_decay=cfg["ema_decay"], 
-            use_cls=True
-        ).to(dev)
-        print("Using standard JEPA (reconstructs embeddings)")
+        # Original JEPA/MLMJEPA setup
+        if model_type == "mlm":
+            # BERT-style MLM: single encoder + vocab projection (no EMA target encoder)
+            jepa = MLMJEPA(
+                base, 
+                vocab_size=tokenizer.vocab_size,
+                hidden_size=base.config.hidden_size,
+                use_cls=True
+            ).to(dev)
+            print("Using BERT-style MLM (single encoder, no EMA target encoder)")
+        else:
+            # Original JEPA that reconstructs embeddings
+            embedding_matrix = base.get_input_embeddings().weight.detach().cpu().numpy()
+            jepa = JEPA(
+                base, 
+                hidden_size=base.config.hidden_size,
+                pred_hid=512, 
+                ema_decay=cfg["ema_decay"], 
+                use_cls=True
+            ).to(dev)
+            print("Using standard JEPA (reconstructs embeddings)")
     
     jepa.train()
 
-  
     dataset_config = cfg.get("dataset_config", None)
     is_anli = dataset_config == "anli" or (dataset_config is None and "anli" in cfg["dataset"].lower())
     is_swag = dataset_config == "swag" or (dataset_config is None and "swag" in cfg["dataset"].lower())
@@ -145,7 +207,6 @@ def pretrain(cfg):
     
     split = {}
     split['train'] = ds['train']
-    #split['train'] = split['train'].filter(lambda x: x['label'] == 1)
     if is_anli:
         split['test'] = ds['validation']
     elif dataset_config == 'mnli':
@@ -190,14 +251,23 @@ def pretrain(cfg):
         mask_probability=mask_prob,
         span_mean=span_len,
         mask_type=mask_type,
-        
     )
     
-    #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True, ssl_mode=True)
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")
-    opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=cfg["lr"], model_type=model_type)
+    
+    # Calculate total steps for scheduler
+    total_steps = len(train_loader) * cfg["epochs"]
+    
+    opt, scheduler = build_optimizer_and_scheduler(
+        jepa, 
+        lr_pred=1e-3, 
+        lr_enc=cfg["lr"], 
+        total_steps=total_steps,
+        model_type=model_type,
+        llm_mode=llm_mode
+    )
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 
     best = float("inf")
@@ -217,8 +287,8 @@ def pretrain(cfg):
                 "attention_mask": batch["target_attention_mask"].to(dev, non_blocking=True)
             }
             
-            if model_type == "mlm":
-                # For MLM: 
+            if model_type == "mlm" or llm_mode:
+                # For MLM or LLM mode: 
                 # - Context is keep_tok (original unmasked text)
                 # - Target is keep_input_ids (original tokens to predict)
                 # - Mask indicates positions where target_input_ids has MASK tokens
@@ -232,14 +302,31 @@ def pretrain(cfg):
                     "input_ids": keep_tok["input_ids"],  # Original tokens to predict
                     "attention_mask": keep_tok["attention_mask"]
                 }
+                
+                # For LLM mode with LoRA, we need to prepare inputs differently
+                if llm_mode:
+                    # Combine the masked inputs and labels for LLM
+                    inputs = {
+                        "input_ids": target_tok["input_ids"],  # Use masked input
+                        "attention_mask": target_tok["attention_mask"],
+                        "labels": keep_tok["input_ids"]  # Use original tokens as labels
+                    }
+                else:
+                    inputs = keep_tok
+                    
             else:
                 # Standard JEPA: use attention_mask
                 mask = target_tok["attention_mask"].float().to(dev, non_blocking=True)
                 target_for_mlm = None  # Not used for standard JEPA
+                inputs = keep_tok
 
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
-                if model_type == "mlm":
+                if llm_mode:
+                    # LLM mode: direct forward pass with labels
+                    outputs = jepa(**inputs)
+                    loss = outputs.loss
+                elif model_type == "mlm":
                     # MLMJEPA: predict original token IDs at masked positions
                     pad_token_id = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else -100
                     loss, pred, target = jepa(keep_tok, target_for_mlm, mask, ignore_index=pad_token_id)
@@ -247,14 +334,13 @@ def pretrain(cfg):
                     # Standard JEPA: reconstruct embeddings
                     loss, pred, target = jepa(keep_tok, target_tok, mask)
             
-          
-
             scaler.scale(loss).backward()
             scaler.step(opt)
             scaler.update()
             scheduler.step()
-            # Only update target encoder for standard JEPA (not for BERT-style MLM)
-            if model_type != "mlm":
+            
+            # Only update target encoder for standard JEPA (not for BERT-style MLM or LLM mode)
+            if model_type != "mlm" and not llm_mode:
                 jepa.update_target()
 
             running += float(loss.item()); steps += 1
@@ -266,26 +352,48 @@ def pretrain(cfg):
         # checkpoint & early stopping on train loss (SSL)
         os.makedirs(cfg["ckpt_dir"], exist_ok=True)
         exp_name = cfg.get("experiment_name", "")
-        prefix = f"{exp_name}_" if exp_name else ""
+        prefix = f"{prefix}jepa_" if not llm_mode else f"{prefix}lora_"
         
-        path = os.path.join(cfg["ckpt_dir"], f"{prefix}jepa_epoch{epoch}_loss{epoch_loss:.4f}.pt")
-        save_ckpt({
-            "epoch": epoch,
-            "loss": epoch_loss,
-            "encoder_state_dict": jepa.encoder.state_dict(),
-            "jepa_state_dict": jepa.state_dict()
-        }, path)
-
-        if epoch_loss + 1e-6 < best:
-            best = epoch_loss
-            patience = 0
-            best_ckpt_path = os.path.join(cfg["ckpt_dir"], f"best_{prefix}.pt")
+        path = os.path.join(cfg["ckpt_dir"], f"{prefix}epoch{epoch}_loss{epoch_loss:.4f}.pt")
+        
+        if llm_mode:
+            # Save LoRA model
+            save_ckpt({
+                "epoch": epoch,
+                "loss": epoch_loss,
+                "model_state_dict": jepa.model.state_dict(),  # PEFT model state
+                "lora_config": cfg.get("lora_config", {}),
+                "base_model_name": cfg["model_name"]
+            }, path)
+        else:
+            # Save original JEPA model
             save_ckpt({
                 "epoch": epoch,
                 "loss": epoch_loss,
                 "encoder_state_dict": jepa.encoder.state_dict(),
                 "jepa_state_dict": jepa.state_dict()
-            }, best_ckpt_path)
+            }, path)
+
+        if epoch_loss + 1e-6 < best:
+            best = epoch_loss
+            patience = 0
+            best_ckpt_path = os.path.join(cfg["ckpt_dir"], f"best_{prefix}.pt")
+            
+            if llm_mode:
+                save_ckpt({
+                    "epoch": epoch,
+                    "loss": epoch_loss,
+                    "model_state_dict": jepa.model.state_dict(),
+                    "lora_config": cfg.get("lora_config", {}),
+                    "base_model_name": cfg["model_name"]
+                }, best_ckpt_path)
+            else:
+                save_ckpt({
+                    "epoch": epoch,
+                    "loss": epoch_loss,
+                    "encoder_state_dict": jepa.encoder.state_dict(),
+                    "jepa_state_dict": jepa.state_dict()
+                }, best_ckpt_path)
         else:
             patience += 1
             if patience >= cfg["early_stop_patience"]:
@@ -295,4 +403,5 @@ def pretrain(cfg):
     # return path to best encoder
     exp_name = cfg.get("experiment_name", "")
     prefix = f"{exp_name}_" if exp_name else ""
+    prefix = f"{prefix}jepa_" if not llm_mode else f"{prefix}lora_"
     return os.path.join(cfg["ckpt_dir"], f"best_{prefix}.pt")
