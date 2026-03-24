@@ -8,33 +8,31 @@ def jepa_loss(pred, target, mask=None, temperature=0.1):
     # normalize embeddings to unit length
     pred = F.normalize(pred, dim=-1)              # [B, T, D]
     target = F.normalize(target.detach(), dim=-1) # stop-gradient
-
     # optionally select only masked tokens
     if mask is not None:
-        mask = mask.bool()
-        pred = pred[mask]      # [M, D]
-        target = target[mask]  # [M, D]
-
+            mask = mask.bool()
+            pred = pred[mask]      # [M, D]
+            target = target[mask]  # [M, D]
     # compute cosine similarities (dot product since normalized)
     sim_matrix = pred @ target.T / temperature    # [M, M]
-
     # compute contrastive loss
     labels = torch.arange(sim_matrix.size(0), device=pred.device)
     loss_i2t = F.cross_entropy(sim_matrix, labels)       # pred -> target
     loss_t2i = F.cross_entropy(sim_matrix.T, labels)     # target -> pred
     loss = (loss_i2t + loss_t2i) / 2
-
     return loss
 
-def freeze_distilbert_layers(encoder, unfreeze_last_n=2):
-    # DistilBERT has encoder.transformer.layer[i]
+def freeze_roberta_layers(encoder, unfreeze_last_n=2):
+    # RoBERTa has encoder.encoder.layer[i]
     for p in encoder.parameters():
         p.requires_grad = False
+
     # unfreeze last N layers
-    for i in range(6 - unfreeze_last_n, 6):
-        for p in encoder.transformer.layer[i].parameters():
+    for i in range(12 - unfreeze_last_n, 12):
+        for p in encoder.encoder.layer[i].parameters():
             p.requires_grad = True
-    # keep LayerNorms trainable in the whole stack (optional)
+
+    # keep LayerNorms trainable
     for m in encoder.modules():
         if isinstance(m, torch.nn.LayerNorm):
             for p in m.parameters():
@@ -53,9 +51,15 @@ class JEPA(nn.Module):
             nn.ReLU(),
             nn.Linear(pred_hid, hidden_size)
         )
+        self.predictor = nn.TransformerEncoderLayer(
+            d_model=hidden_size,
+            nhead=8,
+            dim_feedforward=pred_hid,
+            batch_first=True
+        )
         self.ema_decay = ema_decay
         self.use_cls = use_cls
-        #freeze_distilbert_layers(self.encoder)
+        #freeze_roberta_layers(self.encoder)
 
     @torch.no_grad()
     def update_target(self):
@@ -66,9 +70,15 @@ class JEPA(nn.Module):
     def forward(self, context_inputs, target_inputs, mask=None, temperature=0.1):
         online = self.encoder(**context_inputs).last_hidden_state   # [B,T,D]
         pred   = self.predictor(online)
+        
 
         with torch.no_grad():
             target = self.target_encoder(**target_inputs).last_hidden_state
-      
-        loss = jepa_loss(pred, target, mask, temperature)
+
+        if self.use_cls:
+            pred = pred[:, 0, :]
+            target = target[:, 0, :]
+            mask = None
+
+        loss = jepa_loss(pred, target, mask)
         return loss, pred, target
