@@ -89,41 +89,30 @@ def pretrain(cfg):
             sent1 = batch["sentence1"]
             sent2 = batch["sentence2"]
 
-
-            keep_tok, target_tok, mask, _ = make_second_sent_mask_views(
+            
+            keep_tok_list, target_tok_list, mask_list, _ = make_second_sent_mask_views(
                 sent1 = sent1, sent2 = sent2, tokenizer=tokenizer, max_length=cfg["max_length"]
             )
-            
-            
-            keep_tok   = {k: v.to(dev, non_blocking=True) for k, v in keep_tok.items()}
-            target_tok = {k: v.to(dev, non_blocking=True) for k, v in target_tok.items()}
-            mask       = mask.to(dev, non_blocking=True)
-            # # Decode a single tensor (e.g. from keep_tok)
-            # decoded_keep = tokenizer.batch_decode(
-            #     keep_tok["input_ids"], 
-            #     skip_special_tokens=True
-            # )
 
-            # # Decode from target_tok as well
-            # decoded_target = tokenizer.batch_decode(
-            #     target_tok["input_ids"], 
-            #     skip_special_tokens=True
-            # )
-         
-
-            opt.zero_grad(set_to_none=True)
-            with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
-                loss, pred, target = jepa(keep_tok, target_tok, mask)
+            for i in range(len(keep_tok_list)):
+                keep_tok_list[i] = {k: torch.tensor(v).to(dev) for k, v in keep_tok_list[i].items()}
+                target_tok_list[i] = {k: torch.tensor(v).to(dev) for k, v in target_tok_list[i].items()}
+                mask_list[i] = torch.tensor(mask_list[i]).to(dev)
+            
             
           
+            opt.zero_grad(set_to_none=True)
+            with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
+                loss_1, pred_1, target_1 = jepa(keep_tok_list[0], target_tok_list[0], mask_list[0])
+                loss_2, pred_2, target_2 = jepa(keep_tok_list[1], target_tok_list[1], mask_list[1])
 
-            scaler.scale(loss).backward()
+            scaler.scale(loss_1 + loss_2).backward()
             scaler.step(opt)
             scaler.update()
             scheduler.step()
             jepa.update_target()
 
-            running += float(loss.item()); steps += 1
+            running += float(loss_1.item() + loss_2.item()); steps += 1
             pbar.set_postfix(loss=f"{running/steps:.4f}")
 
         epoch_loss = running / max(1, steps)

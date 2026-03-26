@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from copy import deepcopy
 
 
-def jepa_loss(pred, target, mask=None, temperature=0.1):
+def jepa_loss(pred, target, mask=None, temperature=0.5):
     # normalize embeddings to unit length
     pred = F.normalize(pred, dim=-1)              # [B, T, D]
     target = F.normalize(target.detach(), dim=-1) # stop-gradient
@@ -53,7 +53,7 @@ class JEPA(nn.Module):
         )
         self.predictor = nn.TransformerEncoderLayer(
             d_model=hidden_size,
-            nhead=8,
+            nhead=4,
             dim_feedforward=pred_hid,
             batch_first=True
         )

@@ -51,7 +51,7 @@ def finetune(cfg, encoder_ckpt: str):
     print(f"Test dataset size: {len(ds['validation'])}")
 
     model = STSBRegressor(base, hidden_size=base.config.hidden_size).to(dev)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.09)
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=0.9)
     criterion = nn.MSELoss()
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 

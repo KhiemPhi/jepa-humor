@@ -2,9 +2,9 @@ seed: 42
 model_name: FacebookAI/roberta-base
 dataset: nyu-mll/glue
 max_length: 256
-batch_size: 32
+batch_size: 16
 num_workers: 4
-epochs: 8
+epochs: 3
 lr: 1.0e-5
 ema_decay: 0.996
 mask_ratio: 0.4
