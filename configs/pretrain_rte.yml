@@ -1,13 +1,13 @@
 seed: 42
 experiment_name: pretrain_rte_jepa_exp1  # Prefix for all saved checkpoints
-model_name: google-bert/bert-base-uncased
+model_name: FacebookAI/roberta-base
 dataset: nyu-mll/glue
-dataset_config: rte  # Specify MNLI configuration
-text_keys: ["sentence1", "sentence2"]  # MNLI uses premise and hypothesis
+dataset_config: qqp  # Specify MNLI configuration
+text_keys: ["question1", "question2"]  # MNLI uses premise and hypothesis
 max_length: 256
 batch_size: 32
 num_workers: 4
-epochs: 5
+epochs: 3
 lr: 1.0e-5  
 ema_decay: 0.996
 mask_ratio: 0.35

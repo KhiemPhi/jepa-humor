@@ -22,7 +22,7 @@ from .data import (
     expand_swag_for_pretraining,
 )
 
-def build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=5e-5, weight_decay=0.01, total_steps=1000, warmup_ratio=0.06, model_type="jepa"):
+def build_optimizer_and_scheduler(jepa, lr_pred=1e-4, lr_enc=5e-5, weight_decay=0.01, total_steps=1000, warmup_ratio=0.06, model_type="jepa"):
     # param groups: predictor/vocab_projection (higher LR), encoder (lower LR), target is frozen
     if model_type == "mlm":
         # MLMJEPA: has vocab_projection instead of predictor
@@ -206,6 +206,7 @@ def pretrain(cfg):
     for epoch in range(1, cfg["epochs"] + 1):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
+        jepa.ema_decay = jepa.get_ema_decay(epoch, cfg["epochs"])
         for batch in pbar:
             # Data is already tokenized
             keep_tok = {
@@ -269,12 +270,12 @@ def pretrain(cfg):
         prefix = f"{exp_name}_" if exp_name else ""
         
         path = os.path.join(cfg["ckpt_dir"], f"{prefix}jepa_epoch{epoch}_loss{epoch_loss:.4f}.pt")
-        save_ckpt({
-            "epoch": epoch,
-            "loss": epoch_loss,
-            "encoder_state_dict": jepa.encoder.state_dict(),
-            "jepa_state_dict": jepa.state_dict()
-        }, path)
+        # save_ckpt({
+        #     "epoch": epoch,
+        #     "loss": epoch_loss,
+        #     "encoder_state_dict": jepa.encoder.state_dict(),
+        #     "jepa_state_dict": jepa.state_dict()
+        # }, path)
 
         if epoch_loss + 1e-6 < best:
             best = epoch_loss

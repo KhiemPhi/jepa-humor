@@ -1,6 +1,6 @@
 seed: 42
 experiment_name: pretrain_qnli_exp1  # Prefix for all saved checkpoints
-model_name: google-bert/bert-base-uncased
+model_name: FacebookAI/roberta-large
 dataset: nyu-mll/glue
 dataset_config: qnli  # Specify QNLI configuration
 text_keys: ["question", "sentence"]  # Column names to tokenize (e.g., ["premise", "hypothesis"] for MNLI)

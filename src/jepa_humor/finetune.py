@@ -13,7 +13,25 @@ from .train_ssl import pretrain
 import os
 from torch import amp
 import numpy as np
+import math
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+
+def _build_finetune_lr_scheduler(optimizer, num_training_steps, warmup_ratio, schedule_type):
+    """Per-optimizer-step LambdaLR: linear warmup then cosine or linear decay to ~min LR."""
+    schedule_type = (schedule_type or "cosine").lower()
+    warmup_steps = max(1, int(num_training_steps * warmup_ratio))
+
+    def lr_lambda(step):
+        if step < warmup_steps:
+            return step / warmup_steps
+        progress = (step - warmup_steps) / max(1, num_training_steps - warmup_steps)
+        if schedule_type == "linear":
+            return max(0.0, 1.0 - progress)
+        # cosine: same tail as train_ssl (decay toward 0.1 * base)
+        return 0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * progress))
+
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
 class CorrectEnglishSentenceClassifier(nn.Module):
     def __init__(self, encoder, hidden_size=768, num_labels=2, dropout=0.1):
@@ -256,7 +274,38 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     
     if use_swa:
         print(f"SWA will start at epoch {swa_start_epoch}/{cfg['epochs']}")
-    
+
+    lr_sched_cfg = cfg.get("lr_scheduler", None)
+    lr_warmup_ratio = cfg.get("lr_warmup_ratio", 0.06)
+    lr_scheduler = None
+    if isinstance(lr_sched_cfg, dict):
+        sched_type = lr_sched_cfg.get("type", "cosine")
+        lr_warmup_ratio = lr_sched_cfg.get("warmup_ratio", lr_warmup_ratio)
+    elif lr_sched_cfg is None or (
+        isinstance(lr_sched_cfg, str) and lr_sched_cfg.lower() in ("none", "null", "")
+    ):
+        sched_type = None
+    else:
+        sched_type = lr_sched_cfg
+
+    if sched_type:
+        if use_swa:
+            pre_swa_epochs = max(0, swa_start_epoch - 1)
+            num_sched_steps = len(train_loader) * pre_swa_epochs
+        else:
+            num_sched_steps = len(train_loader) * cfg["epochs"]
+        if num_sched_steps > 0:
+            lr_scheduler = _build_finetune_lr_scheduler(
+                opt, num_sched_steps, lr_warmup_ratio, sched_type
+            )
+            print(
+                f"LR scheduler: type={sched_type}, warmup_ratio={lr_warmup_ratio}, "
+                f"steps={num_sched_steps}"
+                + (" (decay only before SWA)" if use_swa else "")
+            )
+        else:
+            print("LR scheduler skipped: no training steps before SWA phase")
+
     # Compute class weights from training labels (inverse frequency)
     try:
         train_labels = np.asarray(ds["train"]["label"])  # expects integer labels 0/1
@@ -339,7 +388,10 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 
                 scaler.step(opt)
                 scaler.update()
-                
+
+                if lr_scheduler is not None and not (use_swa and epoch >= swa_start_epoch):
+                    lr_scheduler.step()
+
                 # Update SWA model and scheduler if in SWA phase (after each batch)
                 if use_swa and epoch >= swa_start_epoch:
                     swa_model.update_parameters(model)
@@ -381,7 +433,10 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 # Use default threshold of 0.5 for intermediate epochs
                 best_t = 0.5
      
-            print(f"[Finetune] epoch {epoch}: loss={running/len(train_loader):.4f} mcc={train_mcc:.4f} f1={train_f1:.4f}")
+            print(
+                f"[Finetune] epoch {epoch}: loss={running/len(train_loader):.4f} "
+                f"mcc={train_mcc:.4f} f1={train_f1:.4f} lr={opt.param_groups[0]['lr']:.2e}"
+            )
 
             # validate on matched
             model.eval()
@@ -693,7 +748,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                     "val_acc_mismatched": val_acc_mismatched,
                     "val_f1_mismatched": val_f1_mismatched,
                 })
-            save_ckpt(checkpoint_data, epoch_ckpt_path)
+            #save_ckpt(checkpoint_data, epoch_ckpt_path)
         
         # After training, ensure we use the best test accuracy model for final evaluation
         # (SWA might have been applied, but we prioritize best test accuracy)
@@ -969,5 +1024,5 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     if eval_only:
         print("✅ Evaluation complete.")
         return model
-     
+    
     return model
