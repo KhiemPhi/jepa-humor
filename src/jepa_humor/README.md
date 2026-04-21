@@ -1,5 +1,13 @@
 # JEPA-Humor
 
+no jepa: Epoch 15: Train Loss=0.1426, Pearson=0.9662, Spearman=0.9615, Final=0.9638                            
+          val: Pearson=0.8627, Spearman=0.8608, Final=0.8618
+          best STS-B score so far: 0.8632
+
+jepa: Epoch 15: Train Loss=0.1253, Pearson=0.9704, Spearman=0.9664, Final=0.9684                            
+          val: Pearson=0.8721, Spearman=0.8708, Final=0.8715
+          best STS-B score so far: 0.8731
+
 Self-supervised JEPA-style pretraining on CreativeLang/ColBERT_Humor_Detection, then supervised finetuning for humor detection.
 
 ## Setup

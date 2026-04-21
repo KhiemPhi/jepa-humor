@@ -76,11 +76,13 @@ class JEPA(nn.Module):
         for p in self.target_encoder.parameters():
             p.requires_grad = False
 
-        self.predictor = nn.Sequential(
-            nn.Linear(hidden_size, pred_hid),
-            nn.ReLU(),
-            nn.Linear(pred_hid, hidden_size)
+        self.predictor = nn.TransformerEncoderLayer(
+            d_model=hidden_size,
+            nhead=8,
+            dim_feedforward=pred_hid,
+            batch_first=True
         )
+        
         self.ema_decay = ema_decay
         self.use_cls = use_cls
         #freeze_distilbert_layers(self.encoder)
