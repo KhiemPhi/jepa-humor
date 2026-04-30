@@ -1,11 +1,11 @@
 seed: 42
-experiment_name: pretrain_qqp_mlm_exp1  # Prefix for all saved checkpoints
-model_name: google-bert/bert-base-uncased
+experiment_name: pretrain_qqp_exp1  # Prefix for all saved checkpoints
+model_name: FacebookAI/roberta-large
 dataset: nyu-mll/glue
 dataset_config: qqp  # Specify QQP configuration
 text_keys: ["question1", "question2"]  # QQP uses question1 and question2
 max_length: 256
-batch_size: 32
+batch_size: 64
 num_workers: 4
 epochs: 5
 lr: 1.0e-5  

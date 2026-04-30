@@ -655,7 +655,7 @@ def preprocess_dataset(ds, tokenizer, max_length=256, text_keys=None):
         tokenize_function,
         batched=True,
         desc="Tokenizing dataset",
-        remove_columns=[col for col in ds.column_names if col not in ["input_ids", "attention_mask", "label"]]
+        remove_columns=[col for col in ds.column_names if col not in ["input_ids", "attention_mask", "token_type_ids", "label"]]
     )
     return ds
 
@@ -663,8 +663,8 @@ def preprocess_dataset_ssl(
     ds,
     tokenizer,
     max_length=256,
-    mask_probability=0.15,
-    span_mean=3,
+    mask_probability=0.20,
+    span_mean=5,
     text_keys=None,
     mask_type="random_span",
 ):
@@ -947,12 +947,16 @@ def preprocess_dataset_ssl(
         # Now create masked copies
         target_ids = [mask_function(seq) for seq in keep_ids]
 
-        return {
-            "keep_input_ids": keep_ids,      # original text
+        result = {
+            "keep_input_ids": keep_ids,
             "keep_attention_mask": keep_mask,
-            "target_input_ids": target_ids,  # masked version for SSL
+            "target_input_ids": target_ids,
             "target_attention_mask": keep_mask,
         }
+        if "token_type_ids" in encoded:
+            result["keep_token_type_ids"] = encoded["token_type_ids"]
+            result["target_token_type_ids"] = encoded["token_type_ids"]
+        return result
 
     ds = ds.map(
         tokenize_function,
@@ -963,8 +967,10 @@ def preprocess_dataset_ssl(
             if col not in [
                 "keep_input_ids",
                 "keep_attention_mask",
+                "keep_token_type_ids",
                 "target_input_ids",
                 "target_attention_mask",
+                "target_token_type_ids",
                 "label",
             ]
         ]
@@ -976,32 +982,27 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
     # Collate function for pre-tokenized SSL data
     if pre_tokenized and ssl_mode:
         def collate(batch):
-            # For SSL: keep_tok and target_tok are separate
-            keep_input_ids = torch.tensor([b["keep_input_ids"] for b in batch], dtype=torch.long)
-            keep_attention_mask = torch.tensor([b["keep_attention_mask"] for b in batch], dtype=torch.long)
-            target_input_ids = torch.tensor([b["target_input_ids"] for b in batch], dtype=torch.long)
-            target_attention_mask = torch.tensor([b["target_attention_mask"] for b in batch], dtype=torch.long)
-            labels = torch.tensor([b["label"] for b in batch], dtype=torch.long)
-            return {
-                "keep_input_ids": keep_input_ids,
-                "keep_attention_mask": keep_attention_mask,
-                "target_input_ids": target_input_ids,
-                "target_attention_mask": target_attention_mask,
-                "label": labels
+            result = {
+                "keep_input_ids": torch.tensor([b["keep_input_ids"] for b in batch], dtype=torch.long),
+                "keep_attention_mask": torch.tensor([b["keep_attention_mask"] for b in batch], dtype=torch.long),
+                "target_input_ids": torch.tensor([b["target_input_ids"] for b in batch], dtype=torch.long),
+                "target_attention_mask": torch.tensor([b["target_attention_mask"] for b in batch], dtype=torch.long),
+                "label": torch.tensor([b["label"] for b in batch], dtype=torch.long),
             }
+            if "keep_token_type_ids" in batch[0]:
+                result["keep_token_type_ids"] = torch.tensor([b["keep_token_type_ids"] for b in batch], dtype=torch.long)
+                result["target_token_type_ids"] = torch.tensor([b["target_token_type_ids"] for b in batch], dtype=torch.long)
+            return result
     # Collate function for pre-tokenized data (finetune mode)
     elif pre_tokenized:
         def collate(batch):
-            # input_ids and attention_mask are already lists from tokenizer
-            input_ids = torch.tensor([b["input_ids"] for b in batch], dtype=torch.long)
-            attention_mask = torch.tensor([b["attention_mask"] for b in batch], dtype=torch.long)
-            labels = torch.tensor([b["label"] for b in batch], dtype=torch.long)
             result = {
-                "input_ids": input_ids,
-                "attention_mask": attention_mask,
-                "label": labels
+                "input_ids": torch.tensor([b["input_ids"] for b in batch], dtype=torch.long),
+                "attention_mask": torch.tensor([b["attention_mask"] for b in batch], dtype=torch.long),
+                "label": torch.tensor([b["label"] for b in batch], dtype=torch.long),
             }
-            # Preserve example_idx for SWAG multiple-choice grouping
+            if "token_type_ids" in batch[0]:
+                result["token_type_ids"] = torch.tensor([b["token_type_ids"] for b in batch], dtype=torch.long)
             if "example_idx" in batch[0]:
                 result["example_idx"] = torch.tensor([b["example_idx"] for b in batch], dtype=torch.long)
             return result

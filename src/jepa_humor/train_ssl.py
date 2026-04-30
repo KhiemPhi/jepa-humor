@@ -197,7 +197,13 @@ def pretrain(cfg):
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True, ssl_mode=True)
     print(f"Train dataset size: {len(split['train'])}")
     print(f"Test dataset size: {len(split['test'])}")
-    opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=1e-3, lr_enc=cfg["lr"], model_type=model_type)
+    total_steps = cfg["epochs"] * len(train_loader)
+    # Auto-scale predictor LR by sqrt of total steps; reference: 4000 steps → 5e-4
+    # Prevents instability on large datasets, allows faster learning on small ones.
+    auto_lr_pred = 5e-4 * math.sqrt(4000 / max(1, total_steps))
+    lr_pred = cfg.get("lr_pred", float(max(2e-4, min(5e-4, auto_lr_pred))))
+    print(f"Predictor LR: {lr_pred:.2e} (total_steps={total_steps})")
+    opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=lr_pred, lr_enc=cfg["lr"], model_type=model_type, total_steps=total_steps)
     scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
 
     best = float("inf")
@@ -211,12 +217,15 @@ def pretrain(cfg):
             # Data is already tokenized
             keep_tok = {
                 "input_ids": batch["keep_input_ids"].to(dev, non_blocking=True),
-                "attention_mask": batch["keep_attention_mask"].to(dev, non_blocking=True)
+                "attention_mask": batch["keep_attention_mask"].to(dev, non_blocking=True),
             }
             target_tok = {
                 "input_ids": batch["target_input_ids"].to(dev, non_blocking=True),
-                "attention_mask": batch["target_attention_mask"].to(dev, non_blocking=True)
+                "attention_mask": batch["target_attention_mask"].to(dev, non_blocking=True),
             }
+            if "keep_token_type_ids" in batch:
+                keep_tok["token_type_ids"] = batch["keep_token_type_ids"].to(dev, non_blocking=True)
+                target_tok["token_type_ids"] = batch["target_token_type_ids"].to(dev, non_blocking=True)
             
             if model_type == "mlm":
                 # For MLM: 
@@ -269,7 +278,7 @@ def pretrain(cfg):
         exp_name = cfg.get("experiment_name", "")
         prefix = f"{exp_name}_" if exp_name else ""
         
-        path = os.path.join(cfg["ckpt_dir"], f"{prefix}jepa_epoch{epoch}_loss{epoch_loss:.4f}.pt")
+        path = os.path.join(cfg["ckpt_dir"], f"{prefix}epoch{epoch}_loss{epoch_loss:.4f}.pt")
         # save_ckpt({
         #     "epoch": epoch,
         #     "loss": epoch_loss,

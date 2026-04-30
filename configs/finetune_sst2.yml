@@ -1,13 +1,13 @@
 seed: 42
 experiment_name: finetune_sst2_exp1  # Prefix for all saved checkpoints
-model_name: google-bert/bert-base-uncased   # ignored if --ckpt provided
+model_name: FacebookAI/roberta-large   # ignored if --ckpt provided
 dataset: nyu-mll/glue
 dataset_config: sst2  # Specify MNLI configuration
 test_dataset: nyu-mll/glue  # For validation sets
 text_keys: ["sentence"]  # MNLI uses premise and hypothesis
 num_labels: 2  # MNLI has 3 labels: entailment, neutral, contradiction
 max_length: 256
-batch_size: 32
+batch_size: 64
 num_workers: 4
 epochs: 3
 lr: 1.0e-5

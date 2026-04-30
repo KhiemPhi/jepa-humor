@@ -1,6 +1,6 @@
 seed: 42
 experiment_name: pretrain_snli_mnli_anli_exp1  # Prefix for checkpoints
-model_name: google-bert/bert-base-uncased
+model_name: FacebookAI/roberta-large
 dataset: custom/snli_mnli_anli  # symbolic, handled via dataset_config flag
 dataset_config: snli_mnli_anli  # trigger composite loader
 text_keys: ["premise", "hypothesis"]
@@ -8,7 +8,7 @@ snli_split: train
 mnli_splits: ["validation_matched", "validation_mismatched"]  # Aggregate both MNLI matched and mismatched
 anli_rounds: [1, 2, 3]  # which ANLI test rounds to aggregate for validation
 max_length: 256
-batch_size: 32
+batch_size: 64
 num_workers: 4
 epochs: 5
 lr: 1.0e-5
@@ -24,5 +24,6 @@ early_stop_patience: 3
 val_split: 0.8
 gpu_id: 0
 sample_percent: null  # set e.g. 10.0 for quick experiments
+model_type: jepa
 
 python -m scripts.train_ssl --config configs/pretrain_snli_mnli_anli.yml

@@ -5,7 +5,7 @@ dataset: nyu-mll/glue
 dataset_config: qnli  # Specify QNLI configuration
 text_keys: ["question", "sentence"]  # Column names to tokenize (e.g., ["premise", "hypothesis"] for MNLI)
 max_length: 256
-batch_size: 32
+batch_size: 64
 num_workers: 4
 epochs: 5
 lr: 1.0e-5

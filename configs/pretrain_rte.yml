@@ -1,14 +1,14 @@
 seed: 42
-experiment_name: pretrain_rte_jepa_exp1  # Prefix for all saved checkpoints
-model_name: FacebookAI/roberta-base
+experiment_name: pretrain_rte_exp1  # Prefix for all saved checkpoints
+model_name: FacebookAI/roberta-large
 dataset: nyu-mll/glue
-dataset_config: qqp  # Specify MNLI configuration
-text_keys: ["question1", "question2"]  # MNLI uses premise and hypothesis
+dataset_config: rte  # Specify RTE configuration
+text_keys: ["sentence1", "sentence2"]  # RTE uses sentence1 and sentence2
 max_length: 256
-batch_size: 32
+batch_size: 64
 num_workers: 4
-epochs: 3
-lr: 1.0e-5  
+epochs: 5
+lr: 1.0e-5  # 5 epochs: scaled by 1 from the 5-epoch baseline (lr × epochs / batch_size = const)
 ema_decay: 0.996
 mask_ratio: 0.35
 mean_span_len: 3.0

@@ -1,13 +1,13 @@
 seed: 42
 experiment_name: finetune_anli_exp1  # Prefix for all saved checkpoints
-model_name: google-bert/bert-base-uncased
+model_name: FacebookAI/roberta-large
 dataset: facebook/anli
 dataset_config: anli  # Specify ANLI configuration
 text_keys: ["premise", "hypothesis"]  # ANLI uses premise and hypothesis
 train_rounds: [1, 2, 3]  # Which training rounds to aggregate: [1], [1, 2], or [1, 2, 3]
 num_labels: 3
 max_length: 256
-batch_size: 32
+batch_size: 64
 num_workers: 4
 epochs: 5
 lr: 1.0e-5

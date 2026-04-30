@@ -1,13 +1,13 @@
 seed: 42
 experiment_name: finetune_qqp_exp1  # Prefix for all saved checkpoints
-model_name: google-bert/bert-base-uncased   # ignored if --ckpt provided
+model_name: FacebookAI/roberta-large   # ignored if --ckpt provided
 dataset: nyu-mll/glue
 dataset_config: qqp  # Specify QQP configuration
 test_dataset: nyu-mll/glue
 text_keys: ["question1", "question2"]  # Column names to tokenize (e.g., ["premise", "hypothesis"] for MNLI)
 num_labels: 2  # Number of classification labels (2 for binary, 3 for MNLI, etc.)
 max_length: 256
-batch_size: 16
+batch_size: 64
 num_workers: 4
 epochs: 3
 lr: 1.0e-5

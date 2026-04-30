@@ -1,11 +1,11 @@
 seed: 42
 experiment_name: pretrain_swag_exp1  # Prefix for checkpoints
-model_name: google-bert/bert-base-uncased
+model_name: FacebookAI/roberta-large
 dataset: swag
 dataset_config: swag  # Triggers SWAG-specific loader
 text_keys: ["question", "sentence"]
 max_length: 256
-batch_size: 32
+batch_size: 64
 num_workers: 4
 epochs: 5
 lr: 1.0e-5

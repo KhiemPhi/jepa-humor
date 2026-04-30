@@ -1,0 +1,36 @@
+Warning: GPU 1 not available. Using GPU 0 instead.
+Using device: cuda:0
+Using standard JEPA (reconstructs embeddings)
+Using text keys: ['sentence1', 'sentence2']
+Pre-tokenizing training dataset for SSL...
+Pre-tokenizing validation dataset for SSL...
+Train dataset size: 2490
+Test dataset size: 277
+Predictor LR: 5.00e-04 (total_steps=195)
+[Pretrain] epoch 1: loss=0.0986
+[Pretrain] epoch 2: loss=0.0981
+[Pretrain] epoch 3: loss=0.0981
+[Pretrain] epoch 4: loss=0.0981
+[Pretrain] epoch 5: loss=0.0981
+✅ Best encoder checkpoint: checkpoints/pretrain/best_pretrain_rte_exp1_.pt
+Using device: cuda:0
+Loading pretrained encoder from checkpoints/pretrain/best_pretrain_rte_exp1_.pt
+Using text keys: ['sentence1', 'sentence2']
+Pre-tokenizing training dataset...
+Pre-tokenizing validation dataset (matched)...
+Pre-tokenizing rte test dataset (from JSON)...
+Train dataset size: 2490
+Validation dataset size: 277
+Test dataset size (rte): 304
+Number of labels: 2
+SWA will start at epoch 2/3
+Class counts: [1249, 1241] -> weights: [0.9968000054359436, 1.0032000541687012]
+[Finetune] epoch 1: loss=0.8088 mcc=0.0118 f1=0.5053 lr=1.00e-05
+          val (RTE matched): mcc=0.0370 f1=0.5054 acc=0.5271
+          test (RTE): mcc=-0.1400 f1=0.4255 acc=0.4737
+          ✓ Saved best model (Test Acc=0.4737) to checkpoints/finetune/finetune_rte_exp1_best.pt
+Starting SWA at epoch 2
+[Finetune] epoch 2: loss=0.7126 mcc=0.0492 f1=0.5242 lr=5.00e-06
+          val (RTE matched): mcc=0.1864 f1=0.4981 acc=0.5487
+          test (RTE): mcc=-0.0254 f1=0.3904 acc=0.5855
+          ✓ Saved best model (Test Acc=0.5855) to checkpoints/finetune/finetune_rte_exp1_best.pt

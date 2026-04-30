@@ -39,8 +39,8 @@ class CorrectEnglishSentenceClassifier(nn.Module):
         self.encoder = encoder
         self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(hidden_size, num_labels)
-    def forward(self, input_ids, attention_mask):
-        out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
+    def forward(self, input_ids, attention_mask, token_type_ids=None):
+        out = self.encoder(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         pooled = out.last_hidden_state[:, 0, :]
         pooled = self.dropout(pooled)
         return self.classifier(pooled)
@@ -366,11 +366,12 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 input_ids = batch["input_ids"].to(dev, non_blocking=True)
                 attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                 labels = batch["label"].to(dev, non_blocking=True)
+                token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
 
                 opt.zero_grad(set_to_none=True)
                 with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
                     # --- Clean forward ---
-                    logits_clean = model(input_ids, attention_mask)
+                    logits_clean = model(input_ids, attention_mask, token_type_ids=token_type_ids)
                     loss_clean = criterion(logits_clean, labels)
 
                   
@@ -444,11 +445,11 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             example_indices_matched = []  # For SWAG grouping
             with torch.no_grad():
                 for batch in val_loader_matched:
-                    # Data is already tokenized
                     input_ids = batch["input_ids"].to(dev, non_blocking=True)
                     attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                     labels = batch["label"].to(dev, non_blocking=True)
-                    logits = model(input_ids, attention_mask)
+                    token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+                    logits = model(input_ids, attention_mask, token_type_ids=token_type_ids)
                     v_true_matched.extend(labels.cpu().tolist())
                     
                     if is_swag:
@@ -531,7 +532,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                         input_ids = batch["input_ids"].to(dev, non_blocking=True)
                         attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                         labels = batch["label"].to(dev, non_blocking=True)
-                        logits = model(input_ids, attention_mask)
+                        token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+                        logits = model(input_ids, attention_mask, token_type_ids=token_type_ids)
                         v_true_mismatched.extend(labels.cpu().tolist())
                         v_pred_mismatched.extend(logits.cpu().argmax(-1).tolist())
                         # For multi-class, get probabilities for all classes
@@ -563,9 +565,10 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                         input_ids = batch["input_ids"].to(dev, non_blocking=True)
                         attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                         labels = batch["label"].to(dev, non_blocking=True)
-                        logits = model(input_ids, attention_mask)
+                        token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+                        logits = model(input_ids, attention_mask, token_type_ids=token_type_ids)
                         t_true.extend(labels.cpu().tolist())
-                        
+
                         if is_swag:
                             # For SWAG, collect example indices for grouping
                             if "example_idx" in batch:
@@ -767,11 +770,10 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             swa_model_for_eval.eval()
             with torch.no_grad():
                 for batch in tqdm(train_loader, desc="Updating BN stats", leave=False):
-                    # Data is already tokenized
                     input_ids = batch["input_ids"].to(dev, non_blocking=True)
                     attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
-                    
-                    _ = swa_model_for_eval(input_ids, attention_mask)
+                    token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+                    _ = swa_model_for_eval(input_ids, attention_mask, token_type_ids=token_type_ids)
             # Note: BERT uses LayerNorm, not BatchNorm, so update_bn is not strictly necessary
             # But we'll update any BatchNorm layers if they exist (e.g., in custom heads)
             try:
@@ -797,7 +799,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                         input_ids = batch["input_ids"].to(dev, non_blocking=True)
                         attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                         labels = batch["label"].to(dev, non_blocking=True)
-                        logits = swa_model_for_eval(input_ids, attention_mask)
+                        token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+                        logits = swa_model_for_eval(input_ids, attention_mask, token_type_ids=token_type_ids)
                         swa_t_true.extend(labels.cpu().tolist())
                         if num_labels > 2:
                             probs_batch = torch.softmax(logits.detach().cpu(), dim=-1).numpy()
@@ -832,11 +835,11 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     v_true_matched, v_pred_matched, v_prob_matched = [], [], []
     with torch.no_grad():
         for batch in val_loader_matched:
-            # Data is already tokenized
             input_ids = batch["input_ids"].to(dev, non_blocking=True)
             attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
             labels = batch["label"].to(dev, non_blocking=True)
-            logits = model(input_ids, attention_mask)
+            token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+            logits = model(input_ids, attention_mask, token_type_ids=token_type_ids)
             v_true_matched.extend(labels.cpu().tolist())
             v_pred_matched.extend(logits.cpu().argmax(-1).tolist())
             if num_labels > 2:
@@ -871,7 +874,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 input_ids = batch["input_ids"].to(dev, non_blocking=True)
                 attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                 labels = batch["label"].to(dev, non_blocking=True)
-                logits = model(input_ids, attention_mask)
+                token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+                logits = model(input_ids, attention_mask, token_type_ids=token_type_ids)
                 v_true_mismatched.extend(labels.cpu().tolist())
                 v_pred_mismatched.extend(logits.cpu().argmax(-1).tolist())
                 if num_labels > 2:
@@ -904,7 +908,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                     input_ids = batch["input_ids"].to(dev, non_blocking=True)
                     attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                     labels = batch["label"].to(dev, non_blocking=True)
-                    logits = model(input_ids, attention_mask)
+                    token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+                    logits = model(input_ids, attention_mask, token_type_ids=token_type_ids)
                     t_true_matched.extend(labels.cpu().tolist())
                     t_pred_matched.extend(logits.cpu().argmax(-1).tolist())
                     if num_labels > 2:
@@ -933,7 +938,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                     input_ids = batch["input_ids"].to(dev, non_blocking=True)
                     attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                     labels = batch["label"].to(dev, non_blocking=True)
-                    logits = model(input_ids, attention_mask)
+                    token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+                    logits = model(input_ids, attention_mask, token_type_ids=token_type_ids)
                     t_true_mismatched.extend(labels.cpu().tolist())
                     t_pred_mismatched.extend(logits.cpu().argmax(-1).tolist())
                     if num_labels > 2:
@@ -964,7 +970,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                         input_ids = batch["input_ids"].to(dev, non_blocking=True)
                         attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                         labels = batch["label"].to(dev, non_blocking=True)
-                        logits = model(input_ids, attention_mask)
+                        token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+                        logits = model(input_ids, attention_mask, token_type_ids=token_type_ids)
                         t_true.extend(labels.cpu().tolist())
                         t_pred.extend(logits.cpu().argmax(-1).tolist())
                         if num_labels > 2:
@@ -997,7 +1004,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                     input_ids = batch["input_ids"].to(dev, non_blocking=True)
                     attention_mask = batch["attention_mask"].to(dev, non_blocking=True)
                     labels = batch["label"].to(dev, non_blocking=True)
-                    logits = model(input_ids, attention_mask)
+                    token_type_ids = batch["token_type_ids"].to(dev, non_blocking=True) if "token_type_ids" in batch else None
+                    logits = model(input_ids, attention_mask, token_type_ids=token_type_ids)
                     t_true.extend(labels.cpu().tolist())
                     t_pred.extend(logits.cpu().argmax(-1).tolist())
                     if num_labels > 2:

@@ -1,0 +1,19 @@
+seed: 42
+experiment_name: finetune_rte_exp1  # Prefix for all saved checkpoints
+model_name: FacebookAI/roberta-large # ignored if --ckpt provided
+dataset: nyu-mll/glue
+dataset_config: rte  # Specify RTE configuration
+test_dataset: nyu-mll/glue
+text_keys: ["sentence1", "sentence2"]  # RTE uses sentence1 and sentence2
+num_labels: 2  # RTE is binary: entailment / not_entailment
+max_length: 256
+batch_size: 64
+num_workers: 4
+epochs: 3
+lr: 1.0e-5
+mixed_precision: true
+max_grad_norm: 0  # Gradient clipping norm (set to 0 to disable)
+log_dir: runs/finetune
+ckpt_dir: checkpoints/finetune
+val_split: 0.8
+gpu_id: 0

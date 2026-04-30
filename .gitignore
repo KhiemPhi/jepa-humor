@@ -1,1 +1,5 @@
 checkpoints
+logsx
+bert-large-result
+slurm.sh
+slurm_copy.sh
