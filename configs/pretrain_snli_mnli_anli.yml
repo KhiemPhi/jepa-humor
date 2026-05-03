@@ -8,14 +8,14 @@ snli_split: train
 mnli_splits: ["validation_matched", "validation_mismatched"]  # Aggregate both MNLI matched and mismatched
 anli_rounds: [1, 2, 3]  # which ANLI test rounds to aggregate for validation
 max_length: 256
-batch_size: 64
+batch_size: 32
 num_workers: 4
 epochs: 5
 lr: 1.0e-5
 ema_decay: 0.996
 mask_ratio: 0.4
 mean_span_len: 3.0
-mask_type: adversarial
+mask_type: random_token
 tail_bias: 5.0
 mixed_precision: true
 log_dir: runs/pretrain
@@ -25,5 +25,9 @@ val_split: 0.8
 gpu_id: 0
 sample_percent: null  # set e.g. 10.0 for quick experiments
 model_type: jepa
+smart_lambda: 1.0      # SMART regularization weight (0 = disabled)
+smart_epsilon: 1e-6    # per-token L2 perturbation radius
+smart_steps: 1         # PGD steps for finding worst-case δ
+smart_step_size: 1e-3  # gradient ascent step size
 
 python -m scripts.train_ssl --config configs/pretrain_snli_mnli_anli.yml

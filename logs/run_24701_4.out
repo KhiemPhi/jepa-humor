@@ -1,9 +1,0 @@
-Warning: GPU 2 not available. Using GPU 0 instead.
-Using device: cuda:0
-Using standard JEPA (reconstructs embeddings)
-Using text keys: ['question1', 'question2']
-Pre-tokenizing training dataset for SSL...
-Pre-tokenizing validation dataset for SSL...
-Train dataset size: 363846
-Test dataset size: 40430
-Predictor LR: 2.00e-04 (total_steps=28430)

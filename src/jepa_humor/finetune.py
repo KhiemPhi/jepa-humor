@@ -318,7 +318,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         criterion = nn.CrossEntropyLoss(weight=class_weights)
     except Exception as e:
         print(f"Warning: falling back to unweighted CE (reason: {e})")
-        criterion = nn.CrossEntropyLoss(label_smoothing=0.01)
+        criterion = nn.CrossEntropyLoss()
     scaler = GradScaler('cuda', enabled=cfg.get("mixed_precision", True))
     best_t = 0.5  # Default threshold, will be updated during training
     

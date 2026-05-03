@@ -1,9 +1,0 @@
-Using device: cuda:0
-Using standard JEPA (reconstructs embeddings)
-Using text keys: ['premise', 'hypothesis']
-Pre-tokenizing training dataset for SSL...
-Pre-tokenizing validation dataset for SSL...
-Train dataset size: 392702
-Test dataset size: 9815
-Predictor LR: 2.00e-04 (total_steps=30680)
-[Pretrain] epoch 1: loss=0.0977

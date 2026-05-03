@@ -208,11 +208,19 @@ def pretrain(cfg):
 
     best = float("inf")
     patience = 0
+    cfg["ckpt_dir"] = os.path.abspath(cfg["ckpt_dir"])
+    os.makedirs(cfg["ckpt_dir"], exist_ok=True)
+
+    smart_lambda    = float(cfg.get("smart_lambda", 0.0))
+    smart_epsilon   = float(cfg.get("smart_epsilon", 1e-6))
+    smart_steps     = int(cfg.get("smart_steps", 1))
+    smart_step_size = float(cfg.get("smart_step_size", 1e-3))
 
     for epoch in range(1, cfg["epochs"] + 1):
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
-        jepa.ema_decay = jepa.get_ema_decay(epoch, cfg["epochs"])
+        if model_type != "mlm":
+            jepa.ema_decay = jepa.get_ema_decay(epoch, cfg["epochs"])
         for batch in pbar:
             # Data is already tokenized
             keep_tok = {
@@ -226,9 +234,9 @@ def pretrain(cfg):
             if "keep_token_type_ids" in batch:
                 keep_tok["token_type_ids"] = batch["keep_token_type_ids"].to(dev, non_blocking=True)
                 target_tok["token_type_ids"] = batch["target_token_type_ids"].to(dev, non_blocking=True)
-            
+
             if model_type == "mlm":
-                # For MLM: 
+                # For MLM:
                 # - Context is keep_tok (original unmasked text)
                 # - Target is keep_input_ids (original tokens to predict)
                 # - Mask indicates positions where target_input_ids has MASK tokens
@@ -236,7 +244,7 @@ def pretrain(cfg):
                 mask = (target_tok["input_ids"] == mask_token_id).float()
                 # Also respect attention_mask (exclude padding)
                 mask = mask * target_tok["attention_mask"].float()
-                
+
                 # Create target dict with original tokens
                 target_for_mlm = {
                     "input_ids": keep_tok["input_ids"],  # Original tokens to predict
@@ -247,6 +255,18 @@ def pretrain(cfg):
                 mask = target_tok["attention_mask"].float().to(dev, non_blocking=True)
                 target_for_mlm = None  # Not used for standard JEPA
 
+            # Step 1+2: SMART — find worst-case δ before zeroing grads.
+            # Inner backward passes accumulate stale grads; opt.zero_grad() below clears them.
+            smart_pen = None
+            if smart_lambda > 0.0:
+                smart_pen = jepa.smart_penalty(
+                    keep_tok,
+                    mask=mask,
+                    epsilon=smart_epsilon,
+                    num_steps=smart_steps,
+                    step_size=smart_step_size,
+                )
+
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
                 if model_type == "mlm":
@@ -256,8 +276,10 @@ def pretrain(cfg):
                 else:
                     # Standard JEPA: reconstruct embeddings
                     loss, pred, target = jepa(keep_tok, target_tok, mask)
-            
-          
+
+            # Step 5: total loss = L_MLM + λ * SMART penalty
+            if smart_pen is not None:
+                loss = loss + smart_lambda * smart_pen
 
             scaler.scale(loss).backward()
             scaler.step(opt)
@@ -274,7 +296,6 @@ def pretrain(cfg):
         print(f"[Pretrain] epoch {epoch}: loss={epoch_loss:.4f}")
 
         # checkpoint & early stopping on train loss (SSL)
-        os.makedirs(cfg["ckpt_dir"], exist_ok=True)
         exp_name = cfg.get("experiment_name", "")
         prefix = f"{exp_name}_" if exp_name else ""
         
