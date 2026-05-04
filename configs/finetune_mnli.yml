@@ -10,7 +10,7 @@ max_length: 256
 batch_size: 64
 num_workers: 4
 epochs: 20
-lr: 1.0e-5
+lr: 1.0e-6
 mixed_precision: true
 max_grad_norm: 1.0
 lr_scheduler: cosine

@@ -4,14 +4,13 @@ import torch.nn.functional as F
 from copy import deepcopy
 import math
 
-import torch
-import torch.nn.functional as F
+
 
 # Loss function currently for run_25513 (best)
 def jepa_loss(
     pred, target, mask=None,
     std_weight=0.1, cov_weight=0.04, knn_weight=0.1,
-    huber_beta=0.1, knn_k=8,
+    huber_beta=0.1, knn_k=14,
 ):
     target = target.detach()
     target = F.normalize(target, dim=-1)
@@ -31,7 +30,8 @@ def jepa_loss(
 
     # ── 1. Invariance: Huber (smooth-L1) ───────────────────────────────────
     # Robust to outliers from the EMA target encoder's drift.
-    inv_loss = F.smooth_l1_loss(pred, target, beta=huber_beta)
+    #inv_loss = F.smooth_l1_loss(pred, target, beta=huber_beta)
+    inv_loss = F.smooth_l1_loss(pred, target)
 
     # ── 2. Variance ────────────────────────────────────────────────────────
     pred_std = torch.sqrt(pred.var(dim=0) + 1e-4)
@@ -49,8 +49,21 @@ def jepa_loss(
     # target space should match the distribution in pred space.
     k = min(knn_k, N - 1)  # safety: can't have more neighbors than tokens-1
 
-    sim_t = target @ target.T                           # [N, N]
-    sim_p = pred   @ pred.T                             # [N, N]
+    # sim_t = target @ target.T                           # [N, N]
+    # sim_p = pred   @ pred.T                             # [N, N]
+
+    target_zm = target - target.mean(dim=0)
+    cov_t     = (target_zm.T @ target_zm) / (N - 1)
+    C_t_inv   = torch.linalg.pinv(cov_t + 1e-4 * torch.eye(D, device=target.device))
+
+    diff_t  = target.unsqueeze(1) - target.unsqueeze(0)   # [N, N, D]
+    sim_t   = -torch.einsum('ijd,dk,ijk->ij', diff_t, C_t_inv, diff_t)
+
+    # use the pred covariance you already have
+    C_inv = torch.linalg.pinv(cov.detach() + 1e-4 * torch.eye(D, device=pred.device))
+    # pairwise Mahalanobis: (xᵢ - xⱼ)ᵀ C⁻¹ (xᵢ - xⱼ)
+    diff = pred.unsqueeze(1) - pred.unsqueeze(0)   # [N, N, D]
+    sim_p = -torch.einsum('ijd,dk,ijk->ij', diff, C_inv, diff)
 
     # Mask out self-similarity (diagonal) so a token isn't its own neighbor
     eye = torch.eye(N, dtype=torch.bool, device=pred.device)
