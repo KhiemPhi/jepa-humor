@@ -10,7 +10,7 @@ num_workers: 4
 epochs: 5
 lr: 1.0e-5
 ema_decay: 0.996
-mask_ratio: 0.15
+mask_ratio: 0.35
 mean_span_len: 3.0
 mask_type: random_token
 tail_bias: 5.0
@@ -26,3 +26,4 @@ smart_lambda: 0.0      # SMART regularization weight (0 = disabled)
 smart_epsilon: 1e-6    # per-token L2 perturbation radius
 smart_steps: 1         # PGD steps for finding worst-case δ
 smart_step_size: 1e-3  # gradient ascent step size
+dynamic_masking: false

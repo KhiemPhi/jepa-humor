@@ -977,7 +977,90 @@ def preprocess_dataset_ssl(
     )
 
     return ds
-    
+
+
+def tokenize_only_ssl(ds, tokenizer, max_length=256, text_keys=None):
+    """Tokenize for SSL without masking. Stores original tokens as orig_* columns.
+    Use with remask_ssl_dataset for dynamic per-epoch masking."""
+    if text_keys is None:
+        text_keys = ["question", "sentence"]
+
+    def tokenize_fn(examples):
+        texts = [examples[key] for key in text_keys]
+        encoded = tokenizer(*texts, truncation=True, padding="max_length", max_length=max_length)
+        result = {
+            "orig_input_ids": encoded["input_ids"],
+            "orig_attention_mask": encoded["attention_mask"],
+        }
+        if "token_type_ids" in encoded:
+            result["orig_token_type_ids"] = encoded["token_type_ids"]
+        return result
+
+    keep = {"orig_input_ids", "orig_attention_mask", "orig_token_type_ids", "label"}
+    return ds.map(
+        tokenize_fn,
+        batched=True,
+        desc="Tokenizing SSL dataset (no masking)",
+        remove_columns=[col for col in ds.column_names if col not in keep],
+    )
+
+
+def remask_ssl_dataset(ds, tokenizer, mask_probability=0.15, span_mean=3.0, mask_type="random_token"):
+    """Apply a fresh random mask to a dataset produced by tokenize_only_ssl.
+    Call at the start of each training epoch for dynamic masking."""
+    import numpy as np
+
+    MASK_ID = tokenizer.mask_token_id
+    PAD_ID  = tokenizer.pad_token_id
+    CLS_ID  = tokenizer.cls_token_id if tokenizer.cls_token_id is not None else -1
+    SEP_ID  = tokenizer.sep_token_id if tokenizer.sep_token_id is not None else -1
+
+    def random_token_mask(ids):
+        ids = list(ids)
+        maskable = [i for i in range(len(ids)) if ids[i] not in (PAD_ID, CLS_ID, SEP_ID)]
+        if not maskable:
+            return ids
+        n = min(max(1, int(len(maskable) * mask_probability)), len(maskable))
+        for idx in np.random.choice(maskable, size=n, replace=False):
+            ids[idx] = MASK_ID
+        return ids
+
+    def random_span_mask(ids):
+        ids = list(ids)
+        num_to_mask = int(len(ids) * mask_probability)
+        if num_to_mask == 0:
+            return ids
+        masked = 0
+        while masked < num_to_mask:
+            span_len = max(1, np.random.poisson(span_mean))
+            start = np.random.randint(0, max(1, len(ids) - span_len))
+            for i in range(start, min(start + span_len, len(ids))):
+                if masked >= num_to_mask:
+                    break
+                if ids[i] != PAD_ID:
+                    ids[i] = MASK_ID
+                    masked += 1
+        return ids
+
+    mask_fn = random_span_mask if (mask_type or "").lower() in ("random_span", "span") else random_token_mask
+
+    def apply(examples):
+        orig_ids   = examples["orig_input_ids"]
+        orig_amask = examples["orig_attention_mask"]
+        result = {
+            "keep_input_ids":        orig_ids,
+            "keep_attention_mask":   orig_amask,
+            "target_input_ids":      [mask_fn(seq) for seq in orig_ids],
+            "target_attention_mask": orig_amask,
+        }
+        if "orig_token_type_ids" in examples:
+            result["keep_token_type_ids"]   = examples["orig_token_type_ids"]
+            result["target_token_type_ids"] = examples["orig_token_type_ids"]
+        return result
+
+    return ds.map(apply, batched=True, desc="Applying SSL mask")
+
+
 def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True, pre_tokenized=False, ssl_mode=False):
     # Collate function for pre-tokenized SSL data
     if pre_tokenized and ssl_mode:

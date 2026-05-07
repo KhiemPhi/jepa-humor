@@ -14,6 +14,8 @@ from .data import (
     load_hf_splits,
     make_dataloaders,
     preprocess_dataset_ssl,
+    tokenize_only_ssl,
+    remask_ssl_dataset,
     sample_dataset,
     load_anli_splits,
     load_snli_mnli_for_anli,
@@ -170,17 +172,10 @@ def pretrain(cfg):
     mask_prob = cfg.get("mask_ratio", 0.15)
     span_len = cfg.get("mean_span_len", 3.0)
     mask_type = cfg.get("mask_type", "random_span")
+    dynamic_masking = cfg.get("dynamic_masking", False)
+    if dynamic_masking:
+        cfg["experiment_name"] = cfg.get("experiment_name", "") + "_dynamic_masking"
 
-    print("Pre-tokenizing training dataset for SSL...")
-    split['train'] = preprocess_dataset_ssl(
-        split['train'],
-        tokenizer,
-        max_length=cfg["max_length"],
-        text_keys=text_keys,
-        mask_probability=mask_prob,
-        span_mean=span_len,
-        mask_type=mask_type,
-    )
     print("Pre-tokenizing validation dataset for SSL...")
     split['test'] = preprocess_dataset_ssl(
         split['test'],
@@ -190,9 +185,24 @@ def pretrain(cfg):
         mask_probability=mask_prob,
         span_mean=span_len,
         mask_type=mask_type,
-        
     )
-    
+
+    if dynamic_masking:
+        print("Pre-tokenizing training dataset for SSL (dynamic masking — will remask each epoch)...")
+        train_orig = tokenize_only_ssl(split['train'], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
+        split['train'] = remask_ssl_dataset(train_orig, tokenizer, mask_prob, span_len, mask_type)
+    else:
+        print("Pre-tokenizing training dataset for SSL...")
+        split['train'] = preprocess_dataset_ssl(
+            split['train'],
+            tokenizer,
+            max_length=cfg["max_length"],
+            text_keys=text_keys,
+            mask_probability=mask_prob,
+            span_mean=span_len,
+            mask_type=mask_type,
+        )
+
     #split = ds['train'].train_test_split(test_size=cfg["val_split"], seed=cfg["seed"])
     train_loader, val_loader = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True, ssl_mode=True)
     print(f"Train dataset size: {len(split['train'])}")
@@ -217,6 +227,9 @@ def pretrain(cfg):
     smart_step_size = float(cfg.get("smart_step_size", 1e-3))
 
     for epoch in range(1, cfg["epochs"] + 1):
+        if dynamic_masking:
+            split['train'] = remask_ssl_dataset(train_orig, tokenizer, mask_prob, span_len, mask_type)
+            train_loader, _ = make_dataloaders(split["train"], split["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True, ssl_mode=True)
         running, steps = 0.0, 0
         pbar = tqdm(train_loader, desc=f"Pretrain {epoch}/{cfg['epochs']}", leave=False)
         if model_type != "mlm":

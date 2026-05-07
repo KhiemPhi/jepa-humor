@@ -5,7 +5,6 @@ from copy import deepcopy
 import math
 
 
-
 # Loss function currently for run_25513 (best)
 def jepa_loss(
     pred, target, mask=None,

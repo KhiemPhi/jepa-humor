@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from tqdm import tqdm
+import json
 import torch
 import torch.nn as nn
 from torch.cuda.amp import autocast
@@ -14,7 +15,52 @@ import os
 from torch import amp
 import numpy as np
 import math
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+
+def _save_training_plots(epochs, acc_curves, loss_hist, lr_hist, title, save_path):
+    """Save a multi-panel plot: accuracy curves, train loss, and learning rate."""
+    panels = [("acc", acc_curves), ("loss", loss_hist), ("lr", lr_hist)]
+    active = [(k, v) for k, v in panels if v]
+    fig, axes = plt.subplots(len(active), 1, figsize=(8, 4 * len(active)), squeeze=False)
+    for i, (kind, data) in enumerate(active):
+        ax = axes[i][0]
+        if kind == "acc":
+            for label, accs in data.items():
+                ax.plot(epochs[:len(accs)], accs, marker="o", markersize=3, label=label)
+            ax.set_ylabel("Accuracy")
+            ax.set_title(title)
+            ax.legend()
+        elif kind == "loss":
+            ax.plot(epochs[:len(data)], data, marker="o", markersize=3, color="tab:orange")
+            ax.set_ylabel("Train Loss")
+            ax.set_title("Train Loss")
+        elif kind == "lr":
+            ax.plot(epochs[:len(data)], data, marker="o", markersize=3, color="tab:green")
+            ax.set_ylabel("Learning Rate")
+            ax.set_title("Learning Rate")
+        ax.set_xlabel("Epoch")
+        ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    fig.savefig(save_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved training plots to {save_path}")
+
+
+def save_finetune_results(results_dir, task, experiment, data):
+    """Save fine-tune results (val/test accuracy per task) to a JSON file in results_dir."""
+    import datetime
+    os.makedirs(results_dir, exist_ok=True)
+    fname = f"{experiment}_{task}.json" if experiment else f"{task}.json"
+    path = os.path.join(results_dir, fname)
+    data = {**data, "task": task, "experiment": experiment, "timestamp": datetime.datetime.now().isoformat()}
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+    print(f"Saved results to {path}")
 
 
 def _build_finetune_lr_scheduler(optimizer, num_training_steps, warmup_ratio, schedule_type):
@@ -325,7 +371,25 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     # Track best model for saving (based on test accuracy)
     best_test_acc = -1.0
     best_model_state = None
-    
+
+    # Setup results tracking
+    epoch_log: list[dict] = []
+    _results_dir = cfg.get("results_dir", "results")
+    _task = cfg.get("dataset_config") or cfg.get("dataset", "task")
+    _exp_name = cfg.get("experiment_name", "")
+    if cfg.get("dynamic_masking", False):
+        _exp_name = _exp_name + "_dynamic_masking"
+
+    # Per-epoch accuracy history for plotting
+    _hist_val_matched:    list[float] = []
+    _hist_val_mismatched: list[float] = []
+    _hist_test_matched:   list[float] = []
+    _hist_test_mismatched:list[float] = []
+    _hist_test_other:     list[float] = []
+    _anli_hist: dict[str, list[float]] = {}
+    _hist_loss: list[float] = []
+    _hist_lr:   list[float] = []
+
     # If eval_only mode, load the model checkpoint and skip training
     if eval_only:
         if model_ckpt is None:
@@ -434,9 +498,11 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 # Use default threshold of 0.5 for intermediate epochs
                 best_t = 0.5
      
+            epoch_loss = running / len(train_loader)
+            epoch_lr = opt.param_groups[0]['lr']
             print(
-                f"[Finetune] epoch {epoch}: loss={running/len(train_loader):.4f} "
-                f"mcc={train_mcc:.4f} f1={train_f1:.4f} lr={opt.param_groups[0]['lr']:.2e}"
+                f"[Finetune] epoch {epoch}: loss={epoch_loss:.4f} "
+                f"mcc={train_mcc:.4f} f1={train_f1:.4f} lr={epoch_lr:.2e}"
             )
 
             # validate on matched
@@ -752,7 +818,39 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                     "val_f1_mismatched": val_f1_mismatched,
                 })
             #save_ckpt(checkpoint_data, epoch_ckpt_path)
-        
+
+            # --- record per-epoch metrics for plotting ---
+            _hist_loss.append(epoch_loss)
+            _hist_lr.append(epoch_lr)
+            _hist_val_matched.append(val_acc_matched)
+            if is_mnli and val_acc_mismatched is not None:
+                _hist_val_mismatched.append(val_acc_mismatched)
+            if is_mnli:
+                for name, res in test_results:
+                    _anli_hist.setdefault(name, []).append(res["acc"])
+                    if name == "MNLI":
+                        _hist_test_matched.append(res["acc"])
+                    elif name == "MNLI-MM":
+                        _hist_test_mismatched.append(res["acc"])
+            elif is_anli:
+                for name, res in test_results:
+                    _anli_hist.setdefault(name, []).append(res["acc"])
+            else:
+                for name, res in test_results:
+                    _hist_test_other.append(res["acc"])
+
+            # --- save per-epoch results to JSON ---
+            epoch_entry = {
+                "epoch": epoch,
+                "train": {"loss": epoch_loss, "lr": epoch_lr},
+                "validation": {"matched": {"acc": val_acc_matched, "mcc": val_mcc_matched, "f1": val_f1_matched}},
+                "test": {name: res for name, res in test_results},
+            }
+            if is_mnli and val_acc_mismatched is not None:
+                epoch_entry["validation"]["mismatched"] = {"acc": val_acc_mismatched, "mcc": val_mcc_mismatched, "f1": val_f1_mismatched}
+            epoch_log.append(epoch_entry)
+            save_finetune_results(_results_dir, _task, _exp_name, {"model": cfg.get("model_name", ""), "epochs": epoch_log})
+
         # After training, ensure we use the best test accuracy model for final evaluation
         # (SWA might have been applied, but we prioritize best test accuracy)
         if best_model_state is not None:
@@ -827,8 +925,47 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                     print(f"Best test accuracy model is better (Test Acc={best_test_acc:.4f} >= {swa_test_acc:.4f}). Using best test accuracy model.")
             else:
                 print("No test loader available for SWA evaluation.")
-    
+
+        # --- generate accuracy plots ---
+        if not eval_only and _hist_val_matched:
+            results_dir = cfg.get("results_dir", "results")
+            task_name = cfg.get("dataset_config") or cfg.get("dataset", "task")
+            plot_name = f"{_exp_name}_{task_name}" if _exp_name else task_name
+            epochs_list = list(range(1, len(_hist_val_matched) + 1))
+
+            if is_mnli:
+                curves = {"val (matched)": _hist_val_matched}
+                if _hist_val_mismatched:
+                    curves["val (mismatched)"] = _hist_val_mismatched
+                if _hist_test_matched:
+                    curves["test (matched)"] = _hist_test_matched
+                if _hist_test_mismatched:
+                    curves["test (mismatched)"] = _hist_test_mismatched
+                _save_training_plots(
+                    epochs_list, curves, _hist_loss, _hist_lr,
+                    f"MNLI accuracy per epoch",
+                    os.path.join(results_dir, f"{plot_name}_training.png"),
+                )
+            elif is_anli:
+                curves = {"val": _hist_val_matched}
+                curves.update(_anli_hist)
+                _save_training_plots(
+                    epochs_list, curves, _hist_loss, _hist_lr,
+                    f"ANLI accuracy per epoch",
+                    os.path.join(results_dir, f"{plot_name}_training.png"),
+                )
+            else:
+                curves = {"val": _hist_val_matched}
+                if _hist_test_other:
+                    curves["test"] = _hist_test_other
+                _save_training_plots(
+                    epochs_list, curves, _hist_loss, _hist_lr,
+                    f"{task_name.upper()} accuracy per epoch",
+                    os.path.join(results_dir, f"{plot_name}_training.png"),
+                )
+
     # Final validation
+    final_results = {"validation": {}, "test": {}}
     model.eval()
     
     # Matched validation
@@ -865,7 +1002,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     else:
         dataset_label = cfg["dataset_config"].upper() if cfg.get("dataset_config") else "QNLI"
     print(f"Final validation ({dataset_label} matched): mcc={val_mcc_matched:.4f} f1={val_f1_matched:.4f} acc={val_acc_matched:.4f}")
-    
+    final_results["validation"]["matched"] = {"acc": val_acc_matched, "mcc": val_mcc_matched, "f1": val_f1_matched}
+
     # Mismatched validation for MNLI
     if is_mnli and val_loader_mismatched:
         v_true_mismatched, v_pred_mismatched, v_prob_mismatched = [], [], []
@@ -895,7 +1033,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         val_f1_mismatched = f1_score(v_true_mismatched, preds_mismatched, average='macro')
         val_acc_mismatched = accuracy_score(v_true_mismatched, preds_mismatched)
         print(f"Final validation (MNLI mismatched): mcc={val_mcc_mismatched:.4f} f1={val_f1_mismatched:.4f} acc={val_acc_mismatched:.4f}")
-    
+        final_results["validation"]["mismatched"] = {"acc": val_acc_mismatched, "mcc": val_mcc_mismatched, "f1": val_f1_mismatched}
+
     # Test set evaluation (all from JSON)
     print("\n" + "="*50)
     if is_mnli:
@@ -929,7 +1068,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             test_f1_matched = f1_score(t_true_matched, preds_test_matched, average='macro')
             test_acc_matched = accuracy_score(t_true_matched, preds_test_matched)
             print(f"Test (MNLI matched, from JSON): mcc={test_mcc_matched:.4f} f1={test_f1_matched:.4f} acc={test_acc_matched:.4f}")
-        
+            final_results["test"]["matched"] = {"acc": test_acc_matched, "mcc": test_mcc_matched, "f1": test_f1_matched}
+
         if test_loader_mismatched:
             print("Evaluating on MNLI test set (mismatched, from JSON)...")
             t_true_mismatched, t_pred_mismatched, t_prob_mismatched = [], [], []
@@ -959,6 +1099,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             test_f1_mismatched = f1_score(t_true_mismatched, preds_test_mismatched, average='macro')
             test_acc_mismatched = accuracy_score(t_true_mismatched, preds_test_mismatched)
             print(f"Test (MNLI mismatched, from JSON): mcc={test_mcc_mismatched:.4f} f1={test_f1_mismatched:.4f} acc={test_acc_mismatched:.4f}")
+            final_results["test"]["mismatched"] = {"acc": test_acc_mismatched, "mcc": test_mcc_mismatched, "f1": test_f1_mismatched}
     elif is_anli:
         # ANLI: Evaluate on each test round separately
         if anli_test_loaders:
@@ -991,6 +1132,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 test_f1 = f1_score(t_true, preds_test, average='macro')
                 test_acc = accuracy_score(t_true, preds_test)
                 print(f"Test ({split_name}): mcc={test_mcc:.4f} f1={test_f1:.4f} acc={test_acc:.4f}")
+                final_results["test"][split_name] = {"acc": test_acc, "mcc": test_mcc, "f1": test_f1}
         else:
             print("Warning: No ANLI test loaders available for evaluation")
     else:
@@ -1025,9 +1167,16 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             test_f1 = f1_score(t_true, preds_test, average='macro')
             test_acc = accuracy_score(t_true, preds_test)
             print(f"Test ({test_set_name}, from JSON): mcc={test_mcc:.4f} f1={test_f1:.4f} acc={test_acc:.4f}")
+            final_results["test"][test_set_name.lower()] = {"acc": test_acc, "mcc": test_mcc, "f1": test_f1}
         else:
             print("Warning: No test loader available for evaluation")
-    
+
+    save_finetune_results(_results_dir, _task, _exp_name, {
+        "model": cfg.get("model_name", ""),
+        "epochs": epoch_log,
+        "final": {"validation": final_results["validation"], "test": final_results["test"]},
+    })
+
     # If in eval_only mode, we're done
     if eval_only:
         print("✅ Evaluation complete.")

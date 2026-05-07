@@ -19,9 +19,10 @@ log_dir: runs/pretrain
 ckpt_dir: checkpoints/pretrain
 early_stop_patience: 3
 val_split: 0.8
-gpu_id: 1
+gpu_id: 0
 model_type: jepa
 smart_lambda: 0.0      # SMART regularization weight (0 = disabled)
 smart_epsilon: 1e-6    # per-token L2 perturbation radius
 smart_steps: 1         # PGD steps for finding worst-case δ
 smart_step_size: 1e-3  # gradient ascent step size
+dynamic_masking: false
