@@ -1,14 +1,14 @@
 seed: 42
 experiment_name: pretrain_rte_exp1  # Prefix for all saved checkpoints
-model_name: FacebookAI/roberta-large
+model_name: bert-base-uncased
 dataset: nyu-mll/glue
 dataset_config: rte  # Specify RTE configuration
 text_keys: ["sentence1", "sentence2"]  # RTE uses sentence1 and sentence2
 max_length: 256
 batch_size: 64
 num_workers: 4
-epochs: 5
-lr: 1.0e-5  # 5 epochs: scaled by 1 from the 5-epoch baseline (lr × epochs / batch_size = const)
+epochs: 3
+lr: 1.0e-6
 ema_decay: 0.996
 mask_ratio: 0.35
 mean_span_len: 3.0
@@ -21,8 +21,5 @@ early_stop_patience: 3
 val_split: 0.8
 gpu_id: 0
 model_type: jepa
-smart_lambda: 0.0      # SMART regularization weight (0 = disabled)
-smart_epsilon: 1e-6    # per-token L2 perturbation radius
-smart_steps: 1         # PGD steps for finding worst-case δ
-smart_step_size: 1e-3  # gradient ascent step size
 dynamic_masking: false
+use_cls: true

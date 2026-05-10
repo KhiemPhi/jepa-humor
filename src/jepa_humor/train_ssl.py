@@ -1,7 +1,8 @@
 import os
 from tqdm import tqdm
 import torch
-from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import autocast
+from torch.amp import GradScaler
 from transformers import AutoTokenizer, AutoModel
 from .utils import set_seed, device, save_ckpt
 from .jepa import JEPA, MLMJEPA
@@ -75,7 +76,7 @@ def pretrain(cfg):
     if model_type == "mlm":
         # BERT-style MLM: single encoder + vocab projection (no EMA target encoder)
         jepa = MLMJEPA(
-            base, 
+            base,
             vocab_size=tokenizer.vocab_size,
             hidden_size=base.config.hidden_size,
             use_cls=True
@@ -85,10 +86,10 @@ def pretrain(cfg):
         # Original JEPA that reconstructs embeddings
         embedding_matrix = base.get_input_embeddings().weight.detach().cpu().numpy()
         jepa = JEPA(
-            base, 
+            base,
             hidden_size=base.config.hidden_size,
-            pred_hid=512, 
-            ema_decay=cfg["ema_decay"], 
+            pred_hid=512,
+            ema_decay=cfg["ema_decay"],
             use_cls=True
         ).to(dev)
         print("Using standard JEPA (reconstructs embeddings)")
@@ -214,17 +215,13 @@ def pretrain(cfg):
     lr_pred = cfg.get("lr_pred", float(max(2e-4, min(5e-4, auto_lr_pred))))
     print(f"Predictor LR: {lr_pred:.2e} (total_steps={total_steps})")
     opt, scheduler = build_optimizer_and_scheduler(jepa, lr_pred=lr_pred, lr_enc=cfg["lr"], model_type=model_type, total_steps=total_steps)
-    scaler = GradScaler(enabled=cfg.get("mixed_precision", True))
+    scaler = GradScaler("cuda", enabled=cfg.get("mixed_precision", True))
 
     best = float("inf")
     patience = 0
     cfg["ckpt_dir"] = os.path.abspath(cfg["ckpt_dir"])
     os.makedirs(cfg["ckpt_dir"], exist_ok=True)
-
-    smart_lambda    = float(cfg.get("smart_lambda", 0.0))
-    smart_epsilon   = float(cfg.get("smart_epsilon", 1e-6))
-    smart_steps     = int(cfg.get("smart_steps", 1))
-    smart_step_size = float(cfg.get("smart_step_size", 1e-3))
+    loss_history = []
 
     for epoch in range(1, cfg["epochs"] + 1):
         if dynamic_masking:
@@ -268,18 +265,6 @@ def pretrain(cfg):
                 mask = target_tok["attention_mask"].float().to(dev, non_blocking=True)
                 target_for_mlm = None  # Not used for standard JEPA
 
-            # Step 1+2: SMART — find worst-case δ before zeroing grads.
-            # Inner backward passes accumulate stale grads; opt.zero_grad() below clears them.
-            smart_pen = None
-            if smart_lambda > 0.0:
-                smart_pen = jepa.smart_penalty(
-                    keep_tok,
-                    mask=mask,
-                    epsilon=smart_epsilon,
-                    num_steps=smart_steps,
-                    step_size=smart_step_size,
-                )
-
             opt.zero_grad(set_to_none=True)
             with amp.autocast("cuda", enabled=cfg.get("mixed_precision", True)):
                 if model_type == "mlm":
@@ -289,10 +274,6 @@ def pretrain(cfg):
                 else:
                     # Standard JEPA: reconstruct embeddings
                     loss, pred, target = jepa(keep_tok, target_tok, mask)
-
-            # Step 5: total loss = L_MLM + λ * SMART penalty
-            if smart_pen is not None:
-                loss = loss + smart_lambda * smart_pen
 
             scaler.scale(loss).backward()
             scaler.step(opt)
@@ -306,6 +287,7 @@ def pretrain(cfg):
             pbar.set_postfix(loss=f"{running/steps:.4f}")
 
         epoch_loss = running / max(1, steps)
+        loss_history.append({"epoch": epoch, "loss": epoch_loss})
         print(f"[Pretrain] epoch {epoch}: loss={epoch_loss:.4f}")
 
         # checkpoint & early stopping on train loss (SSL)
@@ -336,7 +318,23 @@ def pretrain(cfg):
                 print(f"Early stopping at epoch {epoch} (best={best:.4f}).")
                 break
 
-    # return path to best encoder
+    # save pretrain loss history to results
+    import json, datetime
     exp_name = cfg.get("experiment_name", "")
     prefix = f"{exp_name}_" if exp_name else ""
+    results_dir = cfg.get("results_dir", "results")
+    os.makedirs(results_dir, exist_ok=True)
+    task = cfg.get("dataset_config", cfg.get("task", "pretrain"))
+    fname = f"{exp_name}_{task}.json" if exp_name else f"pretrain_{task}.json"
+    result = {
+        "model": cfg.get("model_name", ""),
+        "task": task,
+        "experiment": exp_name,
+        "epochs": loss_history,
+        "timestamp": datetime.datetime.now().isoformat(),
+    }
+    with open(os.path.join(results_dir, fname), "w") as f:
+        json.dump(result, f, indent=2)
+    print(f"Saved pretrain results to {os.path.join(results_dir, fname)}")
+
     return os.path.join(cfg["ckpt_dir"], f"best_{prefix}.pt")

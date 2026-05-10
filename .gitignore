@@ -1,6 +1,8 @@
 checkpoints
 logs
 bert-large-result
+checkpoints_bert_large
+checkpoints_roberta_large
 slurm.sh
 slurm_copy.sh
 archived

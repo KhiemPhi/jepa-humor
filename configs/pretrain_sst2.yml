@@ -1,6 +1,6 @@
 seed: 42
 experiment_name: pretrain_sst2_exp1  # Prefix for all saved checkpoints
-model_name: FacebookAI/roberta-large
+model_name: bert-large-uncased
 dataset: nyu-mll/glue
 dataset_config: sst2  # Specify SST-2 configuration
 text_keys: ["sentence"]  # SST-2 uses sentence
@@ -8,7 +8,7 @@ max_length: 256
 batch_size: 64
 num_workers: 4
 epochs: 5
-lr: 1.0e-5  
+lr: 1.0e-6
 ema_decay: 0.996
 mask_ratio: 0.35
 mean_span_len: 2.0  # Lower span mean for sentiment-aware masking
@@ -22,8 +22,4 @@ val_split: 0.8
 gpu_id: 0
 #sample_percent: 10.0
 model_type: jepa
-smart_lambda: 0.0      # SMART regularization weight (0 = disabled)
-smart_epsilon: 1e-6    # per-token L2 perturbation radius
-smart_steps: 1         # PGD steps for finding worst-case δ
-smart_step_size: 1e-3  # gradient ascent step size
 dynamic_masking: false

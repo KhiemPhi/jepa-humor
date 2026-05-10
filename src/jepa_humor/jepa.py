@@ -53,13 +53,25 @@ def jepa_loss(
 
     target_zm = target - target.mean(dim=0)
     cov_t     = (target_zm.T @ target_zm) / (N - 1)
-    C_t_inv   = torch.linalg.pinv(cov_t + 1e-4 * torch.eye(D, device=target.device))
+    try:
+        C_t_inv = torch.linalg.pinv(cov_t + 1e-4 * torch.eye(D, device=target.device))
+    except torch._C._LinAlgError:
+        try:
+            C_t_inv = torch.linalg.pinv(cov_t + 1e-3 * torch.eye(D, device=target.device))
+        except torch._C._LinAlgError:
+            C_t_inv = torch.eye(D, device=target.device)
 
     diff_t  = target.unsqueeze(1) - target.unsqueeze(0)   # [N, N, D]
     sim_t   = -torch.einsum('ijd,dk,ijk->ij', diff_t, C_t_inv, diff_t)
 
     # use the pred covariance you already have
-    C_inv = torch.linalg.pinv(cov.detach() + 1e-4 * torch.eye(D, device=pred.device))
+    try:
+        C_inv = torch.linalg.pinv(cov.detach() + 1e-4 * torch.eye(D, device=pred.device))
+    except torch._C._LinAlgError:
+        try:
+            C_inv = torch.linalg.pinv(cov.detach() + 1e-3 * torch.eye(D, device=pred.device))
+        except torch._C._LinAlgError:
+            C_inv = torch.eye(D, device=pred.device)
     # pairwise Mahalanobis: (xᵢ - xⱼ)ᵀ C⁻¹ (xᵢ - xⱼ)
     diff = pred.unsqueeze(1) - pred.unsqueeze(0)   # [N, N, D]
     sim_p = -torch.einsum('ijd,dk,ijk->ij', diff, C_inv, diff)
@@ -248,72 +260,6 @@ class JEPA(nn.Module):
         loss = jepa_loss(pred, target, mask if not self.use_cls else None)
         return loss, pred, target
 
-    def smart_penalty(
-        self,
-        context_inputs: dict,
-        mask=None,
-        epsilon: float = 1e-6,
-        num_steps: int = 1,
-        step_size: float = 1e-3,
-    ) -> torch.Tensor:
-        """
-        SMART regularization for JEPA: L2 penalty between clean and adversarial
-        predictor outputs.
-
-        NOTE: inner backward passes accumulate stale grads in model params.
-        Call opt.zero_grad() after this method and before the main backward pass.
-        """
-        context_inputs = get_encoder_inputs(context_inputs)
-        attention_mask = context_inputs.get("attention_mask")
-
-        embedding_layer = self.encoder.get_input_embeddings()
-        with torch.no_grad():
-            embeds = embedding_layer(context_inputs["input_ids"])  # [B, T, D]
-
-        enc_kw = {"inputs_embeds": embeds, "attention_mask": attention_mask}
-        if "token_type_ids" in context_inputs:
-            enc_kw["token_type_ids"] = context_inputs["token_type_ids"]
-        key_padding_mask = (
-            None if self.use_cls
-            else (attention_mask == 0 if attention_mask is not None else None)
-        )
-
-        def _forward(emb):
-            kw = dict(enc_kw)
-            kw["inputs_embeds"] = emb
-            h = self.encoder(**kw).last_hidden_state
-            if self.use_cls:
-                h = h[:, :1, :]
-            if self.use_projector:
-                h = self.expander(self.projector(h))
-            if self.predictor_type == "transformer":
-                return self.predictor(h, key_padding_mask=key_padding_mask)
-            return self.predictor(h)
-
-        # Step 1 — Clean forward pass
-        with torch.no_grad():
-            clean_pred = _forward(embeds)
-
-        # Step 2 — Gradient ascent to find worst-case δ
-        delta = torch.zeros_like(embeds, requires_grad=True)
-
-        for _ in range(num_steps):
-            adv_pred = _forward(embeds + delta)
-            F.mse_loss(adv_pred, clean_pred).backward()
-
-            with torch.no_grad():
-                g = delta.grad
-                g_norm = g.norm(p=2, dim=-1, keepdim=True).clamp(min=1e-8)
-                delta_new = delta + step_size * (g / g_norm)
-                d_norm = delta_new.norm(p=2, dim=-1, keepdim=True)
-                delta_new = delta_new * (epsilon / d_norm).clamp(max=1.0)
-
-            delta = delta_new.requires_grad_(True)
-
-        # Steps 3+4 — Adversarial forward pass → L2 penalty
-        adv_pred = _forward(embeds + delta.detach())
-        return F.mse_loss(adv_pred, clean_pred)
-
 
 class MLMJEPA(nn.Module):
     """
@@ -350,89 +296,3 @@ class MLMJEPA(nn.Module):
             ignore_index=ignore_index,
         )
         return loss, logits, target_ids
-
-    def smart_penalty(
-        self,
-        context_inputs: dict,
-        mask=None,
-        epsilon: float = 1e-6,
-        num_steps: int = 1,
-        step_size: float = 1e-3,
-    ) -> torch.Tensor:
-        """
-        SMART regularization (Liu et al. 2020).
-
-        Finds worst-case embedding perturbation δ (per-token L2 norm ≤ ε) via
-        gradient ascent, then returns KL(p_clean || p_adv) at masked positions.
-
-        NOTE: inner backward passes accumulate stale grads in model params.
-        Call opt.zero_grad() after this method and before the main backward pass.
-        """
-        context_inputs = get_encoder_inputs(context_inputs)
-        attention_mask = context_inputs.get("attention_mask")
-
-        # Word embeddings only; position/type embeddings are added by the encoder
-        embedding_layer = self.encoder.get_input_embeddings()
-        with torch.no_grad():
-            embeds = embedding_layer(context_inputs["input_ids"])  # [B, T, D]
-
-        encoder_kwargs = {"inputs_embeds": embeds, "attention_mask": attention_mask}
-        if "token_type_ids" in context_inputs:
-            encoder_kwargs["token_type_ids"] = context_inputs["token_type_ids"]
-
-        # Step 1 — Clean forward pass: baseline vocabulary distributions
-        with torch.no_grad():
-            clean_hidden = self.encoder(**encoder_kwargs).last_hidden_state
-            clean_logits = self.vocab_projection(clean_hidden)      # [B, T, V]
-            clean_probs  = F.softmax(clean_logits, dim=-1)          # [B, T, V]
-
-        # Step 2 — Gradient ascent to find worst-case δ
-        delta = torch.zeros_like(embeds, requires_grad=True)
-
-        for _ in range(num_steps):
-            adv_kwargs = dict(encoder_kwargs)
-            adv_kwargs["inputs_embeds"] = embeds + delta
-            adv_log_probs = F.log_softmax(
-                self.vocab_projection(self.encoder(**adv_kwargs).last_hidden_state),
-                dim=-1,
-            )
-
-            if mask is not None:
-                m = mask.bool()
-                kl = F.kl_div(adv_log_probs[m], clean_probs[m], reduction="batchmean")
-            else:
-                kl = F.kl_div(
-                    adv_log_probs.view(-1, adv_log_probs.size(-1)),
-                    clean_probs.view(-1, clean_probs.size(-1)),
-                    reduction="batchmean",
-                )
-
-            kl.backward()
-
-            with torch.no_grad():
-                g = delta.grad
-                g_norm = g.norm(p=2, dim=-1, keepdim=True).clamp(min=1e-8)
-                delta_new = delta + step_size * (g / g_norm)
-                # Per-token L2 projection back into ε-ball
-                d_norm = delta_new.norm(p=2, dim=-1, keepdim=True)
-                delta_new = delta_new * (epsilon / d_norm).clamp(max=1.0)
-
-            delta = delta_new.requires_grad_(True)
-
-        # Step 3 — Adversarial forward pass with the found δ
-        adv_kwargs = dict(encoder_kwargs)
-        adv_kwargs["inputs_embeds"] = embeds + delta.detach()
-        adv_log_probs = F.log_softmax(
-            self.vocab_projection(self.encoder(**adv_kwargs).last_hidden_state),
-            dim=-1,
-        )
-
-        # Step 4 — SMART penalty: KL(p_clean || p_adv) at masked positions
-        if mask is not None:
-            m = mask.bool()
-            return F.kl_div(adv_log_probs[m], clean_probs[m], reduction="batchmean")
-        return F.kl_div(
-            adv_log_probs.view(-1, adv_log_probs.size(-1)),
-            clean_probs.view(-1, clean_probs.size(-1)),
-            reduction="batchmean",
-        )

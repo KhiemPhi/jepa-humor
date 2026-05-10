@@ -1,0 +1,28 @@
+{
+  "model": "bert-large-uncased",
+  "task": "sst2",
+  "experiment": "pretrain_sst2_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.19466961163882404
+    },
+    {
+      "epoch": 2,
+      "loss": 0.17275524830687986
+    },
+    {
+      "epoch": 3,
+      "loss": 0.1781249341660189
+    },
+    {
+      "epoch": 4,
+      "loss": 0.17821037753751362
+    },
+    {
+      "epoch": 5,
+      "loss": 0.17722576527598916
+    }
+  ],
+  "timestamp": "2026-05-08T19:35:58.413319"
+}

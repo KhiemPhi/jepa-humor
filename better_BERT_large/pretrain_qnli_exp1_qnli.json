@@ -1,0 +1,24 @@
+{
+  "model": "bert-large-uncased",
+  "task": "qnli",
+  "experiment": "pretrain_qnli_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.17649676390424618
+    },
+    {
+      "epoch": 2,
+      "loss": 0.16238753614570575
+    },
+    {
+      "epoch": 3,
+      "loss": 0.16492369056439793
+    },
+    {
+      "epoch": 4,
+      "loss": 0.1663547780184973
+    }
+  ],
+  "timestamp": "2026-05-09T02:38:54.089373"
+}
