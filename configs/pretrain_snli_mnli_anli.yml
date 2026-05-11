@@ -1,6 +1,6 @@
 seed: 42
 experiment_name: pretrain_snli_mnli_anli_exp1  # Prefix for checkpoints
-model_name: bert-large-uncased
+model_name: bert-base-uncased
 dataset: custom/snli_mnli_anli  # symbolic, handled via dataset_config flag
 dataset_config: snli_mnli_anli  # trigger composite loader
 text_keys: ["premise", "hypothesis"]
@@ -11,7 +11,7 @@ max_length: 256
 batch_size: 64
 num_workers: 4
 epochs: 5
-lr: 1.0e-6
+lr: 1.0e-5
 ema_decay: 0.996
 mask_ratio: 0.35
 mean_span_len: 3.0

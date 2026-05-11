@@ -1,6 +1,6 @@
 seed: 42
 experiment_name: finetune_swag_exp1  # Prefix for checkpoints
-model_name: bert-large-uncased
+model_name: bert-base-uncased
 dataset: swag
 dataset_config: swag  # Use SWAG-specific loader
 text_keys: ["question", "sentence"]

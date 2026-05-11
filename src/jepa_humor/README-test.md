@@ -11,7 +11,7 @@ for task in rte sst2 qnli mnli qqp; do python -m scripts.pretrain --config  conf
 
 for task in qnli mnli qqp; do python -m scripts.pretrain --config configs/pretrain_${task}.yml --gpu_id 2 dynamic_masking=true && python -m scripts.finetune --config configs/finetune_${task}.yml --gpu_id 2 dynamic_masking=true --encoder_ckpt checkpoints/pretrain/best_pretrain_${task}_exp1_dynamic_masking_.pt; done
 
-for task in qqp mnli; do python -m scripts.pretrain --config  configs/pretrain_${task}.yml --gpu_id 4 && python -m scripts.finetune --config configs/finetune_${task}.yml --gpu_id 4 --encoder_ckpt checkpoints/pretrain/best_pretrain_${task}_exp1_.pt; done 
+for task in mnli; do python -m scripts.pretrain --config  configs/pretrain_${task}.yml --gpu_id 6 && python -m scripts.finetune --config configs/finetune_${task}.yml --gpu_id 6 --encoder_ckpt checkpoints/pretrain/best_pretrain_${task}_exp1_.pt; done 
 
 tmux new -s jepa_goat
 tmux attach -t jepa_goat
@@ -25,7 +25,7 @@ python -m scripts.finetune --config configs/finetune_fresh.yml --encoder_ckpt fr
 
 python -m scripts.pretrain --config configs/pretrain_mnli.yml --gpu_id 6 && python -m scripts.finetune --config configs/finetune_mnli.yml --gpu_id 6 --encoder_ckpt checkpoints/pretrain/best_pretrain_mnli_exp1_.pt
 python -m scripts.pretrain --config configs/pretrain_qnli.yml && python -m scripts.finetune --config configs/finetune_qnli.yml --gpu_id 3 --encoder_ckpt checkpoints/pretrain/best_pretrain_qnli_exp1_.pt
-python -m scripts.pretrain --config configs/pretrain_rte.yml && python -m scripts.finetune --config configs/finetune_rte.yml --encoder_ckpt checkpoints/pretrain/best_pretrain_rte_exp1_.pt
+python -m scripts.pretrain --config configs/pretrain_rte.yml --gpu_id 4 && python -m scripts.finetune --config configs/finetune_rte.yml --gpu_id 4 --encoder_ckpt checkpoints/pretrain/best_pretrain_rte_exp1_.pt
 python -m scripts.pretrain --config configs/pretrain_sst2.yml && python -m scripts.finetune --config configs/finetune_sst2.yml --encoder_ckpt checkpoints/pretrain/best_pretrain_sst2_exp1_.pt
 python -m scripts.pretrain --config configs/pretrain_qqp.yml && python -m scripts.finetune --config configs/finetune_qqp.yml --encoder_ckpt checkpoints/pretrain/best_pretrain_qqp_exp1_.pt
 python -m scripts.pretrain --config configs/pretrain_swag.yml && python -m scripts.finetune --config configs/finetune_swag.yml --encoder_ckpt checkpoints/pretrain/best_pretrain_swag_exp1_.pt

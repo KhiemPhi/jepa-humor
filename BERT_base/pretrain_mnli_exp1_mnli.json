@@ -1,0 +1,16 @@
+{
+  "model": "bert-base-uncased",
+  "task": "mnli",
+  "experiment": "pretrain_mnli_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.3003406418315007
+    },
+    {
+      "epoch": 2,
+      "loss": 0.27501338052003604
+    }
+  ],
+  "timestamp": "2026-05-10T18:29:16.771904"
+}

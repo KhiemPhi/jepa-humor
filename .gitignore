@@ -1,9 +1,10 @@
 checkpoints
 logs
 bert-large-result
-checkpoints_bert_large
+checkpoints_better_bert_large
 checkpoints_roberta_large
 slurm.sh
 slurm_copy.sh
 archived
 roberta_large_mostly_random_token
+checkpoints_bert_base

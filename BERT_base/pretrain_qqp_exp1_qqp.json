@@ -1,0 +1,12 @@
+{
+  "model": "bert-base-uncased",
+  "task": "qqp",
+  "experiment": "pretrain_qqp_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.2814032807330346
+    }
+  ],
+  "timestamp": "2026-05-10T17:12:40.152289"
+}

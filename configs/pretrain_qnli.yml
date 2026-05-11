@@ -1,6 +1,6 @@
 seed: 42
 experiment_name: pretrain_qnli_exp1  # Prefix for all saved checkpoints
-model_name: bert-large-uncased
+model_name: bert-base-uncased
 dataset: nyu-mll/glue
 dataset_config: qnli  # Specify QNLI configuration
 text_keys: ["question", "sentence"]  # Column names to tokenize (e.g., ["premise", "hypothesis"] for MNLI)
@@ -8,7 +8,7 @@ max_length: 256
 batch_size: 64
 num_workers: 4
 epochs: 4
-lr: 1.0e-6
+lr: 1.0e-5
 ema_decay: 0.996
 mask_ratio: 0.35
 mean_span_len: 3.0

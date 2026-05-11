@@ -16,6 +16,8 @@ if __name__ == "__main__":
         cfg[k] = yaml.safe_load(v)
     if args.gpu_id is not None:
         cfg["gpu_id"] = args.gpu_id
+    if args.encoder_ckpt == "fresh" and "experiment_name" in cfg:
+        cfg["experiment_name"] = cfg["experiment_name"] + "_fresh"
     
     if args.eval_only and args.model_ckpt is None:
         # Try to use default checkpoint path from config
