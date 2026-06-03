@@ -1,0 +1,25 @@
+seed: 42
+experiment_name: pretrain_multirc_exp1
+model_name: FacebookAI/roberta-large
+dataset: super_glue
+dataset_config: multirc
+text_keys: ["paragraph", "question_answer"]
+max_length: 512
+batch_size: 32
+num_workers: 4
+epochs: 2
+lr: 5.0e-6
+ema_decay: 0.996
+mask_ratio: 0.35
+mean_span_len: 3.0
+mask_type: random_token
+tail_bias: 5.0
+mixed_precision: true
+log_dir: runs/pretrain
+ckpt_dir: checkpoints/pretrain
+early_stop_patience: 3
+val_split: 0.8
+gpu_id: 7
+model_type: jepa
+dynamic_masking: false
+use_cls: true

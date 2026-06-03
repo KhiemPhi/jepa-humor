@@ -1,0 +1,11 @@
+model_name: roberta-large
+max_length: 512
+batch_size: 256
+num_workers: 4
+gpu_id: 4
+results_dir: results/beir_fiqa
+dataset: BeIR/fiqa
+qrels_dataset: BeIR/fiqa-qrels
+top_k: [10, 100]
+max_corpus_size: null
+pooling: max

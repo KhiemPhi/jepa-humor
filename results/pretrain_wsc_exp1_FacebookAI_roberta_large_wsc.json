@@ -1,0 +1,28 @@
+{
+  "model": "FacebookAI/roberta-large",
+  "task": "wsc",
+  "experiment": "pretrain_wsc_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.22279956936836243
+    },
+    {
+      "epoch": 2,
+      "loss": 0.21809411297241846
+    },
+    {
+      "epoch": 3,
+      "loss": 0.24303460328115356
+    },
+    {
+      "epoch": 4,
+      "loss": 0.26340655899710125
+    },
+    {
+      "epoch": 5,
+      "loss": 0.2712703479660882
+    }
+  ],
+  "timestamp": "2026-06-01T20:54:28.710316"
+}

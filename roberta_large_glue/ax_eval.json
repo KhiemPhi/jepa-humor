@@ -1,0 +1,7 @@
+{
+  "task": "ax",
+  "model": "roberta-large",
+  "checkpoint": "billionare_file/checkpoints_roberta_large/finetune/finetune_mnli_exp1_FacebookAI_roberta_large_best.pt",
+  "timestamp": "2026-05-27T10:59:25.045299",
+  "test_ax": {}
+}

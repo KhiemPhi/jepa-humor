@@ -1,0 +1,11 @@
+{
+  "task": "mrpc",
+  "model": "roberta-large",
+  "checkpoint": "checkpoints/finetune/finetune_mrpc_exp1_roberta_large_best_val.pt",
+  "timestamp": "2026-06-03T07:15:08.130245",
+  "validation": {
+    "acc": 0.9117647058823529,
+    "mcc": 0.7968466611436412,
+    "f1": 0.8983951300498063
+  }
+}

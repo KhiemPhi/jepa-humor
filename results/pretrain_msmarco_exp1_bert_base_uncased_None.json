@@ -1,0 +1,12 @@
+{
+  "model": "bert-base-uncased",
+  "task": null,
+  "experiment": "pretrain_msmarco_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.3529022459918586
+    }
+  ],
+  "timestamp": "2026-06-02T05:08:53.440587"
+}

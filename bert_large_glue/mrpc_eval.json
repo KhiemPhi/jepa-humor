@@ -1,0 +1,11 @@
+{
+  "task": "mrpc",
+  "model": "bert-large-uncased",
+  "checkpoint": "billionare_file/checkpoints_bert_large/finetune/finetune_mrpc_exp1_bert_large_uncased_best.pt",
+  "timestamp": "2026-05-20T01:51:03.433355",
+  "validation": {
+    "acc": 0.8578431372549019,
+    "mcc": 0.6605470255853074,
+    "f1": 0.8215492277992278
+  }
+}

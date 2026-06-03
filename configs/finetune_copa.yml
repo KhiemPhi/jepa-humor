@@ -1,0 +1,20 @@
+seed: 42
+experiment_name: finetune_copa_exp1
+model_name: FacebookAI/roberta-large
+dataset_config: copa
+max_length: 512
+batch_size: 8  # COPA train has only 400 examples (800 after expansion)
+num_workers: 2
+epochs: 200
+lr: 1.0e-5
+weight_decay: 0.1
+adam_betas: [0.9, 0.98]
+adam_eps: 1.0e-6
+mixed_precision: true
+max_grad_norm: 0.0
+lr_scheduler: linear
+lr_warmup_ratio: 0.06
+ckpt_dir: checkpoints/finetune
+results_dir: results
+gpu_id: 7
+swa: false

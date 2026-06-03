@@ -1,0 +1,13 @@
+model_name: bert-base-uncased
+colbert_dim: 128
+q_max_length: 32          # matches ColBERT v1 training
+eval_p_max_length: 512
+batch_size: 128
+gpu_id: 0
+results_dir: results/beir_colbert
+top_k: [10, 100]
+faiss_depth: 100          # BEIR paper setting
+max_corpus_size: null
+# dataset / qrels_dataset / dataset_config / qrels_split overridden per-run by slurm_colbert.sh
+dataset: BeIR/fiqa
+qrels_dataset: BeIR/fiqa-qrels

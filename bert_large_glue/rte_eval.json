@@ -1,0 +1,16 @@
+{
+  "task": "rte",
+  "model": "bert-large-uncased",
+  "checkpoint": "billionare_file/checkpoints_bert_large/finetune/finetune_rte_exp1_best.pt",
+  "timestamp": "2026-05-19T03:58:04.521616",
+  "validation": {
+    "acc": 0.7436823104693141,
+    "mcc": 0.4851662713211143,
+    "f1": 0.7423390847515361
+  },
+  "test": {
+    "acc": 0.4276315789473684,
+    "mcc": -0.2505350320197635,
+    "f1": 0.3699256718124642
+  }
+}

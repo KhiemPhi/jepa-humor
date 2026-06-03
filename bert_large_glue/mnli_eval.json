@@ -1,0 +1,26 @@
+{
+  "task": "mnli",
+  "model": "bert-large-uncased",
+  "checkpoint": "billionare_file/checkpoints_bert_large/finetune/finetune_mnli_exp1_best.pt",
+  "timestamp": "2026-05-19T03:50:45.127266",
+  "validation_matched": {
+    "acc": 0.6779419256240449,
+    "mcc": 0.5165994219993877,
+    "f1": 0.675890806020819
+  },
+  "validation_mismatched": {
+    "acc": 0.684092758340114,
+    "mcc": 0.5269454318262196,
+    "f1": 0.6815927198395894
+  },
+  "test_matched": {
+    "acc": 0.4425587467362924,
+    "mcc": 0.15973860359032319,
+    "f1": 0.4294957369456998
+  },
+  "test_mismatched": {
+    "acc": 0.3907103825136612,
+    "mcc": 0.07394725215601214,
+    "f1": 0.3762570873238869
+  }
+}

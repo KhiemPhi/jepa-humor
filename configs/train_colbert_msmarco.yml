@@ -1,0 +1,16 @@
+experiment_name: colbert_msmarco_exp1
+model_name: bert-base-uncased
+encoder_ckpt: checkpoints/pretrain/best_pretrain_msmarco_exp1_bert_base_uncased_.pt
+colbert_dim: 128          # projection dimension per token
+q_max_length: 32          # query token limit (ColBERT default)
+p_max_length: 512         # truncation limit; ColBERT v1 trains at 180 but MS MARCO passages are short so 512 is safe
+batch_size: 32            # ColBERT paper original
+total_steps: 300000       # BEIR uses colbert-300000.dnn checkpoint
+lr: 3.0e-6               # ColBERT paper original
+neg_per_query: 1          # ColBERT paper (1 BM25 negative per query)
+save_every: 10000
+mixed_precision: true
+ckpt_dir: checkpoints/colbert
+results_dir: results/colbert
+num_workers: 0
+gpu_id: 0

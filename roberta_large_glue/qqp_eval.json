@@ -1,0 +1,16 @@
+{
+  "task": "qqp",
+  "model": "roberta-large",
+  "checkpoint": "billionare_file/checkpoints_roberta_large/finetune/finetune_qqp_exp1_FacebookAI_roberta_large_best.pt",
+  "timestamp": "2026-05-27T06:49:49.705328",
+  "validation": {
+    "acc": 0.9224585703685382,
+    "mcc": 0.8346750325301403,
+    "f1": 0.9171975587395167
+  },
+  "test": {
+    "acc": 0.5781990521327014,
+    "mcc": 0.11716349922974359,
+    "f1": 0.5462365591397849
+  }
+}

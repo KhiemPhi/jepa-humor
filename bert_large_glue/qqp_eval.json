@@ -1,0 +1,16 @@
+{
+  "task": "qqp",
+  "model": "bert-large-uncased",
+  "checkpoint": "billionare_file/checkpoints_bert_large/finetune/finetune_qqp_exp1_best.pt",
+  "timestamp": "2026-05-19T04:01:47.799863",
+  "validation": {
+    "acc": 0.9132327479594361,
+    "mcc": 0.8142482084232,
+    "f1": 0.9070820282351937
+  },
+  "test": {
+    "acc": 0.4099526066350711,
+    "mcc": -0.2207888470636934,
+    "f1": 0.3770386838594931
+  }
+}

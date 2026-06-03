@@ -1,0 +1,12 @@
+seed: 42
+experiment_name: finetune_wsd_exp1
+model_name: FacebookAI/roberta-large  # override with RTE/MNLI-finetuned ckpt
+dataset: super_glue
+dataset_config: axg
+text_keys: ["premise", "hypothesis"]
+num_labels: 2  # entailment / not_entailment
+max_length: 512
+batch_size: 32
+num_workers: 4
+gpu_id: 4
+swa: false

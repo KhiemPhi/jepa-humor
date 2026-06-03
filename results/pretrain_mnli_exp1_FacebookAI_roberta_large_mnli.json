@@ -1,0 +1,16 @@
+{
+  "model": "FacebookAI/roberta-large",
+  "task": "mnli",
+  "experiment": "pretrain_mnli_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.2527553727467832
+    },
+    {
+      "epoch": 2,
+      "loss": 0.25750517816862
+    }
+  ],
+  "timestamp": "2026-06-01T17:35:30.921814"
+}

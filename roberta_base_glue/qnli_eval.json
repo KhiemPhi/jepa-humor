@@ -1,0 +1,16 @@
+{
+  "task": "qnli",
+  "model": "roberta-base",
+  "checkpoint": "billionare_file/checkpoints_roberta_base/finetune/finetune_qnli_exp1_best.pt",
+  "timestamp": "2026-05-27T07:04:49.471509",
+  "validation": {
+    "acc": 0.8508145707486728,
+    "mcc": 0.7016066207183822,
+    "f1": 0.8507722490737251
+  },
+  "test": {
+    "acc": 0.5051652892561983,
+    "mcc": 0.027436075290981247,
+    "f1": 0.503995977813792
+  }
+}

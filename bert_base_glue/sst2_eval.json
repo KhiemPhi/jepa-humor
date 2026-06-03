@@ -1,0 +1,16 @@
+{
+  "task": "sst2",
+  "model": "bert-base-uncased",
+  "checkpoint": "billionare_file/checkpoints_bert_base/finetune/finetune_sst2_exp1_best.pt",
+  "timestamp": "2026-05-27T07:07:13.342812",
+  "validation": {
+    "acc": 0.8314220183486238,
+    "mcc": 0.6680223152087482,
+    "f1": 0.8311499962458457
+  },
+  "test": {
+    "acc": 0.3323943661971831,
+    "mcc": -0.30340160283834355,
+    "f1": 0.3299366253128416
+  }
+}

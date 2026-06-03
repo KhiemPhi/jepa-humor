@@ -1,0 +1,16 @@
+{
+  "task": "qnli",
+  "model": "FacebookAI/roberta-large",
+  "checkpoint": "checkpoints/finetune/finetune_qnli_exp1_FacebookAI_roberta_large_best_val.pt",
+  "timestamp": "2026-06-03T04:21:10.960912",
+  "validation": {
+    "acc": 0.9456342668863262,
+    "mcc": 0.8912855837404836,
+    "f1": 0.9456313521040893
+  },
+  "test": {
+    "acc": 0.5671487603305785,
+    "mcc": 0.11011050627004118,
+    "f1": 0.5548340857180801
+  }
+}

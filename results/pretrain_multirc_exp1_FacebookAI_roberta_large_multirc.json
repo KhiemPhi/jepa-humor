@@ -1,0 +1,16 @@
+{
+  "model": "FacebookAI/roberta-large",
+  "task": "multirc",
+  "experiment": "pretrain_multirc_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.24610191065066017
+    },
+    {
+      "epoch": 2,
+      "loss": 0.20235690589941724
+    }
+  ],
+  "timestamp": "2026-06-01T14:25:02.569522"
+}

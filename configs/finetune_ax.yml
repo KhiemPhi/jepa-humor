@@ -1,0 +1,12 @@
+seed: 42
+experiment_name: finetune_ax_exp1
+model_name: roberta-large  # override with model_name=... on CLI
+dataset: nyu-mll/glue
+dataset_config: ax
+text_keys: ["premise", "hypothesis"]  # AX is an NLI diagnostic task
+num_labels: 3  # entailment / neutral / contradiction (same label space as MNLI)
+max_length: 512
+batch_size: 64
+num_workers: 4
+gpu_id: 4
+swa: false

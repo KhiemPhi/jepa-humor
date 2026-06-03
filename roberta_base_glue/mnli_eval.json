@@ -1,0 +1,26 @@
+{
+  "task": "mnli",
+  "model": "roberta-base",
+  "checkpoint": "billionare_file/checkpoints_roberta_base/finetune/finetune_mnli_exp1_best.pt",
+  "timestamp": "2026-05-27T08:12:30.250841",
+  "validation_matched": {
+    "acc": 0.7925624044829342,
+    "mcc": 0.6888234623789041,
+    "f1": 0.7905291065479121
+  },
+  "validation_mismatched": {
+    "acc": 0.8016680227827502,
+    "mcc": 0.7022366356201947,
+    "f1": 0.7994688953849572
+  },
+  "test_matched": {
+    "acc": 0.3302872062663185,
+    "mcc": -0.0018205839240224466,
+    "f1": 0.33061110588009374
+  },
+  "test_mismatched": {
+    "acc": 0.27413479052823314,
+    "mcc": -0.0883400409731181,
+    "f1": 0.27319195458981177
+  }
+}

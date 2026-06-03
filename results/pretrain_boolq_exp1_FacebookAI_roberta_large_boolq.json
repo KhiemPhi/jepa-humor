@@ -1,0 +1,16 @@
+{
+  "model": "FacebookAI/roberta-large",
+  "task": "boolq",
+  "experiment": "pretrain_boolq_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.2787731810646542
+    },
+    {
+      "epoch": 2,
+      "loss": 0.26697774756762943
+    }
+  ],
+  "timestamp": "2026-06-01T11:50:37.161442"
+}

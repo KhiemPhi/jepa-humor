@@ -1,0 +1,11 @@
+{
+  "task": "cola",
+  "model": "roberta-large",
+  "checkpoint": "billionare_file/checkpoints_roberta_large/finetune/finetune_cola_exp1_roberta_large_best.pt",
+  "timestamp": "2026-05-27T08:54:28.344619",
+  "validation": {
+    "acc": 0.8676893576222435,
+    "mcc": 0.6837929658697479,
+    "f1": 0.8410482374768089
+  }
+}

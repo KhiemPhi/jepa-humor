@@ -1,0 +1,16 @@
+{
+  "model": "FacebookAI/roberta-large",
+  "task": "record",
+  "experiment": "pretrain_rccr_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.23514742555222184
+    },
+    {
+      "epoch": 2,
+      "loss": 0.21948372062858965
+    }
+  ],
+  "timestamp": "2026-06-01T23:13:27.293709"
+}

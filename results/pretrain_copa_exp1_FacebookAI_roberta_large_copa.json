@@ -1,0 +1,16 @@
+{
+  "model": "FacebookAI/roberta-large",
+  "task": "copa",
+  "experiment": "pretrain_copa_exp1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 0.23820401787757872
+    },
+    {
+      "epoch": 2,
+      "loss": 0.2664930999279022
+    }
+  ],
+  "timestamp": "2026-06-01T13:16:06.364262"
+}

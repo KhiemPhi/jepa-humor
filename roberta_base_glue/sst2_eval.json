@@ -1,0 +1,16 @@
+{
+  "task": "sst2",
+  "model": "roberta-base",
+  "checkpoint": "billionare_file/checkpoints_roberta_base/finetune/finetune_sst2_exp1_best.pt",
+  "timestamp": "2026-05-27T07:04:12.046709",
+  "validation": {
+    "acc": 0.9048165137614679,
+    "mcc": 0.8095640434539957,
+    "f1": 0.9047713029737258
+  },
+  "test": {
+    "acc": 0.326056338028169,
+    "mcc": -0.3278965946934955,
+    "f1": 0.32604798214617814
+  }
+}

@@ -1,0 +1,24 @@
+seed: 42
+experiment_name: finetune_wnli_exp1
+model_name: roberta-large
+dataset_config: wnli
+max_length: 512
+epochs: 20
+lr: 2.0e-5
+weight_decay: 0.01
+adam_betas: [0.9, 0.98]
+adam_eps: 1.0e-6
+cross_entropy_loss: true  # --wsc-cross-entropy flag in fairseq
+margin_alpha: 1.0         # only used when cross_entropy_loss: false
+margin_beta: 0.0          # only used when cross_entropy_loss: false
+mixed_precision: true
+max_grad_norm: 0.0        # disabled — fairseq does not set clip-norm
+lr_scheduler: linear      # polynomial_decay to 0
+lr_warmup_ratio: 0.125    # 250 warmup / 2000 total updates
+gpu_id: 7
+ckpt_dir: checkpoints/finetune
+results_dir: results
+
+save_best_model_on: test
+metric_for_best_model: acc  # accuracy
+swa: false

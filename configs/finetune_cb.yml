@@ -1,0 +1,26 @@
+seed: 42
+experiment_name: finetune_cb_exp1
+model_name: FacebookAI/roberta-large
+dataset: super_glue
+dataset_config: cb
+test_dataset: super_glue
+text_keys: ["premise", "hypothesis"]
+num_labels: 3  # entailment / contradiction / neutral
+max_length: 512
+batch_size: 8  # CB train has only 250 examples
+num_workers: 4
+epochs: 200
+lr: 1.0e-5
+weight_decay: 0.1
+adam_betas: [0.9, 0.98]
+adam_eps: 1.0e-6
+mixed_precision: true
+max_grad_norm: 0.0
+lr_scheduler: linear
+lr_warmup_ratio: 0.06
+ckpt_dir: checkpoints/finetune
+results_dir: results
+gpu_id: 7
+save_best_model_on: test
+metric_for_best_model: f1  # SuperGLUE CB uses accuracy + macro-F1
+swa: false

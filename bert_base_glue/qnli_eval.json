@@ -1,0 +1,16 @@
+{
+  "task": "qnli",
+  "model": "bert-base-uncased",
+  "checkpoint": "billionare_file/checkpoints_bert_base/finetune/finetune_qnli_exp1_best.pt",
+  "timestamp": "2026-05-27T07:08:04.874364",
+  "validation": {
+    "acc": 0.8546586124839831,
+    "mcc": 0.7101316474483603,
+    "f1": 0.8546392809747858
+  },
+  "test": {
+    "acc": 0.42355371900826444,
+    "mcc": -0.16356647568252342,
+    "f1": 0.41601255886970173
+  }
+}

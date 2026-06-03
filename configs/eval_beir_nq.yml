@@ -1,0 +1,11 @@
+model_name: roberta-large
+max_length: 512                # token limit for corpus passages and queries
+batch_size: 256                # encoding batch size (reduce if OOM)
+num_workers: 4
+gpu_id: 7               # GPU to use; override at runtime with --gpu_id <id>
+results_dir: results/beir_fiqas
+dataset: BeIR/fiqa               # HuggingFace corpus/queries dataset
+qrels_dataset: BeIR/fiqa-qrels   # HuggingFace relevance judgments
+top_k: [10, 100]               # evaluate NDCG@k and Recall@k at these cutoffs
+max_corpus_size: null          # null = full corpus; set an int (e.g. 50000) to limit for quick tests
+pooling: max                  # cls | mean  — how to aggregate token embeddings

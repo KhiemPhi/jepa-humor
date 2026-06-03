@@ -1,0 +1,10 @@
+seed: 42
+model_name: FacebookAI/roberta-large
+dataset: super_glue
+dataset_config: axb
+text_keys: ["premise", "hypothesis"]
+num_labels: 3
+max_length: 256
+batch_size: 64
+num_workers: 4
+gpu_id: 7
