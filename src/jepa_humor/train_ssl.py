@@ -23,6 +23,8 @@ from .data import (
     load_composite_nli_dataset,
     load_swag,
     expand_swag_for_pretraining,
+    expand_copa_for_pretraining,
+    preprocess_multirc_for_pretraining,
 )
 
 def build_optimizer_and_scheduler(jepa, lr_pred=1e-4, lr_enc=5e-5, weight_decay=0.01, total_steps=1000, warmup_ratio=0.06, model_type="jepa"):
@@ -155,9 +157,24 @@ def pretrain(cfg):
         split['test'] = ds['validation_matched']
     elif is_swag or dataset_config == "swag":
         split['test'] = ds['validation']
-    else:
+    elif 'validation' in ds:
         split['test'] = ds['validation']
+    else:
+        # Dataset has no validation split; carve one from train
+        val_frac = cfg.get("val_split", 0.0001)
+        n_val = max(1, int(len(ds['train']) * val_frac))
+        shuffled = ds['train'].shuffle(seed=cfg.get("seed", 42))
+        split['train'] = shuffled.select(range(n_val, len(shuffled)))
+        split['test'] = shuffled.select(range(n_val))
     
+    # Apply task-specific input transformations to match finetune format
+    if dataset_config == "copa":
+        split['train'] = expand_copa_for_pretraining(split['train'])
+        split['test'] = expand_copa_for_pretraining(split['test'])
+    elif dataset_config == "multirc":
+        split['train'] = preprocess_multirc_for_pretraining(split['train'])
+        split['test'] = preprocess_multirc_for_pretraining(split['test'])
+
     # Get text keys from config (defaults to ["question", "sentence"])
     if is_anli or dataset_config == "snli_mnli_anli":
         text_keys = cfg.get("text_keys", ["premise", "hypothesis"])  # ANLI uses premise/hypothesis like MNLI
@@ -165,6 +182,10 @@ def pretrain(cfg):
         text_keys = cfg.get("text_keys", ["premise", "hypothesis"])
     elif is_swag or dataset_config == "swag":
         text_keys = cfg.get("text_keys", ["question", "sentence"])
+    elif dataset_config == "copa":
+        text_keys = cfg.get("text_keys", ["text"])
+    elif dataset_config == "multirc":
+        text_keys = cfg.get("text_keys", ["paragraph", "question_answer"])
     else:
         text_keys = cfg.get("text_keys", ["question", "sentence"])
     print(f"Using text keys: {text_keys}")
@@ -292,8 +313,9 @@ def pretrain(cfg):
 
         # checkpoint & early stopping on train loss (SSL)
         exp_name = cfg.get("experiment_name", "")
-        prefix = f"{exp_name}_" if exp_name else ""
-        
+        model_slug = cfg.get("model_name", "").replace("-", "_").replace("/", "_")
+        prefix = f"{exp_name}_{model_slug}_" if exp_name else f"{model_slug}_" if model_slug else ""
+
         path = os.path.join(cfg["ckpt_dir"], f"{prefix}epoch{epoch}_loss{epoch_loss:.4f}.pt")
         # save_ckpt({
         #     "epoch": epoch,
@@ -321,11 +343,12 @@ def pretrain(cfg):
     # save pretrain loss history to results
     import json, datetime
     exp_name = cfg.get("experiment_name", "")
-    prefix = f"{exp_name}_" if exp_name else ""
+    model_slug = cfg.get("model_name", "").replace("-", "_").replace("/", "_")
+    prefix = f"{exp_name}_{model_slug}_" if exp_name else f"{model_slug}_" if model_slug else ""
     results_dir = cfg.get("results_dir", "results")
     os.makedirs(results_dir, exist_ok=True)
     task = cfg.get("dataset_config", cfg.get("task", "pretrain"))
-    fname = f"{exp_name}_{task}.json" if exp_name else f"pretrain_{task}.json"
+    fname = f"{exp_name}_{model_slug}_{task}.json" if exp_name else f"pretrain_{model_slug}_{task}.json"
     result = {
         "model": cfg.get("model_name", ""),
         "task": task,

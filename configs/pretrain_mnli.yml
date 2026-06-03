@@ -1,14 +1,14 @@
 seed: 42
 experiment_name: pretrain_mnli_exp1  # Prefix for all saved checkpoints
-model_name: bert-base-uncased
+model_name: FacebookAI/roberta-large
 dataset: nyu-mll/glue
 dataset_config: mnli  # Specify MNLI configuration
 text_keys: ["premise", "hypothesis"]  # MNLI uses premise and hypothesis
-max_length: 256
-batch_size: 64e
+max_length: 512
+batch_size: 32
 num_workers: 4
 epochs: 2
-lr: 1.0e-5
+lr: 1.0e-6
 ema_decay: 0.996
 mask_ratio: 0.35
 mean_span_len: 3.0

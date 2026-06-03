@@ -41,10 +41,18 @@ def save_ckpt(state, path: str):
     torch.save(state, path)
 
 def load_encoder_state(model, ckpt_path: str, map_location="cpu"):
-    state = torch.load(ckpt_path, map_location=map_location)
-    # supports either full JEPA state or encoder-only state
+    state = torch.load(ckpt_path, map_location=map_location, weights_only=False)
     if "encoder_state_dict" in state:
-        model.load_state_dict(state["encoder_state_dict"])
+        # JEPA pretrain format
+        model.load_state_dict(state["encoder_state_dict"], strict=False)
+    elif "model_state_dict" in state:
+        # Finetune checkpoint (CorrectEnglishSentenceClassifier): extract encoder.* weights
+        encoder_state = {
+            k[len("encoder."):]: v
+            for k, v in state["model_state_dict"].items()
+            if k.startswith("encoder.")
+        }
+        model.load_state_dict(encoder_state, strict=True)
     else:
-        model.load_state_dict(state)
+        model.load_state_dict(state, strict=False)
     return model

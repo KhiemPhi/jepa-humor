@@ -42,6 +42,7 @@ def jepa_loss(
     off_diag = cov.pow(2).sum() - cov.diagonal().pow(2).sum()
     cov_loss = off_diag / D
 
+
     # ── 4. k-NN consistency (replaces full gram) ───────────────────────────
     # Match local neighborhood structure rather than all N×N pairs:
     # for each token, the distribution over its k nearest neighbors in

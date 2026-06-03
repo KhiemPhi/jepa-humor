@@ -1,11 +1,11 @@
 seed: 42
 experiment_name: pretrain_anli_exp1  # Prefix for all saved checkpoints
-model_name: bert-base-uncased
+model_name: roberta-large
 dataset: facebook/anli
 dataset_config: anli  # Specify ANLI configuration
 text_keys: ["premise", "hypothesis"]  # ANLI uses premise and hypothesis
 train_rounds: [1, 2, 3]  # Which training rounds to aggregate: [1], [1, 2], or [1, 2, 3]
-max_length: 256
+max_length: 512
 batch_size: 64
 num_workers: 4
 epochs: 5

@@ -111,3 +111,61 @@ c3d4e5f	0.6310	6.2	discard	switch predictor to 3-layer MLP
 - Assran et al., [*Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture*](https://arxiv.org/abs/2301.08243) (I-JEPA, 2023)
 - Liu et al., [*RoBERTa: A Robustly Optimized BERT Pretraining Approach*](https://arxiv.org/abs/1907.11692) (2019)
 - Wang et al., [*GLUE: A Multi-Task Benchmark and Analysis Platform for Natural Language Understanding*](https://arxiv.org/abs/1804.07461) — RTE task (2018)
+
+
+
+# =============================================================================
+# 1. BoolQ
+# =============================================================================
+run_task boolq \
+    configs/pretrain_boolq.yml \
+    configs/finetune_boolq.yml \
+    "${CKPT_P}/best_pretrain_boolq_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 2. CB
+# =============================================================================
+run_task cb \
+    configs/pretrain_cb.yml \
+    configs/finetune_cb.yml \
+    "${CKPT_P}/best_pretrain_cb_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 3. COPA
+# =============================================================================
+run_task copa \
+    configs/pretrain_copa.yml \
+    configs/finetune_copa.yml \
+    "${CKPT_P}/best_pretrain_copa_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 4. MultiRC
+# =============================================================================
+run_task multirc \
+    configs/pretrain_multirc.yml \
+    configs/finetune_multirc.yml \
+    "${CKPT_P}/best_pretrain_multirc_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 5. WiC  (uses finetune_superglue_wic — word-in-context tokenisation)
+# =============================================================================
+run_task wic \
+    configs/pretrain_wic.yml \
+    configs/finetune_wic.yml \
+    "${CKPT_P}/best_pretrain_wic_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 6. WSC  (MLM scoring — uses finetune_wnli internally)
+# =============================================================================
+run_task wsc \
+    configs/pretrain_wsc.yml \
+    configs/finetune_wsc.yml \
+    "${CKPT_P}/best_pretrain_wsc_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 7. RTE  (binary NLI on super_glue/rte)
+# =============================================================================
+run_task rte \
+    configs/pretrain_superglue_rte.yml \
+    configs/finetune_superglue_rte.yml \
+    "${CKPT_P}/best_pretrain_superglue_rte_exp1_FacebookAI_roberta_large_.pt"

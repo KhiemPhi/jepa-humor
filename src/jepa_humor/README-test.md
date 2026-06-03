@@ -1,21 +1,88 @@
+# RAG evaluation
+# Fresh RoBERTa-base baseline
+  python scripts/eval_beir.py --config configs/eval_beir_nq.yml
+
+  # Fine-tuned QNLI checkpoint
+  python scripts/eval_beir.py --config configs/eval_beir_nq.yml \
+    --model_ckpt billionare_file/checkpoints_roberta_large/finetune/finetune_qnli_exp1_best.pt
+
+  python scripts/eval_beir.py --config configs/eval_beir_nq.yml \
+    --model_ckpt billionare_file/checkpoints_roberta_base/pretrain/best_pretrain_qnli_exp1_.pt \
+    --is_pretrain_ckpt
+
+  # Quick test with BERT-base and limited corpus
+  python scripts/eval_beir.py --config configs/eval_beir_nq.yml \
+    --model_ckpt billionare_file/checkpoints_bert_base/finetune/finetune_mnli_exp1_best.pt \
+    --experiment_name bert_base_mnli_test
+
+ for task in rte qnli mnli qqp; do
+    python scripts/eval_beir.py \
+      --config configs/eval_beir_nq.yml \
+      --model_ckpt billionare_file/checkpoints_roberta_base/pretrain/best_pretrain_${task}_exp1_.pt \
+      --is_pretrain_ckpt \
+      --experiment_name roberta_base_pretrain_${task} \
+      --gpu_id 7 &
+  done
+  wait
+
+
 # JEPA-Humor
 
 Self-supervised JEPA-style pretraining on CreativeLang/ColBERT_Humor_Detection, then supervised finetuning for humor detection.
 
    
-python -m scripts.pretrain --config configs/pretrain_sst2.yml && python 
--m scripts.finetune --config configs/finetune_sst2.yml --encoder_ckpt checkpoints/pretrain/best_pretrain_sst2_
-exp1_.pt
+python -m scripts.pretrain --config configs/pretrain_rte.yml --gpu_id 4 && python -m scripts.finetune --config configs/finetune_rte.yml --gpu_id 4 --encoder_ckpt checkpoints/pretrain/best_pretrain_rte_exp1_microsoft_deberta_large_.pt
 
 for task in rte sst2 qnli mnli qqp; do python -m scripts.pretrain --config  configs/pretrain_${task}.yml && python -m scripts.finetune --config configs/finetune_${task}.yml  --encoder_ckpt checkpoints/pretrain/best_pretrain_${task}_exp1_.pt; done 
 
 for task in qnli mnli qqp; do python -m scripts.pretrain --config configs/pretrain_${task}.yml --gpu_id 2 dynamic_masking=true && python -m scripts.finetune --config configs/finetune_${task}.yml --gpu_id 2 dynamic_masking=true --encoder_ckpt checkpoints/pretrain/best_pretrain_${task}_exp1_dynamic_masking_.pt; done
 
-for task in mnli; do python -m scripts.pretrain --config  configs/pretrain_${task}.yml --gpu_id 6 && python -m scripts.finetune --config configs/finetune_${task}.yml --gpu_id 6 --encoder_ckpt checkpoints/pretrain/best_pretrain_${task}_exp1_.pt; done 
+for task in qnli sst2 qqp mnli; do python -m scripts.finetune --config configs/finetune_${task}.yml --gpu_id 7 --encoder_ckpt billionare_file/checkpoints_roberta_large/pretrain/best_pretrain_${task}_exp1_.pt; done 
 
-tmux new -s jepa_goat
+for task in rte sst2 qnli qqp mnli; do
+    pre_tmp=$(mktemp --suffix=.yml)
+    ft_tmp=$(mktemp --suffix=.yml)
+    sed 's/model_name: .*/model_name: bert-large-uncased/' configs/pretrain_${task}.yml > $pre_tmp
+    sed 's/model_name: .*/model_name: bert-large-uncased/' configs/finetune_${task}.yml > $ft_tmp
+    python -m scripts.pretrain --config $pre_tmp --gpu_id 4 && \
+    python -m scripts.finetune --config $ft_tmp --gpu_id 4 --encoder_ckpt
+  checkpoints/pretrain/best_pretrain_${task}_exp1_.pt
+    rm $pre_tmp $ft_tmp
+  done
+
+tmux new -s jepa_goat || bert_jepa
 tmux attach -t jepa_goat
 tmux attach -t rte, mnli
+
+python -m scripts.finetune \
+    --config configs/finetune_stsb.yml \
+    --encoder_ckpt billionare_file/checkpoints_roberta_large/finetune/finetune_mnli_exp1_FacebookAI_roberta_large_best.pt \
+    --gpu_id 2
+
+mkdir -p logs && { (python -m scripts.pretrain --config configs/pretrain_wnli.yml --gpu_id 0 && python -m  scripts.finetune_wnli --config configs/finetune_wnli.yml --encoder_ckpt  checkpoints/pretrain/best_pretrain_wnli_exp1_roberta_large_.pt --gpu_id 0) 2>&1 | tee logs/wnli.log &  (python -m scripts.pretrain --config configs/pretrain_stsb.yml --gpu_id 1 && python -m  scripts.finetune_stsb --config configs/finetune_stsb.yml --encoder_ckpt  checkpoints/pretrain/best_pretrain_stsb_exp1_roberta_large_.pt --gpu_id 1) 2>&1 | tee logs/stsb.log &  (python -m scripts.pretrain --config configs/pretrain_cola.yml --gpu_id 2 && python -m scripts.finetune  --config configs/finetune_cola.yml --encoder_ckpt  checkpoints/pretrain/best_pretrain_cola_exp1_roberta_large_.pt --gpu_id 2) 2>&1 | tee logs/cola.log &  (python -m scripts.pretrain --config configs/pretrain_mrpc.yml --gpu_id 3 && python -m scripts.finetune  --config configs/finetune_mrpc.yml --encoder_ckpt  checkpoints/pretrain/best_pretrain_mrpc_exp1_roberta_large_.pt --gpu_id 3) 2>&1 | tee logs/mrpc.log &  wait; }
+
+mkdir -p logs && { (python -m scripts.pretrain --config configs/pretrain_wnli.yml --gpu_id 0 && python -m
+  scripts.finetune_wnli --config configs/finetune_wnli.yml --encoder_ckpt
+  checkpoints/pretrain/best_pretrain_wnli_exp1_roberta_large_.pt --gpu_id 0) 2>&1 | tee logs/wnli.log &
+  (python -m scripts.pretrain --config configs/pretrain_cola.yml --gpu_id 1 && python -m scripts.finetune
+  --config configs/finetune_cola.yml --encoder_ckpt
+  checkpoints/pretrain/best_pretrain_cola_exp1_roberta_large_.pt --gpu_id 1) 2>&1 | tee logs/cola.log &
+  wait; }
+
+for task in cola mrpc stsb; do python scripts/eval.py --config configs/finetune_${task}.yml --ckpt checkpoints/finetune/finetune_${task}_exp1_roberta_large_best.pt --gpu_id 4 --output_dir roberta_large_glue model_name=roberta-large; done
+
+
+
+for task in cola mrpc stsb; do python scripts/eval.py --config configs/finetune_${task}.yml --ckpt billionare_file/checkpoints_roberta_large/finetune/finetune_${task}_exp1_roberta_large_best.pt --gpu_id 4 --output_dir robert_large_glue model_name=roberta-large; done
+
+for task in rte sst2 qnli qqp mnli; do python scripts/eval.py --config configs/finetune_${task}.yml --ckpt billionare_file/checkpoints_roberta_base/finetune/finetune_${task}_exp1_best.pt --gpu_id 4 --output_dir bert_base_glue model_name=bert-base-uncased; done
+
+
+# SuperGLUE
+
+for task in boolq copa multirc; do python scripts/finetune_superglue.py --config
+  configs/finetune_${task}.yml --gpu_id 4 --encoder_ckpt fresh; done
+
 ## Setup
 ```bash
 pip install -e .

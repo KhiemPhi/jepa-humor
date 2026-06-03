@@ -1,6 +1,8 @@
+README.md
 pyproject.toml
 src/jepa_humor/__init__.py
 src/jepa_humor/data.py
+src/jepa_humor/eval_beir.py
 src/jepa_humor/finetune.py
 src/jepa_humor/jepa.py
 src/jepa_humor/masking.py

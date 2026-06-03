@@ -248,6 +248,26 @@ def expand_swag_for_pretraining(ds_split):
     return Dataset.from_list(records)
 
 
+def expand_copa_for_pretraining(ds_split):
+    """Expand each COPA example into 2 single-sequence rows (same format as finetune)."""
+    records = []
+    for ex in ds_split:
+        connector = "because" if ex["question"] == "cause" else "so"
+        for choice in [ex["choice1"], ex["choice2"]]:
+            records.append({
+                "text": ex["premise"] + " " + connector + " " + choice,
+                "label": ex["label"],
+            })
+    return Dataset.from_list(records)
+
+
+def preprocess_multirc_for_pretraining(ds_split):
+    """Merge question+answer into a single column so pretrain matches finetune tokenization."""
+    def fn(examples):
+        return {"question_answer": [q + " " + a for q, a in zip(examples["question"], examples["answer"])]}
+    return ds_split.map(fn, batched=True)
+
+
 def load_swag():
     """
     Load SWAG dataset in native multiple-choice format.
@@ -344,13 +364,12 @@ def load_hf_splits(name: str, config: str = None, test_size=0.2, seed=42):
     Returns:
         Dataset dict with train/validation/test splits
     """
-    if config is None:
-        # Try to infer config from name or default to qnli
+    if config is None and 'glue' in name.lower():
         if 'mnli' in name.lower():
             config = 'mnli'
         else:
             config = 'qnli'
-    
+
     ds = load_dataset(name, config)
     return ds
     
@@ -547,14 +566,18 @@ def load_test_set_from_json(dataset_config: str, json_path: str = None):
         print(f"Warning: test_ann.json not found at {json_path}")
         return None
     
-    # Map dataset config to JSON key and expected fields
+    # Map dataset config to JSON key and expected fields.
+    # CoLA, MRPC, and STS-B have no public GLUE test labels — they return None gracefully.
     config_map = {
         "qnli": ("qnli", ["question", "sentence"]),
         "mnli": ("mnli", ["premise", "hypothesis"]),
         "mnli-mm": ("mnli-mm", ["premise", "hypothesis"]),
         "qqp": ("qqp", ["question1", "question2"]),
-        "rte": ("rte", ["sentence1", "sentence2"]),  # RTE typically uses sentence1/sentence2
+        "rte": ("rte", ["sentence1", "sentence2"]),
         "sst2": ("sst2", ["sentence"]),
+        "cola": ("cola", ["sentence"]),
+        "mrpc": ("mrpc", ["sentence1", "sentence2"]),
+        "stsb": ("stsb", ["sentence1", "sentence2"]),
     }
     
     if dataset_config not in config_map:
@@ -701,10 +724,9 @@ def preprocess_dataset_ssl(
         # Get maskable token indices (exclude padding and special tokens)
         CLS_ID = tokenizer.cls_token_id if tokenizer.cls_token_id is not None else -1
         SEP_ID = tokenizer.sep_token_id if tokenizer.sep_token_id is not None else -1
-        UNK_ID = tokenizer.unk_token_id if tokenizer.unk_token_id is not None else -1
         maskable_indices = [
             i for i in range(length)
-            if ids[i] not in (PAD_ID, CLS_ID, SEP_ID, UNK_ID)
+            if ids[i] not in (PAD_ID, CLS_ID, SEP_ID)
         ]
 
         if not maskable_indices:
@@ -826,18 +848,17 @@ def preprocess_dataset_ssl(
         PAD_ID = tokenizer.pad_token_id
         CLS_ID = tokenizer.cls_token_id
         SEP_ID = tokenizer.sep_token_id
-        UNK_ID = tokenizer.unk_token_id
 
         for idx in chosen:
-            if ids[idx] not in (PAD_ID, CLS_ID, SEP_ID, UNK_ID):
+            if ids[idx] not in (PAD_ID, CLS_ID, SEP_ID):
                 ids[idx] = MASK_ID
 
             # contiguous span around sentiment words
             span = max(1, np.random.poisson(span_mean))
             for j in range(1, span + 1):
-                if idx + j < length and ids[idx + j] not in (PAD_ID, CLS_ID, SEP_ID, UNK_ID):
+                if idx + j < length and ids[idx + j] not in (PAD_ID, CLS_ID, SEP_ID):
                     ids[idx + j] = MASK_ID
-                if idx - j >= 0 and ids[idx - j] not in (PAD_ID, CLS_ID, SEP_ID, UNK_ID):
+                if idx - j >= 0 and ids[idx - j] not in (PAD_ID, CLS_ID, SEP_ID):
                     ids[idx - j] = MASK_ID
 
         return ids
@@ -856,7 +877,6 @@ def preprocess_dataset_ssl(
         PAD = tokenizer.pad_token_id
         CLS = tokenizer.cls_token_id
         SEP = tokenizer.sep_token_id
-        UNK = tokenizer.unk_token_id
         vocab_size = tokenizer.vocab_size
 
         ids = ids.copy()
@@ -868,7 +888,7 @@ def preprocess_dataset_ssl(
             i = random.randint(1, max(1, L - 2))  # avoid CLS/SEP as much as possible
             tok = ids[i]
 
-            if tok in (PAD, CLS, SEP, UNK):
+            if tok in (PAD, CLS, SEP):
                 continue
 
             r = random.random()
@@ -876,7 +896,7 @@ def preprocess_dataset_ssl(
             if r < 0.40:
                 span_len = max(1, np.random.poisson(span_mean))
                 for j in range(i, min(i + span_len, L)):
-                    if ids[j] not in (PAD, CLS, SEP, UNK):
+                    if ids[j] not in (PAD, CLS, SEP):
                         ids[j] = MASK
 
             elif r < 0.55: # TextBugger 
@@ -1017,11 +1037,10 @@ def remask_ssl_dataset(ds, tokenizer, mask_probability=0.15, span_mean=3.0, mask
     PAD_ID  = tokenizer.pad_token_id
     CLS_ID  = tokenizer.cls_token_id if tokenizer.cls_token_id is not None else -1
     SEP_ID  = tokenizer.sep_token_id if tokenizer.sep_token_id is not None else -1
-    UNK_ID  = tokenizer.unk_token_id if tokenizer.unk_token_id is not None else -1
 
     def random_token_mask(ids):
         ids = list(ids)
-        maskable = [i for i in range(len(ids)) if ids[i] not in (PAD_ID, CLS_ID, SEP_ID, UNK_ID)]
+        maskable = [i for i in range(len(ids)) if ids[i] not in (PAD_ID, CLS_ID, SEP_ID)]
         if not maskable:
             return ids
         n = min(max(1, int(len(maskable) * mask_probability)), len(maskable))
@@ -1074,8 +1093,9 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
                 "keep_attention_mask": torch.tensor([b["keep_attention_mask"] for b in batch], dtype=torch.long),
                 "target_input_ids": torch.tensor([b["target_input_ids"] for b in batch], dtype=torch.long),
                 "target_attention_mask": torch.tensor([b["target_attention_mask"] for b in batch], dtype=torch.long),
-                "label": torch.tensor([b["label"] for b in batch], dtype=torch.long),
             }
+            if "label" in batch[0]:
+                result["label"] = torch.tensor([b["label"] for b in batch], dtype=torch.long)
             if "keep_token_type_ids" in batch[0]:
                 result["keep_token_type_ids"] = torch.tensor([b["keep_token_type_ids"] for b in batch], dtype=torch.long)
                 result["target_token_type_ids"] = torch.tensor([b["target_token_type_ids"] for b in batch], dtype=torch.long)

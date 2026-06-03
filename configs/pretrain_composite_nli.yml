@@ -1,6 +1,6 @@
 seed: 42
 experiment_name: pretrain_composite_nli_exp1  # Prefix for checkpoints
-model_name: bert-base-uncased
+model_name: roberta-large
 dataset: custom/composite_nli  # symbolic, handled via dataset_config flag
 dataset_config: composite_nli  # trigger composite loader
 
@@ -14,7 +14,7 @@ anli_val_rounds: [1, 2, 3]  # ANLI rounds to use for validation
 anli_val_type: test  # "test" or "dev" - type of ANLI splits for validation
 
 text_keys: ["premise", "hypothesis"]
-max_length: 256
+max_length: 512
 batch_size: 64
 num_workers: 4
 epochs: 5

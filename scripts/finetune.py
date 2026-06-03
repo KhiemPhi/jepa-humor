@@ -1,5 +1,6 @@
 import argparse, yaml, os
 from jepa_humor.finetune import finetune
+from jepa_humor.finetune_wnli import finetune_wnli
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
@@ -18,9 +19,8 @@ if __name__ == "__main__":
         cfg["gpu_id"] = args.gpu_id
     if args.encoder_ckpt == "fresh" and "experiment_name" in cfg:
         cfg["experiment_name"] = cfg["experiment_name"] + "_fresh"
-    
+
     if args.eval_only and args.model_ckpt is None:
-        # Try to use default checkpoint path from config
         ckpt_dir = cfg.get("ckpt_dir", "checkpoints/finetune")
         default_ckpt = os.path.join(ckpt_dir, "best.pt")
         if os.path.exists(default_ckpt):
@@ -28,7 +28,10 @@ if __name__ == "__main__":
             args.model_ckpt = default_ckpt
         else:
             raise ValueError("--model_ckpt must be provided when --eval_only is set")
-    
-    model = finetune(cfg, encoder_ckpt=args.encoder_ckpt, eval_only=args.eval_only, model_ckpt=args.model_ckpt)
+
+    if cfg.get("dataset_config") == "wnli":
+        model = finetune_wnli(cfg, encoder_ckpt=args.encoder_ckpt)
+    else:
+        model = finetune(cfg, encoder_ckpt=args.encoder_ckpt, eval_only=args.eval_only, model_ckpt=args.model_ckpt)
     if not args.eval_only:
         print("✅ Finetune done.")
