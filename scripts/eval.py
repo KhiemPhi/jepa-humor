@@ -13,9 +13,8 @@ import os
 
 import numpy as np
 import torch
-import torch.nn as nn
 import yaml
-from datasets import load_dataset
+from datasets import load_dataset as _hf_load_dataset
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef
 from torch.utils.data import DataLoader
@@ -34,6 +33,20 @@ from transformers import AutoModelForMaskedLM
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+# ── Smoke-test limiting ─────────────────────────────────────────────────────────
+# When --limit N (N>0) is passed, every loaded split is capped to N examples so the
+# whole eval runs in seconds. Default 0 = no limit (full sets).
+_LIMIT = 0
+
+
+def _apply_limit(ds):
+    return ds.select(range(min(_LIMIT, len(ds)))) if _LIMIT and _LIMIT > 0 else ds
+
+
+def load_dataset(*args, **kwargs):
+    return _apply_limit(_hf_load_dataset(*args, **kwargs))
+
+
 # ── GLUE task metadata ─────────────────────────────────────────────────────────
 # label_map: None → submit integer predictions; dict → map int → string label
 TASKS = {
@@ -50,17 +63,6 @@ TASKS = {
 }
 
 
-class STSBRegressor(nn.Module):
-    def __init__(self, encoder, hidden_size, dropout=0.1):
-        super().__init__()
-        self.encoder = encoder
-        self.dropout = nn.Dropout(dropout)
-        self.regressor = nn.Linear(hidden_size, 1)
-
-    def forward(self, input_ids, attention_mask, token_type_ids=None):
-        out = self.encoder(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
-        pooled = out.last_hidden_state[:, 0, :]
-        return self.regressor(self.dropout(pooled)).squeeze(-1)
 
 
 def _clf_collate(batch):
@@ -125,7 +127,7 @@ def _reg_inference(model, loader, dev):
             token_type_ids = batch.get("token_type_ids")
             if token_type_ids is not None:
                 token_type_ids = token_type_ids.to(dev, non_blocking=True)
-            preds = model(input_ids, attention_mask, token_type_ids=token_type_ids)
+            preds = model(input_ids, attention_mask, token_type_ids=token_type_ids).squeeze(-1)
             all_true.extend(batch["label"].tolist())
             all_preds.extend(preds.cpu().tolist())
     return np.array(all_true), np.array(all_preds)
@@ -267,6 +269,7 @@ def main():
     p.add_argument("--gpu_id",     type=int, default=None)
     p.add_argument("--output_dir", default="glue_submission", help="Directory for TSV files and eval JSON")
     p.add_argument("--batch_size", type=int, default=None)
+    p.add_argument("--limit", type=int, default=0, help="If >0, cap each dataset split to N examples (smoke testing)")
     args, overrides = p.parse_known_args()
 
     with open(args.config) as f:
@@ -276,6 +279,11 @@ def main():
         cfg[k] = yaml.safe_load(v)
     if args.gpu_id is not None:
         cfg["gpu_id"] = args.gpu_id
+
+    global _LIMIT
+    _LIMIT = args.limit
+    if _LIMIT > 0:
+        print(f"[smoke] limiting every dataset split to {_LIMIT} examples")
 
     set_seed(cfg.get("seed", 42))
     dev = device(cfg.get("gpu_id", None))
@@ -316,8 +324,7 @@ def main():
     print(f"Loading model '{cfg['model_name']}' ...")
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_name"])
     base      = AutoModel.from_pretrained(cfg["model_name"])
-    model     = (STSBRegressor(base, base.config.hidden_size) if is_reg
-                 else CorrectEnglishSentenceClassifier(base, base.config.hidden_size, num_labels)).to(dev)
+    model     = CorrectEnglishSentenceClassifier(base, base.config.hidden_size, num_labels).to(dev)
 
     ckpt = torch.load(args.ckpt, map_location=dev, weights_only=False)
     state_dict = ckpt.get("model_state_dict") or ckpt.get("state_dict") or ckpt
@@ -371,7 +378,7 @@ def main():
             if ds_test is None:
                 print(f"  No internal test data for '{json_key}' — skipping")
                 continue
-            tok = preprocess_dataset(ds_test["test"], tokenizer, max_length, text_keys)
+            tok = preprocess_dataset(_apply_limit(ds_test["test"]), tokenizer, max_length, text_keys)
             loader = _make_loader(tok, batch_size, num_workers, collate_fn)
             true, preds, _ = _clf_inference(model, loader, dev, num_labels, threshold)
             m = _clf_metrics(true, preds)
@@ -380,7 +387,7 @@ def main():
     else:
         ds_test = load_test_set_from_json("stsb")
         if ds_test is not None:
-            tok = preprocess_dataset(ds_test["test"], tokenizer, max_length, text_keys)
+            tok = preprocess_dataset(_apply_limit(ds_test["test"]), tokenizer, max_length, text_keys)
             loader = _make_loader(tok, batch_size, num_workers, collate_fn)
             true, preds = _reg_inference(model, loader, dev)
             m = _reg_metrics(true, preds)

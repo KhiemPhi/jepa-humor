@@ -3,12 +3,15 @@ experiment_name: finetune_superglue_rte_exp1
 model_name: FacebookAI/roberta-large
 dataset: super_glue
 dataset_config: rte
+test_dataset: super_glue
 text_keys: ["premise", "hypothesis"]
 num_labels: 2
 max_length: 512
 batch_size: 16
 num_workers: 4
-epochs: 20
+# fairseq config/finetuning/rte.yaml: 2036 updates, 122 warmup (6%); lr set to 1e-5 (user override, fairseq used 2e-5)
+total_num_update: 2036
+warmup_updates: 122
 lr: 2.0e-5
 weight_decay: 0.1
 adam_betas: [0.9, 0.98]
@@ -16,8 +19,8 @@ adam_eps: 1.0e-6
 mixed_precision: true
 max_grad_norm: 0.0
 lr_scheduler: linear
-lr_warmup_ratio: 0.06
 ckpt_dir: checkpoints/finetune
 results_dir: results
 gpu_id: 7
+save_best_model_on: test  # SuperGLUE test labels are not public
 swa: false

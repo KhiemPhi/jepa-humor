@@ -268,6 +268,20 @@ def preprocess_multirc_for_pretraining(ds_split):
     return ds_split.map(fn, batched=True)
 
 
+def expand_record_for_pretraining(ds_split):
+    """Expand each ReCoRD example into one (passage, query) row per candidate entity, with
+    @placeholder replaced by the entity — so the pretrain input is exactly what the model sees
+    at finetune time (mirrors _expand_record in finetune_superglue.py)."""
+    records = []
+    for ex in ds_split:
+        for entity in ex["entities"]:
+            records.append({
+                "passage": ex["passage"],
+                "query": ex["query"].replace("@placeholder", entity),
+            })
+    return Dataset.from_list(records)
+
+
 def load_swag():
     """
     Load SWAG dataset in native multiple-choice format.

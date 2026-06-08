@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch.cuda.amp import autocast
 from torch.amp import GradScaler
 from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, AutoConfig
 from sklearn.metrics import matthews_corrcoef, f1_score, accuracy_score
 from scipy.stats import spearmanr
 from .utils import set_seed, device, load_encoder_state, save_ckpt
@@ -81,16 +81,21 @@ def _build_finetune_lr_scheduler(optimizer, num_training_steps, warmup_ratio, sc
     return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
 class CorrectEnglishSentenceClassifier(nn.Module):
-    def __init__(self, encoder, hidden_size=768, num_labels=2, dropout=0.1):
+    def __init__(self, encoder, hidden_size=768, num_labels=2, dropout=0.0):  # fairseq pooler_dropout default = 0.0
         super().__init__()
         self.encoder = encoder
         self.dropout = nn.Dropout(dropout)
-        self.classifier = nn.Linear(hidden_size, num_labels)
+        self.dense = nn.Linear(hidden_size, hidden_size)
+        self.out_proj = nn.Linear(hidden_size, num_labels)
+
     def forward(self, input_ids, attention_mask, token_type_ids=None):
         out = self.encoder(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
-        pooled = out.last_hidden_state[:, 0, :]
-        pooled = self.dropout(pooled)
-        return self.classifier(pooled)
+        x = out.last_hidden_state[:, 0, :]
+        x = self.dropout(x)
+        x = self.dense(x)
+        x = torch.tanh(x)
+        x = self.dropout(x)
+        return self.out_proj(x)
 
 def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = None):
     set_seed(cfg["seed"])
@@ -104,7 +109,14 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
 
     # 1. Load Encoder
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_name"])
-    base = AutoModel.from_pretrained(cfg["model_name"]) if encoder_ckpt is None else AutoModel.from_pretrained(cfg["model_name"])
+    # Encoder dropout from config (fairseq model.dropout / attention_dropout); when the
+    # keys are absent the HF model default (0.1 / 0.1) is kept, so behavior is unchanged.
+    enc_config = AutoConfig.from_pretrained(cfg["model_name"])
+    if "hidden_dropout" in cfg:
+        enc_config.hidden_dropout_prob = cfg["hidden_dropout"]
+    if "attention_dropout" in cfg:
+        enc_config.attention_probs_dropout_prob = cfg["attention_dropout"]
+    base = AutoModel.from_pretrained(cfg["model_name"], config=enc_config)
     if encoder_ckpt != "fresh" and not eval_only:
         print(f"Loading pretrained encoder from {encoder_ckpt}")
         base = load_encoder_state(base, encoder_ckpt, map_location="cpu")
@@ -320,18 +332,18 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     num_labels = cfg.get("num_labels", 1 if is_regression else 2)
     print(f"Number of labels: {num_labels}")
     
-    model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels).to(dev)
-    _betas = tuple(cfg["adam_betas"]) if "adam_betas" in cfg else (0.9, 0.999)
-    _eps   = cfg.get("adam_eps", 1e-8)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg.get("weight_decay", 0.17), betas=_betas, eps=_eps)
+    model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels, dropout=cfg.get("head_dropout", 0.0)).to(dev)
+    # fairseq RoBERTa: adam with decoupled weight decay (== AdamW) applied uniformly to all params.
+    _betas = tuple(cfg["adam_betas"]) if "adam_betas" in cfg else (0.9, 0.98)
+    _eps   = cfg.get("adam_eps", 1e-6)
+    _wd    = cfg.get("weight_decay", 0.1)
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=_wd, betas=_betas, eps=_eps)
 
-    # Setup SWA (Stochastic Weight Averaging)
-    swa_start_epoch = max(1, int(cfg["epochs"] * 0.9))  # Start SWA after 75% of training
-    swa_model = AveragedModel(model)
-    swa_scheduler = SWALR(opt, swa_lr=cfg["lr"] * 0.5)  # Lower LR for averaging phase
-    use_swa = True
-
+    use_swa = cfg.get("swa", False)
     if use_swa:
+        swa_start_epoch = max(1, int(cfg["epochs"] * 0.9))
+        swa_model = AveragedModel(model)
+        swa_scheduler = SWALR(opt, swa_lr=cfg["lr"] * 0.5)
         print(f"SWA will start at epoch {swa_start_epoch}/{cfg['epochs']}")
 
     lr_sched_cfg = cfg.get("lr_scheduler", None)
@@ -370,19 +382,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         criterion = nn.MSELoss()
         print("Using MSELoss for regression (STS-B)")
     else:
-        # Compute class weights from training labels (inverse frequency)
-        try:
-            train_labels = np.asarray(ds["train"]["label"])  # expects integer labels 0/1
-            counts = np.bincount(train_labels, minlength=2).astype(np.float32)
-            counts[counts == 0] = 1.0
-            inv = 1.0 / counts
-            weights = (inv / inv.sum()) * 2.0  # normalize roughly to sum=2
-            class_weights = torch.tensor(weights, dtype=torch.float, device=dev)
-            print(f"Class counts: {counts.astype(int).tolist()} -> weights: {weights.round(4).tolist()}")
-            criterion = nn.CrossEntropyLoss(weight=class_weights)
-        except Exception as e:
-            print(f"Warning: falling back to unweighted CE (reason: {e})")
-            criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss()
     scaler = GradScaler('cuda', enabled=cfg.get("mixed_precision", True))
     best_t = 0.5  # Default threshold, will be updated during training
     
@@ -420,7 +420,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         if "pretrain" in model_ckpt:
             print("Loading embeddings from pretrained model...")
             base = load_encoder_state(base, model_ckpt, map_location="cpu")
-            model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels).to(dev)
+            model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels, dropout=cfg.get("head_dropout", 0.0)).to(dev)
             print("Embeddings loaded. Running evaluation only...")
         else:
             print(f"Loading model checkpoint from {model_ckpt}")
@@ -510,19 +510,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 probs = np.concatenate(y_prob, axis=0)
                 true = np.asarray(y_true)
 
-                # Search across thresholds (only for binary classification)
-                if num_labels > 2:
-                    best_t = 0.5
-                elif epoch == cfg["epochs"] or epoch % 3 == 0:
-                    best_t, best_mcc = 0.0, -1.0
-                    for t in np.linspace(0.1, 0.9, 17):
-                        preds = (probs >= t).astype(int)
-                        mcc = matthews_corrcoef(true, preds)
-                        if mcc > best_mcc:
-                            best_mcc, best_t = mcc, t
-                    print(f"Best MCC for Train MCC = {best_mcc:.4f} at threshold = {best_t:.3f}")
-                else:
-                    best_t = 0.5
+                best_t = 0.5
      
             epoch_loss = running / len(train_loader)
             epoch_lr = opt.param_groups[0]['lr']
@@ -950,7 +938,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         if use_swa:
             print("Updating batch normalization statistics for SWA model...")
             # Create a temporary model for SWA evaluation
-            swa_model_for_eval = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels).to(dev)
+            swa_model_for_eval = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels, dropout=cfg.get("head_dropout", 0.0)).to(dev)
             swa_model_for_eval.load_state_dict(swa_model.module.state_dict())
             
             # Update BN stats by running one forward pass through training data

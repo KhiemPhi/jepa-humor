@@ -55,7 +55,7 @@ TASKS = {
     ),
     "copa": dict(
         ckpt=f"{_CKPT}/finetune_copa_exp1_FacebookAI_roberta_large_copa_best.pt",
-        model_name="FacebookAI/roberta-large", num_labels=2, max_length=128,
+        model_name="FacebookAI/roberta-large", num_labels=1, max_length=128,
         label_names={0: "0", 1: "1"},
         eval_type="copa", tsv_name="COPA.tsv",
     ),
@@ -271,7 +271,7 @@ def eval_wic(task, cfg, dev, out_dir):
 
 
 def eval_copa(task, cfg, dev, out_dir):
-    """COPA: score each choice with the classifier, pick the higher-scoring one."""
+    """COPA: ranking head — score each choice (one scalar), pick the higher-scoring one."""
     print(f"\n{'='*55}\n[COPA]  {cfg['tsv_name']}\n{'='*55}")
     tokenizer, model = _load_clf(cfg, dev)
     ds      = load_dataset("super_glue", "copa")
@@ -290,7 +290,7 @@ def eval_copa(task, cfg, dev, out_dir):
                                      padding="max_length", max_length=max_len)
                     with amp.autocast("cuda", enabled=True):
                         logits = model(enc["input_ids"].to(dev), enc["attention_mask"].to(dev))
-                    scores.append(torch.softmax(logits, dim=-1)[0, 1].item())
+                    scores.append(logits[0, 0].item())  # single ranking score per choice
                 pred = int(scores[1] > scores[0])
                 preds.append(pred); trues.append(ex["label"]); idxs.append(ex["idx"])
         return trues, preds, idxs
@@ -585,13 +585,26 @@ def main():
                    help="Tasks to evaluate (default: all 10)")
     p.add_argument("--gpu_id",     type=int, default=None)
     p.add_argument("--output_dir", default="roberta_large_superglue")
+    p.add_argument("--ckpt_dir", default=_CKPT,
+                   help=f"Directory of fine-tuned task checkpoints (default: {_CKPT}). "
+                        "Point this at a hyperparameter-sweep run's checkpoint dir; "
+                        "AX-b/AX-g keep using the MNLI checkpoint.")
     args = p.parse_args()
+
+    # Redirect the per-task checkpoints to --ckpt_dir (their basenames are identical
+    # across sweep runs — only the directory changes). AX tasks use the absolute MNLI
+    # path, which is not under _CKPT, so they are left untouched.
+    if args.ckpt_dir != _CKPT:
+        for tcfg in TASKS.values():
+            if tcfg["ckpt"].startswith(_CKPT):
+                tcfg["ckpt"] = os.path.join(args.ckpt_dir, os.path.basename(tcfg["ckpt"]))
 
     set_seed(42)
     dev = device(args.gpu_id)
     os.makedirs(args.output_dir, exist_ok=True)
     print(f"Device    : {dev}")
     print(f"Output    : {args.output_dir}/")
+    print(f"Checkpts  : {args.ckpt_dir}/")
     print(f"Tasks     : {args.tasks}")
 
     all_results = {}

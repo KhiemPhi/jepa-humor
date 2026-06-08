@@ -25,6 +25,7 @@ from .data import (
     expand_swag_for_pretraining,
     expand_copa_for_pretraining,
     preprocess_multirc_for_pretraining,
+    expand_record_for_pretraining,
 )
 
 def build_optimizer_and_scheduler(jepa, lr_pred=1e-4, lr_enc=5e-5, weight_decay=0.01, total_steps=1000, warmup_ratio=0.06, model_type="jepa"):
@@ -174,6 +175,9 @@ def pretrain(cfg):
     elif dataset_config == "multirc":
         split['train'] = preprocess_multirc_for_pretraining(split['train'])
         split['test'] = preprocess_multirc_for_pretraining(split['test'])
+    elif dataset_config == "record":
+        split['train'] = expand_record_for_pretraining(split['train'])
+        split['test'] = expand_record_for_pretraining(split['test'])
 
     # Get text keys from config (defaults to ["question", "sentence"])
     if is_anli or dataset_config == "snli_mnli_anli":
@@ -243,6 +247,8 @@ def pretrain(cfg):
     cfg["ckpt_dir"] = os.path.abspath(cfg["ckpt_dir"])
     os.makedirs(cfg["ckpt_dir"], exist_ok=True)
     loss_history = []
+    max_steps = cfg.get("max_steps")   # optional global-step cap; None = full run
+    global_step = 0
 
     for epoch in range(1, cfg["epochs"] + 1):
         if dynamic_masking:
@@ -307,6 +313,10 @@ def pretrain(cfg):
             running += float(loss.item()); steps += 1
             pbar.set_postfix(loss=f"{running/steps:.4f}")
 
+            global_step += 1
+            if max_steps is not None and global_step >= max_steps:
+                break
+
         epoch_loss = running / max(1, steps)
         loss_history.append({"epoch": epoch, "loss": epoch_loss})
         print(f"[Pretrain] epoch {epoch}: loss={epoch_loss:.4f}")
@@ -339,6 +349,10 @@ def pretrain(cfg):
             if patience >= cfg["early_stop_patience"]:
                 print(f"Early stopping at epoch {epoch} (best={best:.4f}).")
                 break
+
+        if max_steps is not None and global_step >= max_steps:
+            print(f"Reached max_steps={max_steps} (global_step={global_step}); stopping pretrain.")
+            break
 
     # save pretrain loss history to results
     import json, datetime

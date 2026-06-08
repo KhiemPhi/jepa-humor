@@ -1,22 +1,23 @@
 """
 Entry point for SuperGLUE fine-tuning.
-  BoolQ, CB, WiC  → standard finetune() (CLS classification)
-  COPA            → finetune_copa()
+  BoolQ, CB       → finetune_superglue_clf() (sentence_prediction CLS)
+  WiC             → finetune_superglue_wic() (word-in-context CLS)
+  COPA            → finetune_copa() (sentence_ranking multiple-choice)
   MultiRC         → finetune_multirc()
   WSC             → finetune_wnli() (super_glue/wsc, MLM scoring)
   RTE             → finetune_superglue_rte() (super_glue/rte, binary NLI)
   ReCoRD          → finetune_record() (super_glue/record, entity scoring)
 """
 import argparse, yaml, os
-from jepa_humor.finetune import finetune
 from jepa_humor.finetune_wnli import finetune_wnli
 from jepa_humor.finetune_superglue import (
     finetune_copa, finetune_multirc, finetune_superglue_rte,
-    finetune_record, finetune_superglue_wic,
+    finetune_record, finetune_superglue_wic, finetune_superglue_clf,
 )
 
-_STANDARD = {"boolq", "cb"}   # WiC moved to _CUSTOM for word-in-context support
-_CUSTOM   = {
+_CUSTOM = {
+    "boolq":   finetune_superglue_clf,
+    "cb":      finetune_superglue_clf,
     "copa":    finetune_copa,
     "multirc": finetune_multirc,
     "wsc":     finetune_wnli,
@@ -43,11 +44,9 @@ if __name__ == "__main__":
         cfg["experiment_name"] = cfg["experiment_name"] + "_fresh"
 
     task = cfg.get("dataset_config", "")
-    if task in _STANDARD:
-        finetune(cfg, encoder_ckpt=args.encoder_ckpt)
-    elif task in _CUSTOM:
+    if task in _CUSTOM:
         _CUSTOM[task](cfg, encoder_ckpt=args.encoder_ckpt)
     else:
-        raise ValueError(f"Unknown SuperGLUE task: '{task}'. Expected one of {sorted(_STANDARD | set(_CUSTOM.keys()))}")
+        raise ValueError(f"Unknown SuperGLUE task: '{task}'. Expected one of {sorted(_CUSTOM.keys())}")
 
     print("✅ SuperGLUE finetune done.")

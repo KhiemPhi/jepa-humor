@@ -2,7 +2,9 @@
 # =============================================================================
 # run_all_superglue.sh
 #
-# Full SuperGLUE pipeline: pretrain → finetune → eval for all 10 tasks.
+# SuperGLUE pipeline: finetune → eval for all tasks (pretrain step removed).
+# Each task finetunes from its EXISTING pretrain checkpoint in
+# checkpoints/pretrain/ (the pretrain step is assumed already done).
 # After completion, roberta_large_superglue/ contains all TSV files ready
 # for SuperGLUE leaderboard submission.
 #
@@ -14,25 +16,17 @@ set -euo pipefail
 
 GPU=${GPU:-7}
 CKPT_P="checkpoints/pretrain"
-MNLI_CKPT="checkpoints/finetune/finetune_mnli_exp1_FacebookAI_roberta_large_best_test.pt"
 OUT="roberta_large_superglue"
 
 mkdir -p logs "$OUT"
 
 step() { echo; echo "════════════════════════════════════════════════"; echo "  $*"; echo "════════════════════════════════════════════════"; }
 
-# ── Helper: pretrain then finetune a task ─────────────────────────────────────
+# ── Helper: finetune a task from its existing pretrain checkpoint ─────────────
 run_task() {
     local TASK=$1
-    local PRETRAIN_CFG=$2
-    local FINETUNE_CFG=$3
-    local ENCODER_CKPT=$4   # path to pretrain output checkpoint
-
-    step "[$TASK] Pretrain"
-    python -m scripts.pretrain \
-        --config "$PRETRAIN_CFG" \
-        --gpu_id $GPU \
-        2>&1 | tee "logs/pretrain_${TASK}.log"
+    local FINETUNE_CFG=$2
+    local ENCODER_CKPT=$3   # path to existing pretrain output checkpoint
 
     step "[$TASK] Finetune"
     python -m scripts.finetune_superglue \
@@ -42,16 +36,53 @@ run_task() {
         2>&1 | tee "logs/finetune_${TASK}.log"
 }
 
+# =============================================================================
+# 1. BoolQ
+# =============================================================================
+run_task boolq   configs/finetune_boolq.yml \
+    "${CKPT_P}/best_pretrain_boolq_exp1_FacebookAI_roberta_large_.pt"
 
 # =============================================================================
-# 8. ReCoRD  (entity-scoring reading comprehension) — pretrain already done
+# 2. CB
 # =============================================================================
-step "[record] Finetune"
-python -m scripts.finetune_superglue \
-    --config configs/finetune_rccr.yml \
-    --encoder_ckpt "${CKPT_P}/best_pretrain_rccr_exp1_FacebookAI_roberta_large_.pt" \
-    --gpu_id $GPU \
-    2>&1 | tee "logs/finetune_record.log"
+run_task cb      configs/finetune_cb.yml \
+    "${CKPT_P}/best_pretrain_cb_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 3. COPA
+# =============================================================================
+run_task copa    configs/finetune_copa.yml \
+    "${CKPT_P}/best_pretrain_copa_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 4. MultiRC
+# =============================================================================
+run_task multirc configs/finetune_multirc.yml \
+    "${CKPT_P}/best_pretrain_multirc_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 5. WiC  (uses finetune_superglue_wic — word-in-context tokenisation)
+# =============================================================================
+run_task wic     configs/finetune_wic.yml \
+    "${CKPT_P}/best_pretrain_wic_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 6. WSC  (MLM scoring — uses finetune_wnli internally)
+# =============================================================================
+run_task wsc     configs/finetune_wsc.yml \
+    "${CKPT_P}/best_pretrain_wsc_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 7. RTE  (binary NLI on super_glue/rte)
+# =============================================================================
+run_task rte     configs/finetune_superglue_rte.yml \
+    "${CKPT_P}/best_pretrain_superglue_rte_exp1_FacebookAI_roberta_large_.pt"
+
+# =============================================================================
+# 8. ReCoRD  (entity-scoring reading comprehension)
+# =============================================================================
+run_task record  configs/finetune_rccr.yml \
+    "${CKPT_P}/best_pretrain_rccr_exp1_FacebookAI_roberta_large_.pt"
 
 # =============================================================================
 # 9+10. AX-b and AX-g  (eval-only — zero-shot from MNLI checkpoint)

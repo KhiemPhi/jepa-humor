@@ -23,7 +23,7 @@ import torch.nn.functional as F
 from torch.amp import GradScaler
 from torch import amp
 from datasets import load_dataset
-from transformers import AutoTokenizer, AutoModelForMaskedLM
+from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoConfig
 
 import matplotlib
 matplotlib.use("Agg")
@@ -177,27 +177,36 @@ def _score_candidate(model, tokenizer, text, span2_idx, span2_text, candidate,
 # Training pair construction
 # ---------------------------------------------------------------------------
 
-def _build_train_pairs(pos_train, nlp):
-    """(before, span2_text, after, pos_candidate, [neg_candidates]) per positive example."""
-    pairs = []
-    skipped = 0
-    for ex in pos_train:
+def _build_train_examples(train_ds, nlp):
+    """
+    One entry per WSC train example, preserving order and count so batch
+    denominators match fairseq's sample_size = nqueries (# labeled examples).
+
+    Mirrors fairseq wsc_criterion.forward: a loss term is computed ONLY for
+    positive (label==1) examples, but every labeled example occupies a batch
+    slot and counts toward the gradient normalization. So:
+      - positive with >=1 mined negative → (before, span2_text, after, query, [negs])
+      - negative, or positive with no candidates → None (slot only, no loss)
+    """
+    examples = []
+    n_pos = 0
+    for ex in train_ds:
+        if int(ex["label"]) != 1:
+            examples.append(None)
+            continue
         text       = ex["text"]
         span1_text = ex["span1_text"].rstrip('.,')  # mirrors fairseq query cleanup
         span2_idx  = ex["span2_index"]
         span2_text = ex["span2_text"].rstrip('.,')
-
-        negatives = _extract_negatives(text, span1_text, nlp)
+        negatives  = _extract_negatives(text, span1_text, nlp)
         if not negatives:
-            skipped += 1
+            examples.append(None)
             continue
-
         before, after = _split_around_span(text, span2_idx, span2_text)
-        pairs.append((before, span2_text, after, span1_text, negatives))
-
-    if skipped:
-        print(f"Skipped {skipped} examples with no negative candidates")
-    return pairs
+        examples.append((before, span2_text, after, span1_text, negatives))
+        n_pos += 1
+    print(f"Built {len(examples)} train slots; {n_pos} positive examples contribute loss")
+    return examples
 
 
 # ---------------------------------------------------------------------------
@@ -253,7 +262,12 @@ def finetune_wnli(cfg, encoder_ckpt: str):
     nlp = spacy.load("en_core_web_lg")
 
     tokenizer = AutoTokenizer.from_pretrained(cfg["model_name"])
-    model = AutoModelForMaskedLM.from_pretrained(cfg["model_name"])
+    enc_config = AutoConfig.from_pretrained(cfg["model_name"])
+    if "hidden_dropout" in cfg:
+        enc_config.hidden_dropout_prob = cfg["hidden_dropout"]
+    if "attention_dropout" in cfg:
+        enc_config.attention_probs_dropout_prob = cfg["attention_dropout"]
+    model = AutoModelForMaskedLM.from_pretrained(cfg["model_name"], config=enc_config)
 
     if encoder_ckpt != "fresh":
         print(f"Loading pretrained encoder from {encoder_ckpt}")
@@ -282,33 +296,32 @@ def finetune_wnli(cfg, encoder_ckpt: str):
     model = model.to(dev)
 
     ds       = load_dataset("super_glue", "wsc")
-    pos_train = ds["train"].filter(lambda x: x["label"] == 1)
     val_ds   = ds["validation"]
-    print(f"Positive train: {len(pos_train)}, Validation: {len(val_ds)}")
+    print(f"Train: {len(ds['train'])}, Validation: {len(val_ds)}")
 
-    print("Building training pairs (spaCy NP extraction)...")
-    train_pairs = _build_train_pairs(pos_train, nlp)
-    print(f"Training pairs: {len(train_pairs)}")
+    print("Building training examples (spaCy NP extraction)...")
+    train_examples = _build_train_examples(ds["train"], nlp)
 
     max_length     = cfg.get("max_length", 128)
     margin_alpha   = cfg.get("margin_alpha", 1.0)
     margin_beta    = cfg.get("margin_beta", 0.0)
     use_cross_entropy = cfg.get("cross_entropy_loss", True)
-    epochs         = cfg["epochs"]
     mixed_precision = cfg.get("mixed_precision", True)
+    # fairseq WSC: --batch-size 16, --total-num-updates 2000, --warmup-updates 250 (ratio 0.125)
+    batch_size        = cfg.get("batch_size", 16)
+    total_num_updates = cfg.get("total_num_updates", 2000)
 
-    _betas = tuple(cfg["adam_betas"]) if "adam_betas" in cfg else (0.9, 0.999)
-    _eps   = cfg.get("adam_eps", 1e-8)
+    _betas = tuple(cfg["adam_betas"]) if "adam_betas" in cfg else (0.9, 0.98)
+    _eps   = cfg.get("adam_eps", 1e-6)
     opt    = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg.get("weight_decay", 0.01),
                                betas=_betas, eps=_eps)
     scaler = GradScaler("cuda", enabled=mixed_precision)
 
-    lr_sched_cfg   = cfg.get("lr_scheduler", "cosine")
-    lr_warmup_ratio = cfg.get("lr_warmup_ratio", 0.06)
-    num_steps      = epochs * len(train_pairs)
+    lr_sched_cfg   = cfg.get("lr_scheduler", "linear")
+    lr_warmup_ratio = cfg.get("lr_warmup_ratio", 0.125)
     lr_scheduler   = None
     if lr_sched_cfg and str(lr_sched_cfg).lower() not in ("none", "null", ""):
-        lr_scheduler = _build_finetune_lr_scheduler(opt, num_steps, lr_warmup_ratio, lr_sched_cfg)
+        lr_scheduler = _build_finetune_lr_scheduler(opt, total_num_updates, lr_warmup_ratio, lr_sched_cfg)
 
     _results_dir = cfg.get("results_dir", "results")
     _model_slug  = cfg.get("model_name", "").replace("-", "_").replace("/", "_")
@@ -324,53 +337,64 @@ def finetune_wnli(cfg, encoder_ckpt: str):
     epoch_log        = []
     _hist_val, _hist_loss, _hist_lr = [], [], []
 
-    for epoch in range(1, epochs + 1):
-        model.train()
-        total_loss = 0.0
-        pairs = list(train_pairs)
-        random.shuffle(pairs)
+    def _example_loss(before, span2_text, after, pos_cand, neg_cands):
+        """Per-example WSC loss (mirrors fairseq get_loss): query vs mined candidates."""
+        orig_q, masked_q, attn_q, cmask_q = _build_mlm_inputs(
+            tokenizer, before, pos_cand, after, max_length, dev)
+        query_lprob = _get_lprobs(model, orig_q, masked_q, attn_q, cmask_q, mixed_precision)
 
-        for before, span2_text, after, pos_cand, neg_cands in tqdm(pairs, desc=f"WNLI {epoch}/{epochs}", leave=False):
+        # Score all negative candidates in one batched forward pass (mirrors fairseq).
+        all_orig, all_masked, all_attn, all_cmask = [], [], [], []
+        for neg in neg_cands:
+            o, m, a, c = _build_mlm_inputs(tokenizer, before, neg, after, max_length, dev)
+            all_orig.append(o); all_masked.append(m); all_attn.append(a); all_cmask.append(c)
+        cand_lprobs_t = _get_lprobs(
+            model, torch.cat(all_orig), torch.cat(all_masked),
+            torch.cat(all_attn), torch.cat(all_cmask), mixed_precision)  # [N]
+
+        if use_cross_entropy:
+            # query is class 0 among [query, neg1, neg2, ...]
+            all_scores = torch.cat([query_lprob, cand_lprobs_t]).unsqueeze(0)  # [1, 1+N]
+            return F.cross_entropy(all_scores, torch.zeros(1, dtype=torch.long, device=dev))
+        # Margin loss from Kocijan et al. (fairseq default)
+        return (-query_lprob
+                + margin_alpha * (cand_lprobs_t - query_lprob + margin_beta).clamp(min=0)).sum()
+
+    # fairseq-faithful training: batches of `batch_size` examples form one optimizer
+    # update; loss is summed over the positive examples in the batch and the gradient
+    # is normalized by sample_size (= #labeled examples in the batch = len(batch)).
+    # Training runs for `total_num_updates` updates, cycling the data across epochs.
+    max_grad_norm = cfg.get("max_grad_norm", 0.0)
+    update, epoch = 0, 0
+    print(f"Training for {total_num_updates} updates (batch_size={batch_size})")
+
+    while update < total_num_updates:
+        epoch += 1
+        random.shuffle(train_examples)
+        model.train()
+        running, n_batches = 0.0, 0
+
+        n_steps = (len(train_examples) + batch_size - 1) // batch_size
+        pbar = tqdm(range(0, len(train_examples), batch_size), total=n_steps,
+                    desc=f"WNLI ep{epoch} (upd {update}/{total_num_updates})", leave=False)
+        for start in pbar:
+            if update >= total_num_updates:
+                break
+            batch = train_examples[start:start + batch_size]
+            denom = len(batch)  # = sample_size (nqueries): every train row is labeled
             opt.zero_grad(set_to_none=True)
 
-            # Score positive candidate
-            orig_q, masked_q, attn_q, cmask_q = _build_mlm_inputs(
-                tokenizer, before, pos_cand, after, max_length, dev
-            )
-            query_lprob = _get_lprobs(model, orig_q, masked_q, attn_q, cmask_q, mixed_precision)
+            n_terms, batch_loss = 0, 0.0
+            for fields in batch:
+                if fields is None:
+                    continue  # negative / no-candidate: occupies a slot, contributes no loss
+                loss_i = _example_loss(*fields)
+                scaler.scale(loss_i / denom).backward()  # accumulate; /denom = normalize by sample_size
+                batch_loss += loss_i.item() / denom
+                n_terms += 1
 
-            # Score all negative candidates in one batched forward pass (mirrors fairseq wsc_criterion)
-            all_orig, all_masked, all_attn, all_cmask = [], [], [], []
-            for neg in neg_cands:
-                orig_c, masked_c, attn_c, cmask_c = _build_mlm_inputs(
-                    tokenizer, before, neg, after, max_length, dev
-                )
-                all_orig.append(orig_c)
-                all_masked.append(masked_c)
-                all_attn.append(attn_c)
-                all_cmask.append(cmask_c)
-            cand_lprobs_t = _get_lprobs(
-                model,
-                torch.cat(all_orig),
-                torch.cat(all_masked),
-                torch.cat(all_attn),
-                torch.cat(all_cmask),
-                mixed_precision,
-            )  # [N]
-
-            # Loss (cross-entropy: query is class 0 among [query, neg1, neg2, ...])
-            if use_cross_entropy:
-                all_scores = torch.cat([query_lprob, cand_lprobs_t]).unsqueeze(0)  # [1, 1+N]
-                loss = F.cross_entropy(all_scores, torch.zeros(1, dtype=torch.long, device=dev))
-            else:
-                # Margin loss from Kocijan et al. (fairseq default)
-                loss = (
-                    -query_lprob
-                    + margin_alpha * (cand_lprobs_t - query_lprob + margin_beta).clamp(min=0)
-                ).sum()
-
-            scaler.scale(loss).backward()
-            max_grad_norm = cfg.get("max_grad_norm", 1.0)
+            if n_terms == 0:
+                continue  # all-negative batch → nothing to step
             if max_grad_norm > 0:
                 scaler.unscale_(opt)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
@@ -378,27 +402,30 @@ def finetune_wnli(cfg, encoder_ckpt: str):
             scaler.update()
             if lr_scheduler is not None:
                 lr_scheduler.step()
+            update += 1
+            running += batch_loss
+            n_batches += 1
 
-            total_loss += loss.item()
-
-        epoch_loss = total_loss / len(pairs)
+        epoch_loss = running / max(1, n_batches)
         epoch_lr   = opt.param_groups[0]["lr"]
 
         val_acc = _eval(model, tokenizer, val_ds, nlp, dev, max_length, mixed_precision)
-        print(f"[WNLI] epoch {epoch}: loss={epoch_loss:.4f} val_acc={val_acc:.4f} lr={epoch_lr:.2e}")
+        print(f"[WNLI] epoch {epoch} (update {update}/{total_num_updates}): "
+              f"loss={epoch_loss:.4f} val_acc={val_acc:.4f} lr={epoch_lr:.2e}")
 
         if val_acc > best_val_acc:
             best_val_acc  = val_acc
             best_model_state = {k: v.clone() for k, v in model.state_dict().items()}
             best_ckpt = os.path.join(ckpt_dir, f"{prefix}best.pt")
-            save_ckpt({"epoch": epoch, "val_acc": val_acc, "model_state_dict": model.state_dict()}, best_ckpt)
+            save_ckpt({"epoch": epoch, "update": update, "val_acc": val_acc,
+                       "model_state_dict": model.state_dict()}, best_ckpt)
             print(f"          ✓ Saved best model (Val Acc={val_acc:.4f}) to {best_ckpt}")
 
         _hist_val.append(val_acc)
         _hist_loss.append(epoch_loss)
         _hist_lr.append(epoch_lr)
         epoch_log.append({
-            "epoch": epoch,
+            "epoch": epoch, "update": update,
             "train": {"loss": epoch_loss, "lr": epoch_lr},
             "validation": {"acc": val_acc},
         })

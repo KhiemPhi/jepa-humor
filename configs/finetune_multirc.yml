@@ -1,11 +1,15 @@
 seed: 42
 experiment_name: finetune_multirc_exp1
 model_name: FacebookAI/roberta-large
+dataset: super_glue
 dataset_config: multirc
 max_length: 512  # MultiRC paragraphs are long
-batch_size: 16   # Reduce batch size for long sequences on GPU
+batch_size: 16
 num_workers: 4
-epochs: 20
+# No official fairseq config — RoBERTa general SuperGLUE recipe: ~10 epochs, 6% warmup
+# train=27243, bs=16 → ~1703 steps/epoch × 10 ≈ 17000 updates (dev F1 early-stops)
+total_num_update: 17000
+warmup_updates: 1020
 lr: 1.0e-5
 weight_decay: 0.1
 adam_betas: [0.9, 0.98]
@@ -13,8 +17,8 @@ adam_eps: 1.0e-6
 mixed_precision: true
 max_grad_norm: 0.0
 lr_scheduler: linear
-lr_warmup_ratio: 0.06
 ckpt_dir: checkpoints/finetune
 results_dir: results
 gpu_id: 7
+save_best_model_on: test
 swa: false

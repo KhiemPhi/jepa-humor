@@ -9,13 +9,16 @@ num_labels: 2
 max_length: 512
 batch_size: 32
 num_workers: 4
-epochs: 20
+epochs: 10
 lr: 1.0e-5
 weight_decay: 0.1
 adam_betas: [0.9, 0.98]
 adam_eps: 1.0e-6
 mixed_precision: true
 max_grad_norm: 0.0
+hidden_dropout: 0.1        # fairseq model.dropout
+attention_dropout: 0.1     # fairseq model.attention_dropout
+head_dropout: 0.1          # MLP head dropout (fairseq=0.0; 0.1 beat 0.0 on SST-2, +0.34)
 lr_scheduler: linear
 lr_warmup_ratio: 0.06
 log_dir: runs/finetune

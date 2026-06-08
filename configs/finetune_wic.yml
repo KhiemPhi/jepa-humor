@@ -10,7 +10,10 @@ num_labels: 2
 max_length: 512
 batch_size: 16
 num_workers: 4
-epochs: 20
+# No official fairseq config — RoBERTa general SuperGLUE recipe: ~10 epochs, 6% warmup
+# train=5428, bs=16 → ~340 steps/epoch × 10 ≈ 3400 updates
+total_num_update: 3400
+warmup_updates: 204
 lr: 1.0e-5
 weight_decay: 0.1
 adam_betas: [0.9, 0.98]
@@ -18,7 +21,6 @@ adam_eps: 1.0e-6
 mixed_precision: true
 max_grad_norm: 0.0
 lr_scheduler: linear
-lr_warmup_ratio: 0.06
 ckpt_dir: checkpoints/finetune
 results_dir: results
 gpu_id: 7

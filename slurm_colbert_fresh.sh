@@ -12,9 +12,15 @@ set -e   # abort on any non-zero exit so training failure stops eval
 
 mkdir -p logs results/beir_colbert
 
+# CUDA toolkit for ColBERT's JIT-compiled indexing extensions (needs CUDA_HOME)
+export CUDA_HOME=/shared/software/cuda/12.6
+export PATH="$CUDA_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
+
 # ColBERT path_ = {root}/{experiment}/{script_name_}/{name}/checkpoints/
-# script_name_ for `python colbert/train.py` run from project root = "colbert.train"
-COLBERT_CKPT=experiments/colbert/colbert_msmarco_exp1_fresh/colbert.train/run1/checkpoints/colbert-300000
+# script_name_ is "none" because checkpoints are saved from spawned worker
+# processes where __main__ has no __file__ (see colbert/infra/config/settings.py)
+COLBERT_CKPT=experiments/colbert/colbert_msmarco_exp1_fresh/none/run1/checkpoints/colbert-300000
 EVAL="python colbert/eval_beir.py --checkpoint ${COLBERT_CKPT} --results_dir results/beir_colbert"
 
 # ── 1. Fine-tune ColBERT on MS MARCO (fresh bert-base-uncased, no pretrain) ──

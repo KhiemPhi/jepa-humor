@@ -3,7 +3,8 @@ experiment_name: finetune_wnli_exp1
 model_name: roberta-large
 dataset_config: wnli
 max_length: 512
-epochs: 20
+batch_size: 16            # fairseq WSC: 16 sentences per optimizer update
+total_num_updates: 2000   # fairseq WSC: 2000 total updates (drives training; epochs unused)
 lr: 2.0e-5
 weight_decay: 0.01
 adam_betas: [0.9, 0.98]
@@ -13,6 +14,9 @@ margin_alpha: 1.0         # only used when cross_entropy_loss: false
 margin_beta: 0.0          # only used when cross_entropy_loss: false
 mixed_precision: true
 max_grad_norm: 0.0        # disabled — fairseq does not set clip-norm
+hidden_dropout: 0.1        # fairseq model.dropout
+attention_dropout: 0.1     # fairseq model.attention_dropout
+head_dropout: 0.1          # MLP head dropout (fairseq=0.0; 0.1 beat 0.0 on SST-2, +0.34)
 lr_scheduler: linear      # polynomial_decay to 0
 lr_warmup_ratio: 0.125    # 250 warmup / 2000 total updates
 gpu_id: 7
