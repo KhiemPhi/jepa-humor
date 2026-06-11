@@ -38,3 +38,11 @@ results_sst2_headdrop01
 results_superglue_bs8_lr1e-5
 roberta_large_superglue
 superglue_submission_bs8_lr1e-5
+
+# ColBERT v1 eval (cloned repo + outputs) and watcher state
+beir-ColBERT/
+experiments_v1
+results_beir_v1
+beir_work
+.colbert_watch_snapshot
+.glue_watch_snapshot

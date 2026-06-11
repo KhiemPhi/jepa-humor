@@ -40,7 +40,8 @@ def _load_model(cfg, encoder_ckpt, num_labels, dev):
     else:
         print("Using fresh encoder")
     model = CorrectEnglishSentenceClassifier(
-        base, hidden_size=base.config.hidden_size, num_labels=num_labels
+        base, hidden_size=base.config.hidden_size, num_labels=num_labels,
+        dropout=cfg.get("head_dropout", 0.0),
     ).to(dev)
     return tokenizer, model
 
@@ -216,7 +217,7 @@ def finetune_copa(cfg, encoder_ckpt: str):
 
         if val_acc > best_val:
             best_val   = val_acc
-            best_state = {k: v.clone() for k, v in model.state_dict().items()}
+            best_state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
             ckpt_path  = os.path.join(ckpt_dir, f"{exp}_copa_best.pt")
             save_ckpt({"epoch": epoch, "update": update, "val_acc": val_acc,
                        "model_state_dict": model.state_dict()}, ckpt_path)
@@ -357,7 +358,7 @@ def finetune_multirc(cfg, encoder_ckpt: str):
 
         if val_f1 > best_val:
             best_val   = val_f1
-            best_state = {k: v.clone() for k, v in model.state_dict().items()}
+            best_state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
             ckpt_path  = os.path.join(ckpt_dir, f"{exp}_multirc_best.pt")
             save_ckpt({"epoch": epoch, "update": update, "val_f1": val_f1,
                        "model_state_dict": model.state_dict()}, ckpt_path)
@@ -499,7 +500,7 @@ def finetune_superglue_wic(cfg, encoder_ckpt: str):
 
         if val_acc > best_val:
             best_val   = val_acc
-            best_state = {k: v.clone() for k, v in model.state_dict().items()}
+            best_state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
             ckpt_path  = os.path.join(ckpt_dir, f"{exp}_best.pt")
             save_ckpt({"epoch": epoch, "update": update, "val_acc": val_acc,
                        "model_state_dict": model.state_dict()}, ckpt_path)
@@ -641,7 +642,7 @@ def finetune_superglue_rte(cfg, encoder_ckpt: str):
 
         if val_acc > best_val:
             best_val   = val_acc
-            best_state = {k: v.clone() for k, v in model.state_dict().items()}
+            best_state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
             ckpt_path  = os.path.join(ckpt_dir, f"{exp}_rte_best.pt")
             save_ckpt({"epoch": epoch, "update": update, "val_acc": val_acc,
                        "model_state_dict": model.state_dict()}, ckpt_path)
@@ -875,7 +876,7 @@ def finetune_record(cfg, encoder_ckpt: str):
 
         if val_f1 > best_val:
             best_val   = val_f1
-            best_state = {k: v.clone() for k, v in model.state_dict().items()}
+            best_state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
             ckpt_path  = os.path.join(ckpt_dir, f"{exp}_record_best.pt")
             save_ckpt({"epoch": epoch, "update": update, "val_em": val_em, "val_f1": val_f1,
                        "model_state_dict": model.state_dict()}, ckpt_path)
@@ -1028,7 +1029,7 @@ def finetune_superglue_clf(cfg, encoder_ckpt: str):
 
         if score > best_val:
             best_val   = score
-            best_state = {k: v.clone() for k, v in model.state_dict().items()}
+            best_state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
             ckpt_path  = os.path.join(ckpt_dir, f"{exp}_best.pt")
             save_ckpt({"epoch": epoch, "update": update, **metrics,
                        "model_state_dict": model.state_dict()}, ckpt_path)

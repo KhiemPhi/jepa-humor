@@ -1,0 +1,26 @@
+{
+  "task": "mnli",
+  "model": "FacebookAI/roberta-large",
+  "checkpoint": "checkpoints/finetune_bs64_lr2e-5/finetune_mnli_exp1_FacebookAI_roberta_large_best_val.pt",
+  "timestamp": "2026-06-10T02:23:00.135234",
+  "validation_matched": {
+    "acc": 0.9025980641874681,
+    "mcc": 0.8539058293069111,
+    "f1": 0.9021609331308941
+  },
+  "validation_mismatched": {
+    "acc": 0.9008340113913751,
+    "mcc": 0.8511746941248728,
+    "f1": 0.9002680310067822
+  },
+  "test_matched": {
+    "acc": 0.4765013054830287,
+    "mcc": 0.21648452077185026,
+    "f1": 0.4766550295889742
+  },
+  "test_mismatched": {
+    "acc": 0.4262295081967213,
+    "mcc": 0.15280308197425732,
+    "f1": 0.42664786258154846
+  }
+}

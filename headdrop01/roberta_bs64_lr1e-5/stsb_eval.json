@@ -1,0 +1,10 @@
+{
+  "task": "stsb",
+  "model": "roberta-large",
+  "checkpoint": "checkpoints/finetune_bs64_lr1e-5/bs32_lr3e-5/finetune_stsb_exp1_roberta_large_best_val.pt",
+  "timestamp": "2026-06-11T02:10:44.314337",
+  "validation": {
+    "pearson": 0.9233526717531761,
+    "spearman": 0.9207162893107288
+  }
+}

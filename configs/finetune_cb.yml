@@ -26,3 +26,4 @@ gpu_id: 7
 save_best_model_on: test
 metric_for_best_model: cb_score  # mean(macro-F1, accuracy) — the SuperGLUE CB metric
 swa: false
+head_dropout: 0.1

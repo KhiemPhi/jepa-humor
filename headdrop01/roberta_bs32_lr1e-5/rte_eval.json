@@ -1,0 +1,16 @@
+{
+  "task": "rte",
+  "model": "roberta-large",
+  "checkpoint": "checkpoints/finetune_bs32_lr1e-5/bs64_lr1e-5/finetune_rte_exp1_roberta_large_best_val.pt",
+  "timestamp": "2026-06-10T23:44:47.043559",
+  "validation": {
+    "acc": 0.9097472924187726,
+    "mcc": 0.8189141840522602,
+    "f1": 0.9094451636525309
+  },
+  "test": {
+    "acc": 0.7401315789473685,
+    "mcc": 0.45160779803930096,
+    "f1": 0.7232892811466627
+  }
+}

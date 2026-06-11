@@ -1,0 +1,16 @@
+{
+  "task": "sst2",
+  "model": "FacebookAI/roberta-large",
+  "checkpoint": "checkpoints/finetune_bs64_lr2e-5/finetune_sst2_exp1_FacebookAI_roberta_large_best_val.pt",
+  "timestamp": "2026-06-09T22:20:53.562035",
+  "validation": {
+    "acc": 0.963302752293578,
+    "mcc": 0.9267122740438145,
+    "f1": 0.9632749326145553
+  },
+  "test": {
+    "acc": 0.5640845070422535,
+    "mcc": 0.11664954333048734,
+    "f1": 0.557204754892898
+  }
+}

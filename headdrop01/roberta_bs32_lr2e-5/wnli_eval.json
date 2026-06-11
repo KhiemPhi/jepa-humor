@@ -1,0 +1,11 @@
+{
+  "task": "wnli",
+  "model": "roberta-large",
+  "checkpoint": "checkpoints/finetune_bs32_lr2e-5/finetune_wnli_exp1_roberta_large_best.pt",
+  "timestamp": "2026-06-09T01:02:19.357103",
+  "validation": {
+    "acc": 0.875
+  },
+  "test_predictions": 146,
+  "test_pred_positive_rate": 0.3904109589041096
+}
