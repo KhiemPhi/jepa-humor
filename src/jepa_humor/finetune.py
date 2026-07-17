@@ -97,6 +97,48 @@ class CorrectEnglishSentenceClassifier(nn.Module):
         x = self.dropout(x)
         return self.out_proj(x)
 
+
+class HFClassifierWrapper(nn.Module):
+    """Thin wrapper so a HuggingFace AutoModelForSequenceClassification presents the SAME
+    (logits-tensor) interface as CorrectEnglishSentenceClassifier — the training loop is unchanged.
+    Used only when cfg['use_hf_classifier'] is true (the model's own native head)."""
+    def __init__(self, hf_model):
+        super().__init__()
+        self.hf_model = hf_model
+
+    def forward(self, input_ids, attention_mask, token_type_ids=None):
+        return self.hf_model(input_ids=input_ids, attention_mask=attention_mask,
+                             token_type_ids=token_type_ids).logits
+
+
+def _build_classifier(cfg, base, num_labels, is_regression, dev):
+    """Build the finetuning model. GATED: default (use_hf_classifier absent/false) => the existing
+    CorrectEnglishSentenceClassifier (RoBERTa/fairseq head), so all current tasks are unchanged.
+    When use_hf_classifier=true => the model's NATIVE HF classification head
+    (AutoModelForSequenceClassification), transferring the already-loaded encoder weights (JEPA or
+    fresh) from `base` into its base_model; the HF head is left freshly initialised."""
+    if not cfg.get("use_hf_classifier", False):
+        return CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size,
+                                                num_labels=num_labels,
+                                                dropout=cfg.get("head_dropout", 0.0)).to(dev)
+    from transformers import AutoModelForSequenceClassification
+    hf_config = AutoConfig.from_pretrained(cfg["model_name"], num_labels=num_labels)
+    if "hidden_dropout" in cfg:
+        hf_config.hidden_dropout_prob = cfg["hidden_dropout"]
+    if "attention_dropout" in cfg:
+        hf_config.attention_probs_dropout_prob = cfg["attention_dropout"]
+    if "cls_dropout" in cfg:
+        hf_config.cls_dropout = cfg["cls_dropout"]  # DeBERTa head dropout before the classifier
+    if "pooler_dropout" in cfg:
+        hf_config.pooler_dropout = cfg["pooler_dropout"]  # DeBERTa head dropout before the pooler dense
+    hf_config.problem_type = "regression" if is_regression else "single_label_classification"
+    hf_model = AutoModelForSequenceClassification.from_pretrained(cfg["model_name"], config=hf_config)
+    miss, unexp = hf_model.base_model.load_state_dict(base.state_dict(), strict=False)
+    unexp = [k for k in unexp if not k.startswith("pooler.")]  # AutoModel may carry an unused pooler
+    print(f"[use_hf_classifier] {cfg['model_name']} native head; encoder -> '{hf_model.base_model_prefix}' "
+          f"(missing={len(miss)} unexpected_non_pooler={len(unexp)})")
+    return HFClassifierWrapper(hf_model).to(dev)
+
 def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = None):
     set_seed(cfg["seed"])
     # Get GPU ID from config, default to None (which will use cuda:0 or cpu)
@@ -271,8 +313,11 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             print(f"Pre-tokenizing {dataset_config or 'test'} test dataset (from JSON)...")
             ds_test_other["test"] = preprocess_dataset(ds_test_other["test"], tokenizer, max_length=cfg["max_length"], text_keys=text_keys)
     
-    # Create dataloaders
-    train_loader, val_loader_matched = make_dataloaders(ds["train"], ds_test_matched["validation"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
+    # Create dataloaders.
+    # Regression (STS-B) needs float labels so continuous 0-5 targets aren't truncated to ints by the
+    # collate's long cast; classification keeps long (unchanged). Only is_regression (STS-B) differs.
+    _label_dtype = torch.float if is_regression else torch.long
+    train_loader, val_loader_matched = make_dataloaders(ds["train"], ds_test_matched["validation"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True, label_dtype=_label_dtype)
     
     if is_anli:
         # ANLI: create separate test loaders for each round
@@ -299,7 +344,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         val_loader_mismatched = None
         test_loader_other = None
         if ds_test_other:
-            _, test_loader_other = make_dataloaders(ds["train"], ds_test_other["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True)
+            _, test_loader_other = make_dataloaders(ds["train"], ds_test_other["test"], cfg["batch_size"], cfg["num_workers"], pre_tokenized=True, label_dtype=_label_dtype)
         test_loader_matched = None
         test_loader_mismatched = None
         anli_test_loaders = None
@@ -332,7 +377,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     num_labels = cfg.get("num_labels", 1 if is_regression else 2)
     print(f"Number of labels: {num_labels}")
     
-    model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels, dropout=cfg.get("head_dropout", 0.0)).to(dev)
+    model = _build_classifier(cfg, base, num_labels, is_regression, dev)
     # fairseq RoBERTa: adam with decoupled weight decay (== AdamW) applied uniformly to all params.
     _betas = tuple(cfg["adam_betas"]) if "adam_betas" in cfg else (0.9, 0.98)
     _eps   = cfg.get("adam_eps", 1e-6)
@@ -365,6 +410,10 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
             num_sched_steps = len(train_loader) * pre_swa_epochs
         else:
             num_sched_steps = len(train_loader) * cfg["epochs"]
+        # gated: absolute warmup_steps override (DeBERTa uses absolute steps, not a ratio).
+        # Only fires if warmup_steps is set in cfg; default (ratio) path is unchanged.
+        if "warmup_steps" in cfg and num_sched_steps > 0:
+            lr_warmup_ratio = min(1.0, cfg["warmup_steps"] / num_sched_steps)
         if num_sched_steps > 0:
             lr_scheduler = _build_finetune_lr_scheduler(
                 opt, num_sched_steps, lr_warmup_ratio, sched_type
@@ -420,7 +469,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         if "pretrain" in model_ckpt:
             print("Loading embeddings from pretrained model...")
             base = load_encoder_state(base, model_ckpt, map_location="cpu")
-            model = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels, dropout=cfg.get("head_dropout", 0.0)).to(dev)
+            model = _build_classifier(cfg, base, num_labels, is_regression, dev)
             print("Embeddings loaded. Running evaluation only...")
         else:
             print(f"Loading model checkpoint from {model_ckpt}")
@@ -914,11 +963,17 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 for name, res in test_results:
                     _hist_test_other.append(res["acc"])
 
+            # positive-class F1 (canonical MRPC/QQP metric) for binary classification tasks;
+            # stored alongside the existing macro `f1` (which model selection depends on), not replacing it.
+            val_f1_pos = None
+            if (not is_regression) and (not is_swag) and num_labels == 2:
+                val_f1_pos = float(f1_score(true_labels_matched, preds_matched, pos_label=1))
+
             # --- save per-epoch results to JSON ---
             epoch_entry = {
                 "epoch": epoch,
                 "train": {"loss": epoch_loss, "lr": epoch_lr},
-                "validation": {"matched": {"acc": val_acc_matched, "mcc": val_mcc_matched, "f1": val_f1_matched}},
+                "validation": {"matched": {"acc": val_acc_matched, "mcc": val_mcc_matched, "f1": val_f1_matched, "f1_pos": val_f1_pos}},
                 "test": {name: res for name, res in test_results},
             }
             if is_mnli and val_acc_mismatched is not None:
@@ -938,7 +993,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         if use_swa:
             print("Updating batch normalization statistics for SWA model...")
             # Create a temporary model for SWA evaluation
-            swa_model_for_eval = CorrectEnglishSentenceClassifier(base, hidden_size=base.config.hidden_size, num_labels=num_labels, dropout=cfg.get("head_dropout", 0.0)).to(dev)
+            swa_model_for_eval = _build_classifier(cfg, base, num_labels, is_regression, dev)
             swa_model_for_eval.load_state_dict(swa_model.module.state_dict())
             
             # Update BN stats by running one forward pass through training data

@@ -17,7 +17,7 @@ mixed_precision: true
 max_grad_norm: 0.0
 hidden_dropout: 0.1        # fairseq model.dropout
 attention_dropout: 0.1     # fairseq model.attention_dropout
-head_dropout: 0.0          # MLP head dropout (fairseq=0.0; 0.1 beat 0.0 on SST-2, +0.34)
+head_dropout: 0.1          # MLP head dropout (fairseq=0.0; 0.1 beat 0.0 on SST-2, +0.34)
 lr_scheduler: linear
 lr_warmup_ratio: 0.06
 log_dir: runs/finetune
@@ -25,5 +25,5 @@ ckpt_dir: checkpoints/finetune
 val_split: 0.8
 gpu_id: 0
 save_best_model_on: test
-metric_for_best_model: f1_acc_avg  # (macro-F1 + acc) / 2
+metric_for_best_model: acc  # accuracy only
 swa: false

@@ -61,6 +61,9 @@ def jepa_loss(
             C_t_inv = torch.linalg.pinv(cov_t + 1e-3 * torch.eye(D, device=target.device))
         except torch._C._LinAlgError:
             C_t_inv = torch.eye(D, device=target.device)
+    except RuntimeError:
+        # cuSOLVER handle init can fail on some GPUs (e.g. H100); pinv on CPU (identical result)
+        C_t_inv = torch.linalg.pinv(cov_t.cpu() + 1e-4 * torch.eye(D)).to(target.device)
 
     diff_t  = target.unsqueeze(1) - target.unsqueeze(0)   # [N, N, D]
     sim_t   = -torch.einsum('ijd,dk,ijk->ij', diff_t, C_t_inv, diff_t)
@@ -73,6 +76,9 @@ def jepa_loss(
             C_inv = torch.linalg.pinv(cov.detach() + 1e-3 * torch.eye(D, device=pred.device))
         except torch._C._LinAlgError:
             C_inv = torch.eye(D, device=pred.device)
+    except RuntimeError:
+        # cuSOLVER handle init can fail on some GPUs (e.g. H100); pinv on CPU (identical result)
+        C_inv = torch.linalg.pinv(cov.detach().cpu() + 1e-4 * torch.eye(D)).to(pred.device)
     # pairwise Mahalanobis: (xᵢ - xⱼ)ᵀ C⁻¹ (xᵢ - xⱼ)
     diff = pred.unsqueeze(1) - pred.unsqueeze(0)   # [N, N, D]
     sim_p = -torch.einsum('ijd,dk,ijk->ij', diff, C_inv, diff)
@@ -175,6 +181,8 @@ class JEPA(nn.Module):
         # Projection head
         use_projector: bool = False,
         proj_dim: int = 256,
+        # Loss weights (config-overridable; defaults match jepa_loss)
+        knn_weight: float = 0.1,
     ):
         super().__init__()
         self.encoder = initial_encoder
@@ -210,6 +218,7 @@ class JEPA(nn.Module):
 
         self.ema_decay      = ema_decay
         self.use_cls        = use_cls
+        self.knn_weight     = knn_weight
         self.predictor_type = predictor_type
 
     def get_ema_decay(self, epoch: int, total_epochs: int,
@@ -258,7 +267,8 @@ class JEPA(nn.Module):
             if self.use_cls:
                 target = target[:, :1, :]
 
-        loss = jepa_loss(pred, target, mask if not self.use_cls else None)
+        loss = jepa_loss(pred, target, mask if not self.use_cls else None,
+                         knn_weight=self.knn_weight)
         return loss, pred, target
 
 

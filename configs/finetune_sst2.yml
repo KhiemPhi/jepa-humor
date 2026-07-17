@@ -18,7 +18,7 @@ mixed_precision: true
 max_grad_norm: 0.0
 hidden_dropout: 0.1        # fairseq model.dropout
 attention_dropout: 0.1     # fairseq model.attention_dropout
-head_dropout: 0.0          # MLP head dropout (fairseq=0.0; 0.1 beat 0.0 on SST-2, +0.34)
+head_dropout: 0.1          # MLP head dropout (fairseq=0.0; 0.1 beat 0.0 on SST-2, +0.34)
 lr_scheduler: linear
 lr_warmup_ratio: 0.06
 log_dir: runs/finetune

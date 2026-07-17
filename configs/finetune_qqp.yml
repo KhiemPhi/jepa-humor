@@ -26,5 +26,5 @@ ckpt_dir: checkpoints/finetune
 val_split: 0.8
 gpu_id: 2
 save_best_model_on: test
-metric_for_best_model: f1_acc_avg  # (macro-F1 + acc) / 2
+metric_for_best_model: acc  # accuracy only
 swa: false

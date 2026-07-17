@@ -93,7 +93,11 @@ def pretrain(cfg):
             hidden_size=base.config.hidden_size,
             pred_hid=512,
             ema_decay=cfg["ema_decay"],
-            use_cls=True
+            use_cls=cfg.get("use_cls", True),   # default True preserves all existing tasks; set False for token-level JEPA
+            knn_weight=cfg.get("knn_weight", 0.1),
+            # token-level JEPA feeds the predictor the full T-length sequence, so its pos-embed must cover max_length.
+            # CLS runs only ever see T=1 -> keep 256 (unchanged) so no other task's model is altered.
+            pred_max_length=(cfg["max_length"] if not cfg.get("use_cls", True) else 256),
         ).to(dev)
         print("Using standard JEPA (reconstructs embeddings)")
     
@@ -314,6 +318,18 @@ def pretrain(cfg):
             pbar.set_postfix(loss=f"{running/steps:.4f}")
 
             global_step += 1
+            # optional step-interval checkpointing (config: save_every_steps). Saves the
+            # encoder at each multiple so downstream eval can use any milestone.
+            _save_every = cfg.get("save_every_steps")
+            if _save_every and global_step % _save_every == 0 and model_type != "mlm":
+                _exp = cfg.get("experiment_name", "")
+                _slug = cfg.get("model_name", "").replace("-", "_").replace("/", "_")
+                _pfx = f"{_exp}_{_slug}_" if _exp else (f"{_slug}_" if _slug else "")
+                _sp = os.path.join(cfg["ckpt_dir"], f"step{global_step}_{_pfx}.pt")
+                save_ckpt({"step": global_step,
+                           "encoder_state_dict": jepa.encoder.state_dict(),
+                           "jepa_state_dict": jepa.state_dict()}, _sp)
+                print(f"[Pretrain] saved step checkpoint: {_sp}")
             if max_steps is not None and global_step >= max_steps:
                 break
 

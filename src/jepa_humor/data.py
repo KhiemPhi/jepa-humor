@@ -1098,7 +1098,7 @@ def remask_ssl_dataset(ds, tokenizer, mask_probability=0.15, span_mean=3.0, mask
     return ds.map(apply, batched=True, desc="Applying SSL mask")
 
 
-def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True, pre_tokenized=False, ssl_mode=False):
+def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=True, pre_tokenized=False, ssl_mode=False, label_dtype=torch.long):
     # Collate function for pre-tokenized SSL data
     if pre_tokenized and ssl_mode:
         def collate(batch):
@@ -1120,7 +1120,9 @@ def make_dataloaders(train_ds, test_ds, batch_size=64, num_workers=4, shuffle=Tr
             result = {
                 "input_ids": torch.tensor([b["input_ids"] for b in batch], dtype=torch.long),
                 "attention_mask": torch.tensor([b["attention_mask"] for b in batch], dtype=torch.long),
-                "label": torch.tensor([b["label"] for b in batch], dtype=torch.long),
+                # label_dtype defaults to torch.long (classification, unchanged). Regression (STS-B) passes
+                # torch.float so continuous 0-5 targets aren't truncated to integers by a long cast.
+                "label": torch.tensor([b["label"] for b in batch], dtype=label_dtype),
             }
             if "token_type_ids" in batch[0]:
                 result["token_type_ids"] = torch.tensor([b["token_type_ids"] for b in batch], dtype=torch.long)

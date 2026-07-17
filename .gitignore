@@ -46,3 +46,19 @@ results_beir_v1
 beir_work
 .colbert_watch_snapshot
 .glue_watch_snapshot
+
+# shell scripts and logs
+*.sh
+*.log
+
+# watcher snapshot state
+*_watch_snapshot
+
+# experiment output dirs (checkpoints, results — never commit)
+master_*
+dpr/
+ance/
+fresh/
+fresh_roberta_large/
+colbertv2_jepa/
+results_pretrain_lrsweep/
