@@ -1,0 +1,87 @@
+{
+  "model": "deberta-base",
+  "task": "cola",
+  "task_label": "CoLA",
+  "metric": "matthews_corr",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": true,
+  "ours": {
+    "med_val": {
+      "value": 65.79607561169696,
+      "printed": "65.8",
+      "run": "(root)",
+      "n_seeds": 5,
+      "selected_seeds": [
+        43
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 66.58582857909559,
+          "source_file": "experiment/master_deberta_base/results_seed42/finetune_cola_exp1_microsoft_deberta_base_cola.json"
+        },
+        "43": {
+          "value": 65.79607561169696,
+          "source_file": "experiment/master_deberta_base/results_seed43/finetune_cola_exp1_microsoft_deberta_base_cola.json"
+        },
+        "44": {
+          "value": 63.07674593953669,
+          "source_file": "experiment/master_deberta_base/results_seed44/finetune_cola_exp1_microsoft_deberta_base_cola.json"
+        },
+        "45": {
+          "value": 67.9468329686766,
+          "source_file": "experiment/master_deberta_base/results_seed45/finetune_cola_exp1_microsoft_deberta_base_cola.json"
+        },
+        "46": {
+          "value": 65.1538408295235,
+          "source_file": "experiment/master_deberta_base/results_seed46/finetune_cola_exp1_microsoft_deberta_base_cola.json"
+        }
+      }
+    },
+    "med_best_test": null,
+    "med_test_at_val": null,
+    "max_test_at_val": null
+  },
+  "comparator": {
+    "kind": "fresh_baseline",
+    "name": "our fresh (non-JEPA) deberta-base",
+    "source": "experiment/master_fresh_deberta_base",
+    "stats": {
+      "med_val": {
+        "value": 65.33643185001198,
+        "printed": "65.3",
+        "run": "(root)",
+        "n_seeds": 5,
+        "selected_seeds": [
+          44
+        ],
+        "selection": "median over seeds",
+        "per_seed": {
+          "42": {
+            "value": 65.05778114323792,
+            "source_file": "experiment/master_fresh_deberta_base/results_seed42/finetune_cola_exp1_fresh_microsoft_deberta_base_cola.json"
+          },
+          "43": {
+            "value": 65.40212729276102,
+            "source_file": "experiment/master_fresh_deberta_base/results_seed43/finetune_cola_exp1_fresh_microsoft_deberta_base_cola.json"
+          },
+          "44": {
+            "value": 65.33643185001198,
+            "source_file": "experiment/master_fresh_deberta_base/results_seed44/finetune_cola_exp1_fresh_microsoft_deberta_base_cola.json"
+          },
+          "45": {
+            "value": 66.18939398663453,
+            "source_file": "experiment/master_fresh_deberta_base/results_seed45/finetune_cola_exp1_fresh_microsoft_deberta_base_cola.json"
+          },
+          "46": {
+            "value": 64.3451458089336,
+            "source_file": "experiment/master_fresh_deberta_base/results_seed46/finetune_cola_exp1_fresh_microsoft_deberta_base_cola.json"
+          }
+        }
+      },
+      "med_best_test": null,
+      "med_test_at_val": null,
+      "max_test_at_val": null
+    }
+  }
+}

@@ -1,0 +1,219 @@
+section,model,task,stat,scope,seed,value,printed,run,source_file
+beir_arms,public_dpr,msmarco,ndcg@10,published,,0.177000,0.177,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,trec-covid,ndcg@10,ours,,0.381190,0.3812,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/trec-covid.json
+beir_arms,jepa_ckpt39,trec-covid,ndcg@10,ours,,0.409170,0.4092,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/trec-covid.json
+beir_arms,knn0_ckpt2,trec-covid,ndcg@10,ours,,0.314770,0.3148,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/trec-covid.json
+beir_arms,knn0_ckpt39,trec-covid,ndcg@10,ours,,0.334460,0.3345,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/trec-covid.json
+beir_arms,mlm_ckpt2,trec-covid,ndcg@10,ours,,0.343300,0.3433,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/trec-covid.json
+beir_arms,mlm_ckpt39,trec-covid,ndcg@10,ours,,0.358180,0.3582,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/trec-covid.json
+beir_arms,public_dpr,trec-covid,ndcg@10,published,,0.332000,0.332,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,nfcorpus,ndcg@10,ours,,0.205420,0.2054,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/nfcorpus.json
+beir_arms,jepa_ckpt39,nfcorpus,ndcg@10,ours,,0.204590,0.2046,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/nfcorpus.json
+beir_arms,knn0_ckpt2,nfcorpus,ndcg@10,ours,,0.178880,0.1789,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/nfcorpus.json
+beir_arms,knn0_ckpt39,nfcorpus,ndcg@10,ours,,0.192710,0.1927,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/nfcorpus.json
+beir_arms,mlm_ckpt2,nfcorpus,ndcg@10,ours,,0.217740,0.2177,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/nfcorpus.json
+beir_arms,mlm_ckpt39,nfcorpus,ndcg@10,ours,,0.214120,0.2141,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/nfcorpus.json
+beir_arms,public_dpr,nfcorpus,ndcg@10,published,,0.189000,0.189,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,nq,ndcg@10,ours,,0.421090,0.4211,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/nq.json
+beir_arms,jepa_ckpt39,nq,ndcg@10,ours,,0.500890,0.5009,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/nq.json
+beir_arms,knn0_ckpt2,nq,ndcg@10,ours,,0.395490,0.3955,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/nq.json
+beir_arms,knn0_ckpt39,nq,ndcg@10,ours,,0.476160,0.4762,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/nq.json
+beir_arms,mlm_ckpt2,nq,ndcg@10,ours,,0.454410,0.4544,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/nq.json
+beir_arms,mlm_ckpt39,nq,ndcg@10,ours,,0.515180,0.5152,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/nq.json
+beir_arms,public_dpr,nq,ndcg@10,published,,0.474000,0.474,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,hotpotqa,ndcg@10,ours,,0.439160,0.4392,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/hotpotqa.json
+beir_arms,jepa_ckpt39,hotpotqa,ndcg@10,ours,,0.441150,0.4411,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/hotpotqa.json
+beir_arms,knn0_ckpt2,hotpotqa,ndcg@10,ours,,0.468280,0.4683,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/hotpotqa.json
+beir_arms,knn0_ckpt39,hotpotqa,ndcg@10,ours,,0.470040,0.4700,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/hotpotqa.json
+beir_arms,mlm_ckpt2,hotpotqa,ndcg@10,ours,,0.451580,0.4516,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/hotpotqa.json
+beir_arms,mlm_ckpt39,hotpotqa,ndcg@10,ours,,0.445090,0.4451,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/hotpotqa.json
+beir_arms,public_dpr,hotpotqa,ndcg@10,published,,0.391000,0.391,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,fiqa,ndcg@10,ours,,0.104800,0.1048,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/fiqa.json
+beir_arms,jepa_ckpt39,fiqa,ndcg@10,ours,,0.126210,0.1262,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/fiqa.json
+beir_arms,knn0_ckpt2,fiqa,ndcg@10,ours,,0.111750,0.1118,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/fiqa.json
+beir_arms,knn0_ckpt39,fiqa,ndcg@10,ours,,0.103660,0.1037,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/fiqa.json
+beir_arms,mlm_ckpt2,fiqa,ndcg@10,ours,,0.144610,0.1446,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/fiqa.json
+beir_arms,mlm_ckpt39,fiqa,ndcg@10,ours,,0.135070,0.1351,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/fiqa.json
+beir_arms,public_dpr,fiqa,ndcg@10,published,,0.112000,0.112,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,arguana,ndcg@10,ours,,0.277530,0.2775,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/arguana.json
+beir_arms,jepa_ckpt39,arguana,ndcg@10,ours,,0.199290,0.1993,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/arguana.json
+beir_arms,knn0_ckpt2,arguana,ndcg@10,ours,,0.109130,0.1091,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/arguana.json
+beir_arms,knn0_ckpt39,arguana,ndcg@10,ours,,0.166480,0.1665,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/arguana.json
+beir_arms,mlm_ckpt2,arguana,ndcg@10,ours,,0.275980,0.2760,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/arguana.json
+beir_arms,mlm_ckpt39,arguana,ndcg@10,ours,,0.205980,0.2060,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/arguana.json
+beir_arms,public_dpr,arguana,ndcg@10,published,,0.175000,0.175,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,webis-touche2020,ndcg@10,ours,,0.187980,0.1880,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/webis-touche2020.json
+beir_arms,jepa_ckpt39,webis-touche2020,ndcg@10,ours,,0.156680,0.1567,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/webis-touche2020.json
+beir_arms,knn0_ckpt2,webis-touche2020,ndcg@10,ours,,0.126510,0.1265,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/webis-touche2020.json
+beir_arms,knn0_ckpt39,webis-touche2020,ndcg@10,ours,,0.139120,0.1391,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/webis-touche2020.json
+beir_arms,mlm_ckpt2,webis-touche2020,ndcg@10,ours,,0.187100,0.1871,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/webis-touche2020.json
+beir_arms,mlm_ckpt39,webis-touche2020,ndcg@10,ours,,0.193100,0.1931,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/webis-touche2020.json
+beir_arms,public_dpr,webis-touche2020,ndcg@10,published,,0.131000,0.131,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,cqadupstack,ndcg@10,ours,,0.184479,0.1845,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/cqadupstack.json
+beir_arms,jepa_ckpt39,cqadupstack,ndcg@10,ours,,0.186498,0.1865,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/cqadupstack.json
+beir_arms,knn0_ckpt2,cqadupstack,ndcg@10,ours,,0.189765,0.1898,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/cqadupstack.json
+beir_arms,knn0_ckpt39,cqadupstack,ndcg@10,ours,,0.185186,0.1852,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/cqadupstack.json
+beir_arms,mlm_ckpt2,cqadupstack,ndcg@10,ours,,0.207510,0.2075,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/cqadupstack.json
+beir_arms,mlm_ckpt39,cqadupstack,ndcg@10,ours,,0.181129,0.1811,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/cqadupstack.json
+beir_arms,public_dpr,cqadupstack,ndcg@10,published,,0.153000,0.153,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,quora,ndcg@10,ours,,0.513340,0.5133,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/quora.json
+beir_arms,jepa_ckpt39,quora,ndcg@10,ours,,0.634410,0.6344,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/quora.json
+beir_arms,knn0_ckpt2,quora,ndcg@10,ours,,0.608190,0.6082,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/quora.json
+beir_arms,knn0_ckpt39,quora,ndcg@10,ours,,0.660190,0.6602,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/quora.json
+beir_arms,mlm_ckpt2,quora,ndcg@10,ours,,0.369900,0.3699,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/quora.json
+beir_arms,mlm_ckpt39,quora,ndcg@10,ours,,0.335220,0.3352,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/quora.json
+beir_arms,public_dpr,quora,ndcg@10,published,,0.248000,0.248,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,dbpedia-entity,ndcg@10,ours,,0.283430,0.2834,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/dbpedia-entity.json
+beir_arms,jepa_ckpt39,dbpedia-entity,ndcg@10,ours,,0.284050,0.2841,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/dbpedia-entity.json
+beir_arms,knn0_ckpt2,dbpedia-entity,ndcg@10,ours,,0.291620,0.2916,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/dbpedia-entity.json
+beir_arms,knn0_ckpt39,dbpedia-entity,ndcg@10,ours,,0.282330,0.2823,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/dbpedia-entity.json
+beir_arms,mlm_ckpt2,dbpedia-entity,ndcg@10,ours,,0.286750,0.2868,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/dbpedia-entity.json
+beir_arms,mlm_ckpt39,dbpedia-entity,ndcg@10,ours,,0.281380,0.2814,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/dbpedia-entity.json
+beir_arms,public_dpr,dbpedia-entity,ndcg@10,published,,0.263000,0.263,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,scidocs,ndcg@10,ours,,0.095250,0.0953,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/scidocs.json
+beir_arms,jepa_ckpt39,scidocs,ndcg@10,ours,,0.087420,0.0874,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/scidocs.json
+beir_arms,knn0_ckpt2,scidocs,ndcg@10,ours,,0.108900,0.1089,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/scidocs.json
+beir_arms,knn0_ckpt39,scidocs,ndcg@10,ours,,0.085190,0.0852,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/scidocs.json
+beir_arms,mlm_ckpt2,scidocs,ndcg@10,ours,,0.108300,0.1083,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/scidocs.json
+beir_arms,mlm_ckpt39,scidocs,ndcg@10,ours,,0.082470,0.0825,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/scidocs.json
+beir_arms,public_dpr,scidocs,ndcg@10,published,,0.077000,0.077,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,fever,ndcg@10,ours,,0.481780,0.4818,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/fever.json
+beir_arms,jepa_ckpt39,fever,ndcg@10,ours,,0.592330,0.5923,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/fever.json
+beir_arms,knn0_ckpt2,fever,ndcg@10,ours,,0.383440,0.3834,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/fever.json
+beir_arms,knn0_ckpt39,fever,ndcg@10,ours,,0.501150,0.5011,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/fever.json
+beir_arms,mlm_ckpt2,fever,ndcg@10,ours,,0.518360,0.5184,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/fever.json
+beir_arms,mlm_ckpt39,fever,ndcg@10,ours,,0.603490,0.6035,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/fever.json
+beir_arms,public_dpr,fever,ndcg@10,published,,0.562000,0.562,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,climate-fever,ndcg@10,ours,,0.204840,0.2048,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/climate-fever.json
+beir_arms,jepa_ckpt39,climate-fever,ndcg@10,ours,,0.189160,0.1892,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/climate-fever.json
+beir_arms,knn0_ckpt2,climate-fever,ndcg@10,ours,,0.154260,0.1543,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/climate-fever.json
+beir_arms,knn0_ckpt39,climate-fever,ndcg@10,ours,,0.155960,0.1560,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/climate-fever.json
+beir_arms,mlm_ckpt2,climate-fever,ndcg@10,ours,,0.169450,0.1694,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/climate-fever.json
+beir_arms,mlm_ckpt39,climate-fever,ndcg@10,ours,,0.163340,0.1633,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/climate-fever.json
+beir_arms,public_dpr,climate-fever,ndcg@10,published,,0.148000,0.148,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,scifact,ndcg@10,ours,,0.429190,0.4292,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/scifact.json
+beir_arms,jepa_ckpt39,scifact,ndcg@10,ours,,0.405850,0.4058,,experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/scifact.json
+beir_arms,knn0_ckpt2,scifact,ndcg@10,ours,,0.435340,0.4353,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/scifact.json
+beir_arms,knn0_ckpt39,scifact,ndcg@10,ours,,0.414400,0.4144,,experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/scifact.json
+beir_arms,mlm_ckpt2,scifact,ndcg@10,ours,,0.434170,0.4342,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/scifact.json
+beir_arms,mlm_ckpt39,scifact,ndcg@10,ours,,0.364730,0.3647,,experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/scifact.json
+beir_arms,public_dpr,scifact,ndcg@10,published,,0.318000,0.318,BEIR Table 2 (arXiv 2104.08663),
+beir_arms,jepa_ckpt2,MEAN(14 zero-shot),ndcg@10,mean,,0.300677,0.3007,,
+beir_arms,jepa_ckpt39,MEAN(14 zero-shot),ndcg@10,mean,,0.315550,0.3155,,
+beir_arms,knn0_ckpt2,MEAN(14 zero-shot),ndcg@10,mean,,0.276880,0.2769,,
+beir_arms,knn0_ckpt39,MEAN(14 zero-shot),ndcg@10,mean,,0.297645,0.2976,,
+beir_arms,mlm_ckpt2,MEAN(14 zero-shot),ndcg@10,mean,,0.297797,0.2978,,
+beir_arms,mlm_ckpt39,MEAN(14 zero-shot),ndcg@10,mean,,0.291320,0.2913,,
+beir_arms,public_dpr,MEAN(14 zero-shot),ndcg@10,mean,,0.255214,0.2552,,
+tapt,jepa,CHEMPROT,test@best_dev,ours_seed,42,82.1274,82.13,chemprot_jepa_lr5e6_constant,experiment/dsp/results/chemprot_jepa_lr5e6_constant.json
+tapt,jepa,CHEMPROT,test@best_dev,ours_seed,43,82.1562,82.16,chemprot_jepa_lr5e6_constant,experiment/dsp/results/chemprot_jepa_lr5e6_constant.json
+tapt,jepa,CHEMPROT,test@best_dev,ours_seed,44,82.4157,82.42,chemprot_jepa_lr5e6_constant,experiment/dsp/results/chemprot_jepa_lr5e6_constant.json
+tapt,jepa,CHEMPROT,test@best_dev,ours_seed,45,83.0787,83.08,chemprot_jepa_lr5e6_constant,experiment/dsp/results/chemprot_jepa_lr5e6_constant.json
+tapt,jepa,CHEMPROT,test@best_dev,ours_seed,46,81.9256,81.93,chemprot_jepa_lr5e6_constant,experiment/dsp/results/chemprot_jepa_lr5e6_constant.json
+tapt,jepa,CHEMPROT,test@best_dev,ours_reported,,82.3407,82.34,chemprot_jepa_lr5e6_constant,experiment/dsp/results/chemprot_jepa_lr5e6_constant.json
+tapt,knn0,CHEMPROT,test@best_dev,ours_seed,42,82.4445,82.44,chemprot_knn0_lr5e6_constant,experiment/dsp/results/chemprot_knn0_lr5e6_constant.json
+tapt,knn0,CHEMPROT,test@best_dev,ours_seed,43,82.3869,82.39,chemprot_knn0_lr5e6_constant,experiment/dsp/results/chemprot_knn0_lr5e6_constant.json
+tapt,knn0,CHEMPROT,test@best_dev,ours_seed,44,82.6751,82.68,chemprot_knn0_lr5e6_constant,experiment/dsp/results/chemprot_knn0_lr5e6_constant.json
+tapt,knn0,CHEMPROT,test@best_dev,ours_seed,45,82.1562,82.16,chemprot_knn0_lr5e6_constant,experiment/dsp/results/chemprot_knn0_lr5e6_constant.json
+tapt,knn0,CHEMPROT,test@best_dev,ours_seed,46,82.5310,82.53,chemprot_knn0_lr5e6_constant,experiment/dsp/results/chemprot_knn0_lr5e6_constant.json
+tapt,knn0,CHEMPROT,test@best_dev,ours_reported,,82.4387,82.44,chemprot_knn0_lr5e6_constant,experiment/dsp/results/chemprot_knn0_lr5e6_constant.json
+tapt,paper_roberta,CHEMPROT,test,published,,81.9,81.9,Gururangan 2020 Table 5,
+tapt,paper_tapt,CHEMPROT,test,published,,82.6,82.6,Gururangan 2020 Table 5,
+tapt,jepa,RCT,test@best_dev,ours_seed,42,87.1777,87.18,tapt100_rct-20k_jepa_epoch100,experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.s42.json
+tapt,jepa,RCT,test@best_dev,ours_seed,43,87.1777,87.18,tapt100_rct-20k_jepa_epoch100,experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.s43.json
+tapt,jepa,RCT,test@best_dev,ours_seed,44,87.1147,87.11,tapt100_rct-20k_jepa_epoch100,experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.s44.json
+tapt,jepa,RCT,test@best_dev,ours_seed,45,87.1014,87.10,tapt100_rct-20k_jepa_epoch100,experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.s45.json
+tapt,jepa,RCT,test@best_dev,ours_seed,46,87.1545,87.15,tapt100_rct-20k_jepa_epoch100,experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.s46.json
+tapt,jepa,RCT,test@best_dev,ours_reported,,87.1452,87.15,tapt100_rct-20k_jepa_epoch100,experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.json
+tapt,knn0,RCT,test@best_dev,ours_seed,42,87.2308,87.23,tapt100_rct-20k_knn0_best,experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.s42.json
+tapt,knn0,RCT,test@best_dev,ours_seed,43,87.1346,87.13,tapt100_rct-20k_knn0_best,experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.s43.json
+tapt,knn0,RCT,test@best_dev,ours_seed,44,87.2009,87.20,tapt100_rct-20k_knn0_best,experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.s44.json
+tapt,knn0,RCT,test@best_dev,ours_seed,45,86.9255,86.93,tapt100_rct-20k_knn0_best,experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.s45.json
+tapt,knn0,RCT,test@best_dev,ours_seed,46,87.3071,87.31,tapt100_rct-20k_knn0_best,experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.s46.json
+tapt,knn0,RCT,test@best_dev,ours_reported,,87.1598,87.16,tapt100_rct-20k_knn0_best,experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.json
+tapt,paper_roberta,RCT,test,published,,87.2,87.2,Gururangan 2020 Table 5,
+tapt,paper_tapt,RCT,test,published,,87.7,87.7,Gururangan 2020 Table 5,
+tapt,jepa,ACL-ARC,test@best_dev,ours_seed,42,71.4842,71.48,citation_intent_jepa_lr5e6_constant_fresh_ep100,experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json
+tapt,jepa,ACL-ARC,test@best_dev,ours_seed,43,68.2291,68.23,citation_intent_jepa_lr5e6_constant_fresh_ep100,experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json
+tapt,jepa,ACL-ARC,test@best_dev,ours_seed,44,68.5631,68.56,citation_intent_jepa_lr5e6_constant_fresh_ep100,experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json
+tapt,jepa,ACL-ARC,test@best_dev,ours_seed,45,73.5362,73.54,citation_intent_jepa_lr5e6_constant_fresh_ep100,experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json
+tapt,jepa,ACL-ARC,test@best_dev,ours_seed,46,68.8225,68.82,citation_intent_jepa_lr5e6_constant_fresh_ep100,experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json
+tapt,jepa,ACL-ARC,test@best_dev,ours_reported,,70.1270,70.13,citation_intent_jepa_lr5e6_constant_fresh_ep100,experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json
+tapt,knn0,ACL-ARC,test@best_dev,ours_seed,42,70.8906,70.89,citation_intent_knn0_lr5e6_constant,experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json
+tapt,knn0,ACL-ARC,test@best_dev,ours_seed,43,71.6760,71.68,citation_intent_knn0_lr5e6_constant,experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json
+tapt,knn0,ACL-ARC,test@best_dev,ours_seed,44,64.8026,64.80,citation_intent_knn0_lr5e6_constant,experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json
+tapt,knn0,ACL-ARC,test@best_dev,ours_seed,45,67.3188,67.32,citation_intent_knn0_lr5e6_constant,experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json
+tapt,knn0,ACL-ARC,test@best_dev,ours_seed,46,66.1033,66.10,citation_intent_knn0_lr5e6_constant,experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json
+tapt,knn0,ACL-ARC,test@best_dev,ours_reported,,68.1582,68.16,citation_intent_knn0_lr5e6_constant,experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json
+tapt,paper_roberta,ACL-ARC,test,published,,63.0,63.0,Gururangan 2020 Table 5,
+tapt,paper_tapt,ACL-ARC,test,published,,67.4,67.4,Gururangan 2020 Table 5,
+tapt,jepa,SCIERC,test@best_dev,ours_seed,42,78.8151,78.82,sciie_jepa_lr5e6_constant,experiment/dsp/results/sciie_jepa_lr5e6_constant.json
+tapt,jepa,SCIERC,test@best_dev,ours_seed,43,79.0225,79.02,sciie_jepa_lr5e6_constant,experiment/dsp/results/sciie_jepa_lr5e6_constant.json
+tapt,jepa,SCIERC,test@best_dev,ours_seed,44,81.4054,81.41,sciie_jepa_lr5e6_constant,experiment/dsp/results/sciie_jepa_lr5e6_constant.json
+tapt,jepa,SCIERC,test@best_dev,ours_seed,45,78.5318,78.53,sciie_jepa_lr5e6_constant,experiment/dsp/results/sciie_jepa_lr5e6_constant.json
+tapt,jepa,SCIERC,test@best_dev,ours_seed,46,78.9009,78.90,sciie_jepa_lr5e6_constant,experiment/dsp/results/sciie_jepa_lr5e6_constant.json
+tapt,jepa,SCIERC,test@best_dev,ours_reported,,79.3351,79.34,sciie_jepa_lr5e6_constant,experiment/dsp/results/sciie_jepa_lr5e6_constant.json
+tapt,knn0,SCIERC,test@best_dev,ours_seed,42,80.5834,80.58,sciie_knn0_lr5e6_constant,experiment/dsp/results/sciie_knn0_lr5e6_constant.json
+tapt,knn0,SCIERC,test@best_dev,ours_seed,43,80.0885,80.09,sciie_knn0_lr5e6_constant,experiment/dsp/results/sciie_knn0_lr5e6_constant.json
+tapt,knn0,SCIERC,test@best_dev,ours_seed,44,79.4919,79.49,sciie_knn0_lr5e6_constant,experiment/dsp/results/sciie_knn0_lr5e6_constant.json
+tapt,knn0,SCIERC,test@best_dev,ours_seed,45,80.9790,80.98,sciie_knn0_lr5e6_constant,experiment/dsp/results/sciie_knn0_lr5e6_constant.json
+tapt,knn0,SCIERC,test@best_dev,ours_seed,46,79.1885,79.19,sciie_knn0_lr5e6_constant,experiment/dsp/results/sciie_knn0_lr5e6_constant.json
+tapt,knn0,SCIERC,test@best_dev,ours_reported,,80.0663,80.07,sciie_knn0_lr5e6_constant,experiment/dsp/results/sciie_knn0_lr5e6_constant.json
+tapt,paper_roberta,SCIERC,test,published,,77.3,77.3,Gururangan 2020 Table 5,
+tapt,paper_tapt,SCIERC,test,published,,79.3,79.3,Gururangan 2020 Table 5,
+tapt,jepa,HYPERPARTISAN,test@best_dev,ours_seed,42,90.2500,90.25,hyperpartisan_news_jepa_lr5e6_constant,experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json
+tapt,jepa,HYPERPARTISAN,test@best_dev,ours_seed,43,96.7949,96.79,hyperpartisan_news_jepa_lr5e6_constant,experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json
+tapt,jepa,HYPERPARTISAN,test@best_dev,ours_seed,44,95.1601,95.16,hyperpartisan_news_jepa_lr5e6_constant,experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json
+tapt,jepa,HYPERPARTISAN,test@best_dev,ours_seed,45,98.4073,98.41,hyperpartisan_news_jepa_lr5e6_constant,experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json
+tapt,jepa,HYPERPARTISAN,test@best_dev,ours_seed,46,95.1601,95.16,hyperpartisan_news_jepa_lr5e6_constant,experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json
+tapt,jepa,HYPERPARTISAN,test@best_dev,ours_reported,,95.1545,95.15,hyperpartisan_news_jepa_lr5e6_constant,experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json
+tapt,knn0,HYPERPARTISAN,test@best_dev,ours_seed,42,93.5897,93.59,hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100,experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json
+tapt,knn0,HYPERPARTISAN,test@best_dev,ours_seed,43,93.5000,93.50,hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100,experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json
+tapt,knn0,HYPERPARTISAN,test@best_dev,ours_seed,44,93.5000,93.50,hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100,experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json
+tapt,knn0,HYPERPARTISAN,test@best_dev,ours_seed,45,95.1601,95.16,hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100,experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json
+tapt,knn0,HYPERPARTISAN,test@best_dev,ours_seed,46,96.7949,96.79,hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100,experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json
+tapt,knn0,HYPERPARTISAN,test@best_dev,ours_reported,,94.5089,94.51,hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100,experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json
+tapt,paper_roberta,HYPERPARTISAN,test,published,,86.6,86.6,Gururangan 2020 Table 5,
+tapt,paper_tapt,HYPERPARTISAN,test,published,,90.4,90.4,Gururangan 2020 Table 5,
+tapt,jepa,AGNEWS,test@best_dev,ours_seed,42,93.9117,93.91,tapt100_ag_jepa_best,experiment/dsp/results/tapt100/tapt100_ag_jepa_best.s42.json
+tapt,jepa,AGNEWS,test@best_dev,ours_seed,43,93.8298,93.83,tapt100_ag_jepa_best,experiment/dsp/results/tapt100/tapt100_ag_jepa_best.s43.json
+tapt,jepa,AGNEWS,test@best_dev,ours_seed,44,94.0642,94.06,tapt100_ag_jepa_best,experiment/dsp/results/tapt100/tapt100_ag_jepa_best.s44.json
+tapt,jepa,AGNEWS,test@best_dev,ours_seed,45,93.9333,93.93,tapt100_ag_jepa_best,experiment/dsp/results/tapt100/tapt100_ag_jepa_best.s45.json
+tapt,jepa,AGNEWS,test@best_dev,ours_seed,46,94.0469,94.05,tapt100_ag_jepa_best,experiment/dsp/results/tapt100/tapt100_ag_jepa_best.s46.json
+tapt,jepa,AGNEWS,test@best_dev,ours_reported,,93.9572,93.96,tapt100_ag_jepa_best,experiment/dsp/results/tapt100/tapt100_ag_jepa_best.json
+tapt,knn0,AGNEWS,test@best_dev,ours_seed,42,93.9021,93.90,tapt100_ag_knn0_epoch20,experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.s42.json
+tapt,knn0,AGNEWS,test@best_dev,ours_seed,43,93.7956,93.80,tapt100_ag_knn0_epoch20,experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.s43.json
+tapt,knn0,AGNEWS,test@best_dev,ours_seed,44,94.1317,94.13,tapt100_ag_knn0_epoch20,experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.s44.json
+tapt,knn0,AGNEWS,test@best_dev,ours_seed,45,93.7886,93.79,tapt100_ag_knn0_epoch20,experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.s45.json
+tapt,knn0,AGNEWS,test@best_dev,ours_seed,46,94.2535,94.25,tapt100_ag_knn0_epoch20,experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.s46.json
+tapt,knn0,AGNEWS,test@best_dev,ours_reported,,93.9743,93.97,tapt100_ag_knn0_epoch20,experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.json
+tapt,paper_roberta,AGNEWS,test,published,,93.9,93.9,Gururangan 2020 Table 5,
+tapt,paper_tapt,AGNEWS,test,published,,94.5,94.5,Gururangan 2020 Table 5,
+tapt,jepa,HELPFULNESS,test@best_dev,ours_seed,42,70.1498,70.15,amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32,experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json
+tapt,jepa,HELPFULNESS,test@best_dev,ours_seed,43,70.3800,70.38,amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32,experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json
+tapt,jepa,HELPFULNESS,test@best_dev,ours_seed,44,68.0984,68.10,amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32,experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json
+tapt,jepa,HELPFULNESS,test@best_dev,ours_seed,45,71.1937,71.19,amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32,experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json
+tapt,jepa,HELPFULNESS,test@best_dev,ours_seed,46,69.2475,69.25,amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32,experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json
+tapt,jepa,HELPFULNESS,test@best_dev,ours_reported,,69.8139,69.81,amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32,experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json
+tapt,knn0,HELPFULNESS,test@best_dev,ours_seed,42,70.6178,70.62,amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5,experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json
+tapt,knn0,HELPFULNESS,test@best_dev,ours_seed,43,69.1318,69.13,amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5,experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json
+tapt,knn0,HELPFULNESS,test@best_dev,ours_seed,44,68.5317,68.53,amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5,experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json
+tapt,knn0,HELPFULNESS,test@best_dev,ours_seed,45,71.1095,71.11,amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5,experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json
+tapt,knn0,HELPFULNESS,test@best_dev,ours_seed,46,70.8356,70.84,amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5,experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json
+tapt,knn0,HELPFULNESS,test@best_dev,ours_reported,,70.0453,70.05,amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5,experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json
+tapt,paper_roberta,HELPFULNESS,test,published,,65.1,65.1,Gururangan 2020 Table 5,
+tapt,paper_tapt,HELPFULNESS,test,published,,68.5,68.5,Gururangan 2020 Table 5,
+tapt,jepa,IMDB,test@best_dev,ours_seed,42,95.6318,95.63,tapt100_imdb_jepa_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.s42.json
+tapt,jepa,IMDB,test@best_dev,ours_seed,43,95.4880,95.49,tapt100_imdb_jepa_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.s43.json
+tapt,jepa,IMDB,test@best_dev,ours_seed,44,95.4080,95.41,tapt100_imdb_jepa_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.s44.json
+tapt,jepa,IMDB,test@best_dev,ours_seed,45,95.5278,95.53,tapt100_imdb_jepa_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.s45.json
+tapt,jepa,IMDB,test@best_dev,ours_seed,46,95.5320,95.53,tapt100_imdb_jepa_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.s46.json
+tapt,jepa,IMDB,test@best_dev,ours_reported,,95.5175,95.52,tapt100_imdb_jepa_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.json
+tapt,knn0,IMDB,test@best_dev,ours_seed,42,95.4039,95.40,tapt100_imdb_knn0_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.s42.json
+tapt,knn0,IMDB,test@best_dev,ours_seed,43,95.3360,95.34,tapt100_imdb_knn0_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.s43.json
+tapt,knn0,IMDB,test@best_dev,ours_seed,44,95.6120,95.61,tapt100_imdb_knn0_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.s44.json
+tapt,knn0,IMDB,test@best_dev,ours_seed,45,95.3559,95.36,tapt100_imdb_knn0_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.s45.json
+tapt,knn0,IMDB,test@best_dev,ours_seed,46,95.3678,95.37,tapt100_imdb_knn0_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.s46.json
+tapt,knn0,IMDB,test@best_dev,ours_reported,,95.4151,95.42,tapt100_imdb_knn0_epoch60,experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.json
+tapt,paper_roberta,IMDB,test,published,,95.0,95.0,Gururangan 2020 Table 5,
+tapt,paper_tapt,IMDB,test,published,,95.5,95.5,Gururangan 2020 Table 5,

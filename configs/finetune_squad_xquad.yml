@@ -1,0 +1,39 @@
+seed: 42
+experiment_name: xlmr_xl_squad_xquad
+model_name: facebook/xlm-roberta-xl
+
+# --- data ---
+train_dataset: rajpurkar/squad     # SQuAD v1.1 (English) — finetune here
+xquad_dataset: google/xquad        # zero-shot eval, 11 languages
+xquad_langs: [en, es, de, el, ru, tr, ar, vi, th, zh, hi]
+eval_squad_dev: true
+
+# --- QA tokenization ---
+max_length: 384
+doc_stride: 128
+n_best_size: 20
+max_answer_length: 30
+
+# --- optimization ---
+batch_size: 4                # PER-GPU; full-param FSDP over 8 GPUs -> effective global batch = 32 (matches Goyal et al. 2021 XLM-R XL)
+eval_batch_size: 16
+num_workers: 4
+epochs: 10
+early_stop_patience: 3       # stop if XQuAD avg F1 doesn't improve for 3 consecutive epochs
+mixed_precision: false       # fp32 training (Accelerator="no") AND fp32 eval (autocast off)
+lr: 1.0e-5
+weight_decay: 0.01
+lr_warmup_ratio: 0.06
+max_grad_norm: 1.0
+gpu_id: 0
+
+ckpt_dir: checkpoints/finetune_xlm
+results_dir: results
+save_model: true
+
+# --- full-parameter finetune via FSDP (no LoRA) across the 8 GPUs ---
+use_lora: false
+
+# --- optional: quick smoke run ---
+# max_train_samples: 2000
+# max_eval_samples: 200

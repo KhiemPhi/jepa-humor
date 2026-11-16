@@ -1,0 +1,22 @@
+{
+  "dataset": "climate-fever",
+  "label": "Climate-FEVER",
+  "ndcg@10": {
+    "jepa_ckpt2": 0.20484,
+    "jepa_ckpt39": 0.18916,
+    "knn0_ckpt2": 0.15426,
+    "knn0_ckpt39": 0.15596,
+    "mlm_ckpt2": 0.16945,
+    "mlm_ckpt39": 0.16334
+  },
+  "public_dpr": 0.148,
+  "source_files": {
+    "jepa_ckpt2": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/climate-fever.json",
+    "jepa_ckpt39": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/climate-fever.json",
+    "knn0_ckpt2": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/climate-fever.json",
+    "knn0_ckpt39": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/climate-fever.json",
+    "mlm_ckpt2": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/climate-fever.json",
+    "mlm_ckpt39": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/climate-fever.json"
+  },
+  "best": "jepa_ckpt2"
+}

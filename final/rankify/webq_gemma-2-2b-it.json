@@ -1,0 +1,16 @@
+{
+  "cell": "webq_gemma-2-2b-it",
+  "label": "WebQ / 2B",
+  "exact_match": {
+    "ckpt2": 11.318897637795274,
+    "ckpt39": 12.253937007874017,
+    "ckpt36": 11.71259842519685,
+    "public DPR": 12.007874015748031
+  },
+  "source_files": {
+    "ckpt2": "/tmp/tudao/rankify_out_ck2/metrics_webq_gemma-2-2b-it.json",
+    "ckpt39": "/tmp/tudao/rankify_out_ck39/metrics_webq_gemma-2-2b-it.json",
+    "ckpt36": "/tmp/tudao/rankify_out/metrics_webq_gemma-2-2b-it.json",
+    "public DPR": "/tmp/tudao/rankify_out_publicdpr/metrics_webq_gemma-2-2b-it.json"
+  }
+}

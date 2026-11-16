@@ -1,0 +1,16 @@
+{
+  "dataset": "webis-touche2020",
+  "label": "Touche-2020",
+  "ndcg@10": {
+    "ckpt2": 0.21086,
+    "ckpt39": 0.21493,
+    "ckpt36": 0.21035
+  },
+  "public_dpr": 0.131,
+  "best": "ckpt39",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/webis-touche2020.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/webis-touche2020.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/webis-touche2020.json"
+  }
+}

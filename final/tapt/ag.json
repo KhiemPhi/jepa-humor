@@ -1,0 +1,123 @@
+{
+  "task": "AGNEWS",
+  "our_name": "ag",
+  "domain": "News",
+  "metric": "macro-F1",
+  "paper": {
+    "roberta": 93.9,
+    "tapt": 94.5,
+    "source": "Gururangan et al. 2020, Table 5"
+  },
+  "ours": {
+    "jepa": {
+      "value": 93.95717499250942,
+      "printed": "93.96",
+      "std": 0.08757448956950385,
+      "run": "tapt100_ag_jepa_best",
+      "description": "100-epoch TAPT (H100, batch 2048, lr 5e-6, fresh remask) best",
+      "n_seeds": 5,
+      "best_test_mean": 94.07430289533359,
+      "source_file": "experiment/dsp/results/tapt100/tapt100_ag_jepa_best.json",
+      "per_seed": {
+        "42": {
+          "test": 93.91166619055738,
+          "dev": 94.3411868770301,
+          "best_test": 94.24437023726036,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_ag_jepa_best.s42.json"
+        },
+        "43": {
+          "test": 93.82983352656117,
+          "dev": 94.25146675358201,
+          "best_test": 93.98081714560426,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_ag_jepa_best.s43.json"
+        },
+        "44": {
+          "test": 94.06417011100847,
+          "dev": 94.35895667989575,
+          "best_test": 94.06417011100847,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_ag_jepa_best.s44.json"
+        },
+        "45": {
+          "test": 93.93334364554184,
+          "dev": 94.03970501482152,
+          "best_test": 93.93334364554184,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_ag_jepa_best.s45.json"
+        },
+        "46": {
+          "test": 94.04686148887829,
+          "dev": 94.17258472331285,
+          "best_test": 94.14881333725307,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_ag_jepa_best.s46.json"
+        }
+      },
+      "candidates": {
+        "tapt100_ag_jepa_best": 93.9572,
+        "ag_jepa_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5": 93.9393,
+        "tapt100_ag_jepa_epoch20": 93.9034,
+        "tapt100_ag_jepa_epoch100": 93.8625,
+        "tapt100_ag_jepa_epoch80": 93.8567,
+        "tapt100_ag_jepa_epoch40": 93.8496,
+        "tapt100_ag_jepa_epoch60": 93.8164,
+        "ag_jepa_lr5e6_constant_fresh_ep5": 93.7667,
+        "ag_jepa_lr5e6_constant_fresh_ep5_wd01": 93.7515,
+        "ag_jepa_lr5e6_constant_fresh_ep5_wd01_bs32": 93.6682,
+        "ag_jepa_lr5e6_constant_ep5": 93.4811
+      }
+    },
+    "knn0": {
+      "value": 93.97432498602466,
+      "printed": "93.97",
+      "std": 0.1867297154924914,
+      "run": "tapt100_ag_knn0_epoch20",
+      "description": "100-epoch TAPT (H100, batch 2048, lr 5e-6, fresh remask) epoch20",
+      "n_seeds": 5,
+      "best_test_mean": 94.08049134103383,
+      "source_file": "experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.json",
+      "per_seed": {
+        "42": {
+          "test": 93.90214716662366,
+          "dev": 94.3780128469657,
+          "best_test": 93.91676315892605,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.s42.json"
+        },
+        "43": {
+          "test": 93.79560956169495,
+          "dev": 94.32490046554018,
+          "best_test": 93.95751384109745,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.s43.json"
+        },
+        "44": {
+          "test": 94.13174604764846,
+          "dev": 94.47855416345907,
+          "best_test": 94.13174604764846,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.s44.json"
+        },
+        "45": {
+          "test": 93.78863778040152,
+          "dev": 94.34196139871472,
+          "best_test": 94.14294928374255,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.s45.json"
+        },
+        "46": {
+          "test": 94.25348437375469,
+          "dev": 94.30715529337883,
+          "best_test": 94.25348437375469,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_ag_knn0_epoch20.s46.json"
+        }
+      },
+      "candidates": {
+        "tapt100_ag_knn0_epoch20": 93.9743,
+        "ag_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5": 93.947,
+        "ag_knn0_lr5e6_constant_fresh_ep5_wd01_bs32": 93.871,
+        "ag_knn0_lr5e6_constant_fresh_ep5_wd01": 93.8538,
+        "tapt100_ag_knn0_best": 93.8352,
+        "tapt100_ag_knn0_epoch40": 93.8298,
+        "tapt100_ag_knn0_epoch100": 93.8061,
+        "tapt100_ag_knn0_epoch60": 93.7746,
+        "ag_knn0_lr5e6_constant_fresh_ep5": 93.7725,
+        "tapt100_ag_knn0_epoch80": 93.7346,
+        "ag_knn0_lr5e6_constant_ep5": 93.687
+      }
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "model": "roberta-base",
+  "task": "wnli",
+  "task_label": "WNLI",
+  "metric": "accuracy",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": false,
+  "ours": {
+    "med_val": {
+      "value": 83.65384615384616,
+      "printed": "83.7",
+      "run": "first_try",
+      "n_seeds": 5,
+      "selected_seeds": [
+        45
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 82.6923076923077,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed42/finetune_wnli_exp1_roberta_base_wnli.json"
+        },
+        "43": {
+          "value": 88.46153846153845,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed43/finetune_wnli_exp1_roberta_base_wnli.json"
+        },
+        "44": {
+          "value": 85.57692307692307,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed44/finetune_wnli_exp1_roberta_base_wnli.json"
+        },
+        "45": {
+          "value": 83.65384615384616,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed45/finetune_wnli_exp1_roberta_base_wnli.json"
+        },
+        "46": {
+          "value": 82.6923076923077,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed46/finetune_wnli_exp1_roberta_base_wnli.json"
+        }
+      }
+    },
+    "med_best_test": null,
+    "med_test_at_val": null,
+    "max_test_at_val": null
+  },
+  "comparator": {
+    "kind": "fresh_baseline",
+    "name": "our fresh (non-JEPA) roberta-base",
+    "source": "experiment/master_fresh_roberta_base",
+    "stats": {
+      "med_val": {
+        "value": 85.57692307692307,
+        "printed": "85.6",
+        "run": "(root)",
+        "n_seeds": 5,
+        "selected_seeds": [
+          43
+        ],
+        "selection": "median over seeds",
+        "per_seed": {
+          "42": {
+            "value": 85.57692307692307,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed42/finetune_wnli_exp1_fresh_roberta_base_wnli.json"
+          },
+          "43": {
+            "value": 85.57692307692307,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed43/finetune_wnli_exp1_fresh_roberta_base_wnli.json"
+          },
+          "44": {
+            "value": 84.61538461538461,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed44/finetune_wnli_exp1_fresh_roberta_base_wnli.json"
+          },
+          "45": {
+            "value": 86.53846153846155,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed45/finetune_wnli_exp1_fresh_roberta_base_wnli.json"
+          },
+          "46": {
+            "value": 85.57692307692307,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed46/finetune_wnli_exp1_fresh_roberta_base_wnli.json"
+          }
+        }
+      },
+      "med_best_test": null,
+      "med_test_at_val": null,
+      "max_test_at_val": null
+    }
+  }
+}

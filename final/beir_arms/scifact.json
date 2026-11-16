@@ -1,0 +1,22 @@
+{
+  "dataset": "scifact",
+  "label": "SciFact",
+  "ndcg@10": {
+    "jepa_ckpt2": 0.42919,
+    "jepa_ckpt39": 0.40585,
+    "knn0_ckpt2": 0.43534,
+    "knn0_ckpt39": 0.4144,
+    "mlm_ckpt2": 0.43417,
+    "mlm_ckpt39": 0.36473
+  },
+  "public_dpr": 0.318,
+  "source_files": {
+    "jepa_ckpt2": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/scifact.json",
+    "jepa_ckpt39": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/scifact.json",
+    "knn0_ckpt2": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/scifact.json",
+    "knn0_ckpt39": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/scifact.json",
+    "mlm_ckpt2": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/scifact.json",
+    "mlm_ckpt39": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/scifact.json"
+  },
+  "best": "knn0_ckpt2"
+}

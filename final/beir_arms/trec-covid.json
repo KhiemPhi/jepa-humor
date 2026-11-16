@@ -1,0 +1,22 @@
+{
+  "dataset": "trec-covid",
+  "label": "TREC-COVID",
+  "ndcg@10": {
+    "jepa_ckpt2": 0.38119,
+    "jepa_ckpt39": 0.40917,
+    "knn0_ckpt2": 0.31477,
+    "knn0_ckpt39": 0.33446,
+    "mlm_ckpt2": 0.3433,
+    "mlm_ckpt39": 0.35818
+  },
+  "public_dpr": 0.332,
+  "source_files": {
+    "jepa_ckpt2": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/trec-covid.json",
+    "jepa_ckpt39": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/trec-covid.json",
+    "knn0_ckpt2": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/trec-covid.json",
+    "knn0_ckpt39": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/trec-covid.json",
+    "mlm_ckpt2": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/trec-covid.json",
+    "mlm_ckpt39": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/trec-covid.json"
+  },
+  "best": "jepa_ckpt39"
+}

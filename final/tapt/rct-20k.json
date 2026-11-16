@@ -1,0 +1,115 @@
+{
+  "task": "RCT",
+  "our_name": "rct-20k",
+  "domain": "BioMed",
+  "metric": "micro-F1",
+  "paper": {
+    "roberta": 87.2,
+    "tapt": 87.7,
+    "source": "Gururangan et al. 2020, Table 5"
+  },
+  "ours": {
+    "jepa": {
+      "value": 87.14518002322879,
+      "printed": "87.15",
+      "std": 0.031787436574956904,
+      "run": "tapt100_rct-20k_jepa_epoch100",
+      "description": "100-epoch TAPT (H100, batch 2048, lr 5e-6, fresh remask) epoch100",
+      "n_seeds": 5,
+      "best_test_mean": 87.17836402853825,
+      "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.json",
+      "per_seed": {
+        "42": {
+          "test": 87.17770034843205,
+          "dev": 87.74659075863896,
+          "best_test": 87.17770034843205,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.s42.json"
+        },
+        "43": {
+          "test": 87.17770034843205,
+          "dev": 87.79623990467364,
+          "best_test": 87.17770034843205,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.s43.json"
+        },
+        "44": {
+          "test": 87.11465073834411,
+          "dev": 87.92532768436384,
+          "best_test": 87.11465073834411,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.s44.json"
+        },
+        "45": {
+          "test": 87.10137713622034,
+          "dev": 87.89222825367403,
+          "best_test": 87.17438194790111,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.s45.json"
+        },
+        "46": {
+          "test": 87.15447154471545,
+          "dev": 87.80947967694955,
+          "best_test": 87.24738675958189,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_jepa_epoch100.s46.json"
+        }
+      },
+      "candidates": {
+        "tapt100_rct-20k_jepa_epoch100": 87.1452,
+        "tapt100_rct-20k_jepa_epoch20": 87.1107,
+        "tapt100_rct-20k_jepa_epoch40": 87.0808,
+        "tapt100_rct-20k_jepa_epoch60": 87.0622,
+        "tapt100_rct-20k_jepa_epoch80": 87.0476,
+        "tapt100_rct-20k_jepa_best": 87.043,
+        "rct-20k_jepa_lr5e6_constant_fresh_ep5_wd01_bs32": 87.033
+      }
+    },
+    "knn0": {
+      "value": 87.15978098556496,
+      "printed": "87.16",
+      "std": 0.1295893828561289,
+      "run": "tapt100_rct-20k_knn0_best",
+      "description": "100-epoch TAPT (H100, batch 2048, lr 5e-6, fresh remask) best",
+      "n_seeds": 5,
+      "best_test_mean": 87.16840882694541,
+      "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.json",
+      "per_seed": {
+        "42": {
+          "test": 87.23079475692717,
+          "dev": 87.86243876605322,
+          "best_test": 87.23079475692717,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.s42.json"
+        },
+        "43": {
+          "test": 87.13456114152979,
+          "dev": 87.80947967694955,
+          "best_test": 87.13456114152979,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.s43.json"
+        },
+        "44": {
+          "test": 87.20092915214866,
+          "dev": 87.78962001853569,
+          "best_test": 87.20092915214866,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.s44.json"
+        },
+        "45": {
+          "test": 86.9255019080803,
+          "dev": 87.9286376274328,
+          "best_test": 86.96864111498257,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.s45.json"
+        },
+        "46": {
+          "test": 87.30711796913887,
+          "dev": 87.98490665960546,
+          "best_test": 87.30711796913887,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_rct-20k_knn0_best.s46.json"
+        }
+      },
+      "candidates": {
+        "tapt100_rct-20k_knn0_best": 87.1598,
+        "tapt100_rct-20k_knn0_epoch20": 87.1571,
+        "tapt100_rct-20k_knn0_epoch40": 87.1127,
+        "tapt100_rct-20k_knn0_epoch100": 87.1127,
+        "tapt100_rct-20k_knn0_epoch60": 87.0961,
+        "tapt100_rct-20k_knn0_epoch80": 87.0941,
+        "rct-20k_knn0_lr5e6_constant_fresh_ep5_wd01_bs32": 86.9308
+      }
+    }
+  }
+}

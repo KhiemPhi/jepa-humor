@@ -1,0 +1,320 @@
+{
+  "bert-base": {
+    "med_val": {
+      "tasks": [
+        "cola",
+        "sst2",
+        "mrpc",
+        "stsb",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 83.08550780111312,
+      "comparator": 83.2236568674768,
+      "delta": -0.13814906636368107
+    },
+    "med_best_test": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 38.35428816284489,
+      "comparator": 35.016063444190785,
+      "delta": 3.3382247186541036
+    },
+    "med_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 34.293894092724464,
+      "comparator": 32.19927479429979,
+      "delta": 2.094619298424675
+    },
+    "max_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 36.67137326935678,
+      "comparator": 33.345883062614824,
+      "delta": 3.3254902067419536
+    }
+  },
+  "bert-large": {
+    "med_val": {
+      "tasks": [
+        "cola",
+        "sst2",
+        "mrpc",
+        "stsb",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 85.04659171447213,
+      "comparator": 84.05,
+      "delta": 0.9965917144721317
+    },
+    "med_best_test": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 40.351467424236574,
+      "comparator": 35.977999999999994,
+      "delta": 4.37346742423658
+    },
+    "med_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 36.32802977224581,
+      "comparator": 35.977999999999994,
+      "delta": 0.35002977224581855
+    },
+    "max_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 38.709526322568856,
+      "comparator": 35.977999999999994,
+      "delta": 2.731526322568861
+    }
+  },
+  "roberta-base": {
+    "med_val": {
+      "tasks": [
+        "cola",
+        "sst2",
+        "mrpc",
+        "stsb",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 86.26523510783964,
+      "comparator": 86.10537982413919,
+      "delta": 0.15985528370045188
+    },
+    "med_best_test": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 36.20293486251679,
+      "comparator": 33.41987097719342,
+      "delta": 2.7830638853233722
+    },
+    "med_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 27.31797922953051,
+      "comparator": 24.845379546215536,
+      "delta": 2.472599683314975
+    },
+    "max_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 32.46738646236912,
+      "comparator": 28.410884245160894,
+      "delta": 4.056502217208227
+    }
+  },
+  "roberta-large": {
+    "med_val": {
+      "tasks": [
+        "cola",
+        "sst2",
+        "mrpc",
+        "stsb",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 89.12443568622515,
+      "comparator": 88.825,
+      "delta": 0.29943568622515215
+    },
+    "med_best_test": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 60.45464452972972,
+      "comparator": 52.855999999999995,
+      "delta": 7.598644529729725
+    },
+    "med_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 58.0548587520712,
+      "comparator": 52.855999999999995,
+      "delta": 5.198858752071203
+    },
+    "max_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 60.51531602237422,
+      "comparator": 52.855999999999995,
+      "delta": 7.659316022374227
+    }
+  },
+  "deberta-base": {
+    "med_val": {
+      "tasks": [
+        "cola",
+        "sst2",
+        "mrpc",
+        "stsb",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 86.87855998429261,
+      "comparator": 86.69541810053013,
+      "delta": 0.18314188376247387
+    },
+    "med_best_test": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 48.6751368321454,
+      "comparator": 48.432479876958084,
+      "delta": 0.24265695518731434
+    },
+    "med_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 41.9437445824496,
+      "comparator": 40.99402516707819,
+      "delta": 0.9497194153714048
+    },
+    "max_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 44.527341347121286,
+      "comparator": 43.88178974341821,
+      "delta": 0.6455516037030762
+    }
+  },
+  "deberta-large": {
+    "med_val": {
+      "tasks": [
+        "cola",
+        "sst2",
+        "mrpc",
+        "stsb",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 89.60029800109292,
+      "comparator": 89.875,
+      "delta": -0.2747019989070765
+    },
+    "med_best_test": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 65.47518702238013,
+      "comparator": 62.696000000000005,
+      "delta": 2.779187022380121
+    },
+    "med_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 63.65118710979548,
+      "comparator": 62.696000000000005,
+      "delta": 0.9551871097954745
+    },
+    "max_test_at_val": {
+      "tasks": [
+        "sst2",
+        "qqp",
+        "mnli",
+        "qnli",
+        "rte"
+      ],
+      "ours": 66.38225028250964,
+      "comparator": 62.696000000000005,
+      "delta": 3.68625028250964
+    }
+  }
+}

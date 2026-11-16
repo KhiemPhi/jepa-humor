@@ -1,0 +1,20 @@
+{
+  "mean_15": {
+    "ckpt2": 0.2978866666666667,
+    "ckpt39": 0.2871128888888889,
+    "ckpt36": 0.2848311111111111,
+    "public_dpr": 0.25
+  },
+  "mean_14_zero_shot": {
+    "ckpt2": 0.3043657142857143,
+    "ckpt39": 0.292877380952381,
+    "ckpt36": 0.2905183333333333,
+    "public_dpr": 0.2552142857142857
+  },
+  "beats_public_dpr_out_of_15": {
+    "ckpt2": 14,
+    "ckpt39": 15,
+    "ckpt36": 15
+  },
+  "note": "MS MARCO is in-domain for DPR-style training, hence the separate 14-set mean."
+}

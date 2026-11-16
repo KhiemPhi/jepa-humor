@@ -1,0 +1,22 @@
+{
+  "dataset": "quora",
+  "label": "Quora",
+  "ndcg@10": {
+    "jepa_ckpt2": 0.51334,
+    "jepa_ckpt39": 0.63441,
+    "knn0_ckpt2": 0.60819,
+    "knn0_ckpt39": 0.66019,
+    "mlm_ckpt2": 0.3699,
+    "mlm_ckpt39": 0.33522
+  },
+  "public_dpr": 0.248,
+  "source_files": {
+    "jepa_ckpt2": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/quora.json",
+    "jepa_ckpt39": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/quora.json",
+    "knn0_ckpt2": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/quora.json",
+    "knn0_ckpt39": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/quora.json",
+    "mlm_ckpt2": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/quora.json",
+    "mlm_ckpt39": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/quora.json"
+  },
+  "best": "knn0_ckpt39"
+}

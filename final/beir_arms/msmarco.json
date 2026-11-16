@@ -1,0 +1,22 @@
+{
+  "dataset": "msmarco",
+  "label": "MS MARCO*",
+  "ndcg@10": {
+    "jepa_ckpt2": null,
+    "jepa_ckpt39": null,
+    "knn0_ckpt2": null,
+    "knn0_ckpt39": null,
+    "mlm_ckpt2": null,
+    "mlm_ckpt39": null
+  },
+  "public_dpr": 0.177,
+  "source_files": {
+    "jepa_ckpt2": null,
+    "jepa_ckpt39": null,
+    "knn0_ckpt2": null,
+    "knn0_ckpt39": null,
+    "mlm_ckpt2": null,
+    "mlm_ckpt39": null
+  },
+  "best": null
+}

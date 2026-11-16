@@ -1,0 +1,22 @@
+{
+  "dataset": "fiqa",
+  "label": "FiQA-2018",
+  "ndcg@10": {
+    "jepa_ckpt2": 0.1048,
+    "jepa_ckpt39": 0.12621,
+    "knn0_ckpt2": 0.11175,
+    "knn0_ckpt39": 0.10366,
+    "mlm_ckpt2": 0.14461,
+    "mlm_ckpt39": 0.13507
+  },
+  "public_dpr": 0.112,
+  "source_files": {
+    "jepa_ckpt2": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/fiqa.json",
+    "jepa_ckpt39": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/fiqa.json",
+    "knn0_ckpt2": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/fiqa.json",
+    "knn0_ckpt39": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/fiqa.json",
+    "mlm_ckpt2": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/fiqa.json",
+    "mlm_ckpt39": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/fiqa.json"
+  },
+  "best": "mlm_ckpt2"
+}

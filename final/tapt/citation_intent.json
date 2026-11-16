@@ -1,0 +1,105 @@
+{
+  "task": "ACL-ARC",
+  "our_name": "citation_intent",
+  "domain": "CS",
+  "metric": "macro-F1",
+  "paper": {
+    "roberta": 63.0,
+    "tapt": 67.4,
+    "source": "Gururangan et al. 2020, Table 5"
+  },
+  "ours": {
+    "jepa": {
+      "value": 70.12702099161729,
+      "printed": "70.13",
+      "std": 2.059832734875255,
+      "run": "citation_intent_jepa_lr5e6_constant_fresh_ep100",
+      "description": "100-epoch TAPT (fresh remask), finetune bs16 lr2e-5 wd0.01",
+      "n_seeds": 5,
+      "best_test_mean": 72.4330045492782,
+      "source_file": "experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json",
+      "per_seed": {
+        "42": {
+          "test": 71.48424326995756,
+          "dev": 67.75091925953997,
+          "best_test": 71.48424326995756,
+          "source_file": "experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json"
+        },
+        "43": {
+          "test": 68.22909950569525,
+          "dev": 69.64356814020867,
+          "best_test": 74.3182843429149,
+          "source_file": "experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json"
+        },
+        "44": {
+          "test": 68.56307091601211,
+          "dev": 75.38905538905539,
+          "best_test": 70.22820897594038,
+          "source_file": "experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json"
+        },
+        "45": {
+          "test": 73.53621665823268,
+          "dev": 68.72142477405635,
+          "best_test": 75.75060238103717,
+          "source_file": "experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json"
+        },
+        "46": {
+          "test": 68.8224746081889,
+          "dev": 75.54789752158175,
+          "best_test": 70.38368377654093,
+          "source_file": "experiment/dsp/results/citation_intent_jepa_lr5e6_constant_fresh_ep100.json"
+        }
+      },
+      "candidates": {
+        "citation_intent_jepa_lr5e6_constant_fresh_ep100": 70.127,
+        "citation_intent_jepa_lr5e6_constant": 68.7081
+      }
+    },
+    "knn0": {
+      "value": 68.15824531195565,
+      "printed": "68.16",
+      "std": 2.684299861601473,
+      "run": "citation_intent_knn0_lr5e6_constant",
+      "description": "100-epoch TAPT (static mask), finetune bs16 lr2e-5 wd0.01",
+      "n_seeds": 5,
+      "best_test_mean": null,
+      "source_file": "experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json",
+      "per_seed": {
+        "42": {
+          "test": 70.8905519956733,
+          "dev": 73.48542454132514,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json"
+        },
+        "43": {
+          "test": 71.67595689334819,
+          "dev": 72.41646131181014,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json"
+        },
+        "44": {
+          "test": 64.80264701741211,
+          "dev": 77.77520377520378,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json"
+        },
+        "45": {
+          "test": 67.31876090366656,
+          "dev": 67.84266447110484,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json"
+        },
+        "46": {
+          "test": 66.10330974967806,
+          "dev": 71.28904239559976,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/citation_intent_knn0_lr5e6_constant.json"
+        }
+      },
+      "candidates": {
+        "citation_intent_knn0_lr5e6_constant": 68.1582,
+        "citation_intent_knn0_lr5e6_constant_fresh_ep100": 67.4397
+      }
+    }
+  }
+}

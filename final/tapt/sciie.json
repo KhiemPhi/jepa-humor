@@ -1,0 +1,105 @@
+{
+  "task": "SCIERC",
+  "our_name": "sciie",
+  "domain": "CS",
+  "metric": "macro-F1",
+  "paper": {
+    "roberta": 77.3,
+    "tapt": 79.3,
+    "source": "Gururangan et al. 2020, Table 5"
+  },
+  "ours": {
+    "jepa": {
+      "value": 79.33514104982439,
+      "printed": "79.34",
+      "std": 1.047672403653052,
+      "run": "sciie_jepa_lr5e6_constant",
+      "description": "100-epoch TAPT (static mask), finetune bs16 lr2e-5 wd0.01",
+      "n_seeds": 5,
+      "best_test_mean": null,
+      "source_file": "experiment/dsp/results/sciie_jepa_lr5e6_constant.json",
+      "per_seed": {
+        "42": {
+          "test": 78.81513228022196,
+          "dev": 82.37032450681347,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/sciie_jepa_lr5e6_constant.json"
+        },
+        "43": {
+          "test": 79.02254430881356,
+          "dev": 83.0580160878888,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/sciie_jepa_lr5e6_constant.json"
+        },
+        "44": {
+          "test": 81.40539610196436,
+          "dev": 84.4623299981705,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/sciie_jepa_lr5e6_constant.json"
+        },
+        "45": {
+          "test": 78.5317664088428,
+          "dev": 84.50233109625162,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/sciie_jepa_lr5e6_constant.json"
+        },
+        "46": {
+          "test": 78.90086614927931,
+          "dev": 85.70854587379638,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/sciie_jepa_lr5e6_constant.json"
+        }
+      },
+      "candidates": {
+        "sciie_jepa_lr5e6_constant": 79.3351,
+        "sciie_jepa_lr5e6_constant_fresh_ep100": 79.2799
+      }
+    },
+    "knn0": {
+      "value": 80.06625210760743,
+      "printed": "80.07",
+      "std": 0.6635199819212527,
+      "run": "sciie_knn0_lr5e6_constant",
+      "description": "100-epoch TAPT (static mask), finetune bs16 lr2e-5 wd0.01",
+      "n_seeds": 5,
+      "best_test_mean": null,
+      "source_file": "experiment/dsp/results/sciie_knn0_lr5e6_constant.json",
+      "per_seed": {
+        "42": {
+          "test": 80.58336618497044,
+          "dev": 89.13479493830823,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/sciie_knn0_lr5e6_constant.json"
+        },
+        "43": {
+          "test": 80.08853745623051,
+          "dev": 85.97842327479819,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/sciie_knn0_lr5e6_constant.json"
+        },
+        "44": {
+          "test": 79.4919289208795,
+          "dev": 85.27258611803978,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/sciie_knn0_lr5e6_constant.json"
+        },
+        "45": {
+          "test": 80.97896067714511,
+          "dev": 85.92007109228555,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/sciie_knn0_lr5e6_constant.json"
+        },
+        "46": {
+          "test": 79.18846729881156,
+          "dev": 84.59045624114749,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/sciie_knn0_lr5e6_constant.json"
+        }
+      },
+      "candidates": {
+        "sciie_knn0_lr5e6_constant": 80.0663,
+        "sciie_knn0_lr5e6_constant_fresh_ep100": 78.611
+      }
+    }
+  }
+}

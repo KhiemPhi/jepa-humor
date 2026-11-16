@@ -1,0 +1,16 @@
+{
+  "dataset": "scifact",
+  "label": "SciFact",
+  "ndcg@10": {
+    "ckpt2": 0.45414,
+    "ckpt39": 0.39692,
+    "ckpt36": 0.40424
+  },
+  "public_dpr": 0.318,
+  "best": "ckpt2",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/scifact.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/scifact.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/scifact.json"
+  }
+}

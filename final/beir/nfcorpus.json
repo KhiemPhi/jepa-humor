@@ -1,0 +1,16 @@
+{
+  "dataset": "nfcorpus",
+  "label": "NFCorpus",
+  "ndcg@10": {
+    "ckpt2": 0.2198,
+    "ckpt39": 0.21388,
+    "ckpt36": 0.21258
+  },
+  "public_dpr": 0.189,
+  "best": "ckpt2",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/nfcorpus.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/nfcorpus.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/nfcorpus.json"
+  }
+}

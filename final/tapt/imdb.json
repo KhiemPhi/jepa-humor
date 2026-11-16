@@ -1,0 +1,121 @@
+{
+  "task": "IMDB",
+  "our_name": "imdb",
+  "domain": "Reviews",
+  "metric": "macro-F1",
+  "paper": {
+    "roberta": 95.0,
+    "tapt": 95.5,
+    "source": "Gururangan et al. 2020, Table 5"
+  },
+  "ours": {
+    "jepa": {
+      "value": 95.51751103864953,
+      "printed": "95.52",
+      "std": 0.0724566226463959,
+      "run": "tapt100_imdb_jepa_epoch60",
+      "description": "100-epoch TAPT (H100, batch 2048, lr 5e-6, fresh remask) epoch60",
+      "n_seeds": 5,
+      "best_test_mean": 95.53588533163902,
+      "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.json",
+      "per_seed": {
+        "42": {
+          "test": 95.63179801434019,
+          "dev": 95.6799889407717,
+          "best_test": 95.63179801434019,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.s42.json"
+        },
+        "43": {
+          "test": 95.48797894871458,
+          "dev": 95.51999354879071,
+          "best_test": 95.48797894871458,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.s43.json"
+        },
+        "44": {
+          "test": 95.40796602629584,
+          "dev": 95.43999927039988,
+          "best_test": 95.4958587501304,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.s44.json"
+        },
+        "45": {
+          "test": 95.52781221104587,
+          "dev": 95.3799465921826,
+          "best_test": 95.53179095215877,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.s45.json"
+        },
+        "46": {
+          "test": 95.5319999928512,
+          "dev": 95.1998894054519,
+          "best_test": 95.5319999928512,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_jepa_epoch60.s46.json"
+        }
+      },
+      "candidates": {
+        "tapt100_imdb_jepa_epoch60": 95.5175,
+        "imdb_jepa_lr5e6_constant_fresh_ep5_wd01_bs32": 95.4903,
+        "imdb_jepa_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5": 95.4662,
+        "tapt100_imdb_jepa_epoch80": 95.4333,
+        "tapt100_imdb_jepa_epoch20": 95.4239,
+        "tapt100_imdb_jepa_epoch100": 95.4229,
+        "tapt100_imdb_jepa_epoch40": 95.4119,
+        "tapt100_imdb_jepa_best": 95.3939,
+        "imdb_jepa_lr5e6_constant_fresh_ep5_wd01": 95.2468,
+        "imdb_jepa_lr5e6_constant_fresh_ep5": 95.2054
+      }
+    },
+    "knn0": {
+      "value": 95.41513310584176,
+      "printed": "95.42",
+      "std": 0.10087844152955897,
+      "run": "tapt100_imdb_knn0_epoch60",
+      "description": "100-epoch TAPT (H100, batch 2048, lr 5e-6, fresh remask) epoch60",
+      "n_seeds": 5,
+      "best_test_mean": 95.46071903073344,
+      "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.json",
+      "per_seed": {
+        "42": {
+          "test": 95.40393639783345,
+          "dev": 95.3799998152,
+          "best_test": 95.45196925531216,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.s42.json"
+        },
+        "43": {
+          "test": 95.33598806012944,
+          "dev": 95.39999705599811,
+          "best_test": 95.4918311492406,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.s43.json"
+        },
+        "44": {
+          "test": 95.611984490998,
+          "dev": 95.23966411069965,
+          "best_test": 95.611984490998,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.s44.json"
+        },
+        "45": {
+          "test": 95.3559463147394,
+          "dev": 95.43998832637011,
+          "best_test": 95.379999992608,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.s45.json"
+        },
+        "46": {
+          "test": 95.36781026550847,
+          "dev": 95.03997143023544,
+          "best_test": 95.36781026550847,
+          "source_file": "experiment/dsp/results/tapt100/tapt100_imdb_knn0_epoch60.s46.json"
+        }
+      },
+      "candidates": {
+        "tapt100_imdb_knn0_epoch60": 95.4151,
+        "tapt100_imdb_knn0_epoch80": 95.4031,
+        "tapt100_imdb_knn0_best": 95.3823,
+        "tapt100_imdb_knn0_epoch100": 95.3655,
+        "imdb_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5": 95.3631,
+        "tapt100_imdb_knn0_epoch40": 95.3448,
+        "tapt100_imdb_knn0_epoch20": 95.3301,
+        "imdb_knn0_lr5e6_constant_fresh_ep5_wd01_bs32": 95.3199,
+        "imdb_knn0_lr5e6_constant_fresh_ep5_wd01": 95.2334,
+        "imdb_knn0_lr5e6_constant_fresh_ep5": 95.1623
+      }
+    }
+  }
+}

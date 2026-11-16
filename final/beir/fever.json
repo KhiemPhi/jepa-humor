@@ -1,0 +1,16 @@
+{
+  "dataset": "fever",
+  "label": "FEVER",
+  "ndcg@10": {
+    "ckpt2": 0.55391,
+    "ckpt39": 0.6124,
+    "ckpt36": 0.60673
+  },
+  "public_dpr": 0.562,
+  "best": "ckpt39",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/fever.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/fever.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/fever.json"
+  }
+}

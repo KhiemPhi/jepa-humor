@@ -1,0 +1,16 @@
+{
+  "cell": "nq_gemma-2-9b-it",
+  "label": "NQ / 9B",
+  "exact_match": {
+    "ckpt2": 31.939058171745156,
+    "ckpt39": 32.742382271468145,
+    "ckpt36": 32.38227146814404,
+    "public DPR": 32.659279778393355
+  },
+  "source_files": {
+    "ckpt2": "/tmp/tudao/rankify_out_ck2/metrics_nq_gemma-2-9b-it.json",
+    "ckpt39": "/tmp/tudao/rankify_out_ck39/metrics_nq_gemma-2-9b-it.json",
+    "ckpt36": "/tmp/tudao/rankify_out/metrics_nq_gemma-2-9b-it.json",
+    "public DPR": "/tmp/tudao/rankify_out_publicdpr/metrics_nq_gemma-2-9b-it.json"
+  }
+}

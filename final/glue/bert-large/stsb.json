@@ -1,0 +1,56 @@
+{
+  "model": "bert-large",
+  "task": "stsb",
+  "task_label": "STS-B",
+  "metric": "pearson",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": true,
+  "ours": {
+    "med_val": {
+      "value": 90.66776083132262,
+      "printed": "90.7",
+      "run": "stsb_sweep/best_lr2.0e-5_bs16",
+      "n_seeds": 5,
+      "selected_seeds": [
+        43
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 90.86986662693522,
+          "source_file": "experiment/master_bert_large/stsb_sweep/best_lr2.0e-5_bs16/results_seed42/finetune_stsb_exp1_bert_large_uncased_stsb.json"
+        },
+        "43": {
+          "value": 90.66776083132262,
+          "source_file": "experiment/master_bert_large/stsb_sweep/best_lr2.0e-5_bs16/results_seed43/finetune_stsb_exp1_bert_large_uncased_stsb.json"
+        },
+        "44": {
+          "value": 90.75911570428067,
+          "source_file": "experiment/master_bert_large/stsb_sweep/best_lr2.0e-5_bs16/results_seed44/finetune_stsb_exp1_bert_large_uncased_stsb.json"
+        },
+        "45": {
+          "value": 90.4116216343901,
+          "source_file": "experiment/master_bert_large/stsb_sweep/best_lr2.0e-5_bs16/results_seed45/finetune_stsb_exp1_bert_large_uncased_stsb.json"
+        },
+        "46": {
+          "value": 90.5768367660086,
+          "source_file": "experiment/master_bert_large/stsb_sweep/best_lr2.0e-5_bs16/results_seed46/finetune_stsb_exp1_bert_large_uncased_stsb.json"
+        }
+      }
+    },
+    "med_best_test": null,
+    "med_test_at_val": null,
+    "max_test_at_val": null
+  },
+  "comparator": {
+    "kind": "published",
+    "name": "BERT-large",
+    "source": "arXiv 2006.03654 (DeBERTa) Table 1 for med-val; arXiv 2111.02840 (AdvGLUE) Table 4 for the test statistics",
+    "values": {
+      "med_val": 90.0,
+      "med_best_test": null,
+      "med_test_at_val": null,
+      "max_test_at_val": null
+    }
+  }
+}

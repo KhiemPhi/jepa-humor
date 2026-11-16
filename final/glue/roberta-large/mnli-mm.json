@@ -1,0 +1,153 @@
+{
+  "model": "roberta-large",
+  "task": "mnli-mm",
+  "task_label": "MNLI-mm",
+  "metric": "accuracy",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": false,
+  "ours": {
+    "med_val": {
+      "value": 90.42921074043939,
+      "printed": "90.4",
+      "run": "hd01:glue9_noknn",
+      "n_seeds": 3,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 90.42921074043939,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_noknn_seed42/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "43": {
+          "value": 90.48006509357201,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_noknn_seed43/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "44": {
+          "value": 90.42921074043939,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_noknn_seed44/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        }
+      }
+    },
+    "med_best_test": {
+      "value": 42.349726775956285,
+      "printed": "42.35",
+      "run": "hd01:glue9_knn",
+      "n_seeds": 5,
+      "selected_seeds": [
+        45
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 41.62112932604736,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed42/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "43": {
+          "value": 39.89071038251366,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed43/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "44": {
+          "value": 43.533697632058285,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed44/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "45": {
+          "value": 42.349726775956285,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed45/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "46": {
+          "value": 44.080145719489984,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed46/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        }
+      }
+    },
+    "med_test_at_val": {
+      "value": 40.80145719489982,
+      "printed": "40.80",
+      "run": "hd00:glue_no_knn",
+      "n_seeds": 5,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 41.8943533697632,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_no_knn_seed42/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "43": {
+          "value": 41.07468123861566,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_no_knn_seed43/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "44": {
+          "value": 40.80145719489982,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_no_knn_seed44/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "45": {
+          "value": 40.255009107468126,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_no_knn_seed45/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "46": {
+          "value": 39.162112932604735,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_no_knn_seed46/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        }
+      }
+    },
+    "max_test_at_val": {
+      "value": 41.98542805100182,
+      "printed": "41.99",
+      "run": "hd00:glue",
+      "n_seeds": 8,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "argmax over seeds",
+      "per_seed": {
+        "42": {
+          "value": 41.07468123861566,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed42/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "43": {
+          "value": 38.97996357012751,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed43/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "44": {
+          "value": 41.98542805100182,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed44/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "45": {
+          "value": 39.435336976320585,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed45/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "46": {
+          "value": 41.2568306010929,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed46/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "47": {
+          "value": 38.70673952641166,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed47/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "48": {
+          "value": 39.435336976320585,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed48/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        },
+        "49": {
+          "value": 38.069216757741344,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed49/finetune_mnli_exp1_FacebookAI_roberta_large_mnli.json"
+        }
+      }
+    }
+  },
+  "comparator": {
+    "kind": "published",
+    "name": "RoBERTa-large",
+    "source": "arXiv 2006.03654 (DeBERTa) Table 1 for med-val; arXiv 2111.02840 (AdvGLUE) Table 4 for the test statistics",
+    "values": {
+      "med_val": 90.2,
+      "med_best_test": 39.62,
+      "med_test_at_val": 39.62,
+      "max_test_at_val": 39.62
+    }
+  }
+}

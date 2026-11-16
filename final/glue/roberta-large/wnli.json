@@ -1,0 +1,48 @@
+{
+  "model": "roberta-large",
+  "task": "wnli",
+  "task_label": "WNLI",
+  "metric": "accuracy",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": false,
+  "ours": {
+    "med_val": {
+      "value": 91.34615384615384,
+      "printed": "91.3",
+      "run": "hd00:glue_no_knn",
+      "n_seeds": 3,
+      "selected_seeds": [
+        42
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 91.34615384615384,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_no_knn_seed42/finetune_wnli_exp1_roberta_large_wnli.json"
+        },
+        "43": {
+          "value": 87.5,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_no_knn_seed43/finetune_wnli_exp1_roberta_large_wnli.json"
+        },
+        "44": {
+          "value": 92.3076923076923,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_no_knn_seed44/finetune_wnli_exp1_roberta_large_wnli.json"
+        }
+      }
+    },
+    "med_best_test": null,
+    "med_test_at_val": null,
+    "max_test_at_val": null
+  },
+  "comparator": {
+    "kind": "published",
+    "name": "RoBERTa-large",
+    "source": "arXiv 2006.03654 (DeBERTa) Table 1 for med-val; arXiv 2111.02840 (AdvGLUE) Table 4 for the test statistics",
+    "values": {
+      "med_val": null,
+      "med_best_test": null,
+      "med_test_at_val": null,
+      "max_test_at_val": null
+    }
+  }
+}

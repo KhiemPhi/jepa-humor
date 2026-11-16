@@ -1,0 +1,27 @@
+seed: 42
+experiment_name: pretrain_xlmr_large
+model_name: FacebookAI/xlm-roberta-large   # 560M encoder (RoBERTa-family, has <mask>)
+dataset: wikimedia/wikipedia
+dataset_config: ["20231101.en", "20231101.es", "20231101.de", "20231101.el", "20231101.ru", "20231101.tr", "20231101.ar", "20231101.vi", "20231101.th", "20231101.zh", "20231101.hi"]
+sample_per_config: 2000                     # 2k rows streamed+capped per language (matches cap-2k)
+text_keys: ["text"]
+max_length: 256
+batch_size: 32
+num_workers: 4
+epochs: 1
+lr: 1.0e-5
+ema_decay: 0.996
+mask_ratio: 0.35
+mean_span_len: 3.0
+mask_type: random_token
+tail_bias: 5.0
+mixed_precision: true       # fp16 autocast + GradScaler
+log_dir: runs/pretrain
+val_split: 0.0001
+gpu_id: 5
+sample_percent: null
+model_type: jepa
+dynamic_masking: false
+# --- full-parameter JEPA pretrain (NO LoRA) for XLM-R Large ---
+use_lora: false
+ckpt_dir: master_xlm/xlm_large_cap2k

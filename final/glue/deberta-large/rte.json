@@ -1,0 +1,149 @@
+{
+  "model": "deberta-large",
+  "task": "rte",
+  "task_label": "RTE",
+  "metric": "accuracy",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": true,
+  "ours": {
+    "med_val": {
+      "value": 87.36462093862815,
+      "printed": "87.4",
+      "run": "paper_sweep:lr9e6_bs16_w50_p0c1",
+      "n_seeds": 5,
+      "selected_seeds": [
+        45
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 87.72563176895306,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr9e6_bs16_w50_p0c1_seed42/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "43": {
+          "value": 85.92057761732852,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr9e6_bs16_w50_p0c1_seed43/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "44": {
+          "value": 87.36462093862815,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr9e6_bs16_w50_p0c1_seed44/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "45": {
+          "value": 87.36462093862815,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr9e6_bs16_w50_p0c1_seed45/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "46": {
+          "value": 87.36462093862815,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr9e6_bs16_w50_p0c1_seed46/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        }
+      }
+    },
+    "med_best_test": {
+      "value": 70.39473684210526,
+      "printed": "70.39",
+      "run": "paper_sweep:lr2e5_bs16_w500_p0c0",
+      "n_seeds": 5,
+      "selected_seeds": [
+        42
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 70.39473684210526,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr2e5_bs16_w500_p0c0_seed42/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "43": {
+          "value": 70.72368421052632,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr2e5_bs16_w500_p0c0_seed43/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "44": {
+          "value": 71.38157894736842,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr2e5_bs16_w500_p0c0_seed44/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "45": {
+          "value": 64.14473684210526,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr2e5_bs16_w500_p0c0_seed45/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "46": {
+          "value": 66.77631578947368,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr2e5_bs16_w500_p0c0_seed46/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        }
+      }
+    },
+    "med_test_at_val": {
+      "value": 69.4078947368421,
+      "printed": "69.41",
+      "run": "biascorr_lr2:rte_base8e6",
+      "n_seeds": 5,
+      "selected_seeds": [
+        45
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 66.77631578947368,
+          "source_file": "experiment/master_deberta_large/biascorr_lr2/results_rte_base8e6_seed42/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "43": {
+          "value": 69.73684210526315,
+          "source_file": "experiment/master_deberta_large/biascorr_lr2/results_rte_base8e6_seed43/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "44": {
+          "value": 63.81578947368421,
+          "source_file": "experiment/master_deberta_large/biascorr_lr2/results_rte_base8e6_seed44/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "45": {
+          "value": 69.4078947368421,
+          "source_file": "experiment/master_deberta_large/biascorr_lr2/results_rte_base8e6_seed45/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "46": {
+          "value": 70.39473684210526,
+          "source_file": "experiment/master_deberta_large/biascorr_lr2/results_rte_base8e6_seed46/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        }
+      }
+    },
+    "max_test_at_val": {
+      "value": 73.68421052631578,
+      "printed": "73.68",
+      "run": "paper_sweep:lr2e5_bs32_w500_p0c1",
+      "n_seeds": 5,
+      "selected_seeds": [
+        42
+      ],
+      "selection": "argmax over seeds",
+      "per_seed": {
+        "42": {
+          "value": 73.68421052631578,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr2e5_bs32_w500_p0c1_seed42/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "43": {
+          "value": 65.78947368421053,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr2e5_bs32_w500_p0c1_seed43/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "44": {
+          "value": 68.0921052631579,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr2e5_bs32_w500_p0c1_seed44/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "45": {
+          "value": 64.47368421052632,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr2e5_bs32_w500_p0c1_seed45/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        },
+        "46": {
+          "value": 66.44736842105263,
+          "source_file": "experiment/master_deberta_large/paper_sweep/results_lr2e5_bs32_w500_p0c1_seed46/finetune_rte_exp1_microsoft_deberta_large_rte.json"
+        }
+      }
+    }
+  },
+  "comparator": {
+    "kind": "published",
+    "name": "DeBERTa-large",
+    "source": "arXiv 2006.03654 (DeBERTa) Table 1 for med-val; arXiv 2111.02840 (AdvGLUE) Table 4 for the test statistics",
+    "values": {
+      "med_val": 88.3,
+      "med_best_test": 78.95,
+      "med_test_at_val": 78.95,
+      "max_test_at_val": 78.95
+    }
+  }
+}

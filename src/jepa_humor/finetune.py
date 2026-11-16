@@ -179,7 +179,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         train_rounds = cfg.get("train_rounds", [1, 2, 3])  # Default: use all rounds
         if isinstance(train_rounds, int):
             train_rounds = [train_rounds]  # Convert single int to list
-        ds = load_anli_splits(dataset_name, train_rounds=train_rounds, seed=cfg["seed"]) 
+        ds = load_anli_splits(dataset_name, train_rounds=train_rounds, seed=cfg["seed"], val_rounds=cfg.get("anli_val_rounds"))   # anli_val_rounds: gated 2026-10-26, unset = dev_r1 (unchanged)
         # For ANLI, we'll use dev_r1 as validation (already loaded in load_anli_splits)
         ds_test_matched = {"validation": ds["validation"]}
         # Load test splits separately
@@ -227,7 +227,9 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
         # For other datasets, load test set from JSON based on dataset_config
         ds_test_matched_json = None
         ds_test_mismatched_json = None
-        if dataset_config:
+        if cfg.get("hf_test_split"):   # 2026-10-30 opt-in (PAWS): test = this split of the HF dataset itself; unset = test_ann.json (unchanged)
+            ds_test_other = {"test": ds[cfg["hf_test_split"]]}
+        elif dataset_config:
             ds_test_other = load_test_set_from_json(dataset_config, json_path=json_path)
         else:
             # Try to infer from dataset name
@@ -444,6 +446,8 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
     # Setup results tracking
     epoch_log: list[dict] = []
     _results_dir = cfg.get("results_dir", "results")
+    # save_checkpoints: false skips the best-val/best-test .pt files (gated, default true; added 2026-10-06)
+    _save_ckpts = cfg.get("save_checkpoints", True)
     _task = cfg.get("dataset_config") or cfg.get("dataset", "task")
     _exp_name = cfg.get("experiment_name", "")
     _model_slug = cfg.get("model_name", "").replace("-", "_").replace("/", "_")
@@ -900,7 +904,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 best_val_score = val_selection_score
                 best_val_model_state = model.state_dict().copy()
                 best_val_ckpt_path = os.path.join(ckpt_dir, f"{prefix}best_val.pt")
-                save_ckpt(checkpoint_data, best_val_ckpt_path)
+                if _save_ckpts: save_ckpt(checkpoint_data, best_val_ckpt_path)
                 if is_regression:
                     val_metric_label = "Val Pearson"
                 elif is_mnli and val_acc_mismatched is not None:
@@ -913,7 +917,7 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 best_test_score = test_acc
                 best_test_model_state = model.state_dict().copy()
                 best_test_ckpt_path = os.path.join(ckpt_dir, f"{prefix}best_test.pt")
-                save_ckpt(checkpoint_data, best_test_ckpt_path)
+                if _save_ckpts: save_ckpt(checkpoint_data, best_test_ckpt_path)
                 if is_regression:
                     test_metric_label = "Test Pearson"
                 elif is_mnli:
@@ -980,6 +984,16 @@ def finetune(cfg, encoder_ckpt: str, eval_only: bool = False, model_ckpt: str = 
                 epoch_entry["validation"]["mismatched"] = {"acc": val_acc_mismatched, "mcc": val_mcc_mismatched, "f1": val_f1_mismatched}
             epoch_log.append(epoch_entry)
             save_finetune_results(_results_dir, _task, _exp_name, {"model": cfg.get("model_name", ""), "epochs": epoch_log})
+
+            # gated: stop training after N completed epochs. The LR scheduler is still
+            # built over cfg["epochs"] (see num_sched_steps above), so the linear decay
+            # trajectory is byte-identical to a full run -- we merely exit the loop early.
+            # Default (key absent/None/0) leaves behaviour unchanged.
+            _stop_after = cfg.get("stop_after_epochs")
+            if _stop_after and epoch >= int(_stop_after):
+                print(f"Reached stop_after_epochs={int(_stop_after)}; stopping early "
+                      f"(LR schedule still spans {cfg['epochs']} epochs, unchanged).")
+                break
 
         # Load best model for final evaluation: prefer test if available, else val
         if has_test_set and best_test_model_state is not None:

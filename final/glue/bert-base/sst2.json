@@ -1,0 +1,273 @@
+{
+  "model": "bert-base",
+  "task": "sst2",
+  "task_label": "SST-2",
+  "metric": "accuracy",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": true,
+  "ours": {
+    "med_val": {
+      "value": 92.88990825688074,
+      "printed": "92.9",
+      "run": "sst2_pre1ep_lr1e6",
+      "n_seeds": 5,
+      "selected_seeds": [
+        45
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 93.0045871559633,
+          "source_file": "experiment/master_bert_base/sst2_pre1ep_lr1e6/results_seed42/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "43": {
+          "value": 92.66055045871559,
+          "source_file": "experiment/master_bert_base/sst2_pre1ep_lr1e6/results_seed43/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "44": {
+          "value": 93.23394495412845,
+          "source_file": "experiment/master_bert_base/sst2_pre1ep_lr1e6/results_seed44/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "45": {
+          "value": 92.88990825688074,
+          "source_file": "experiment/master_bert_base/sst2_pre1ep_lr1e6/results_seed45/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "46": {
+          "value": 92.77522935779817,
+          "source_file": "experiment/master_bert_base/sst2_pre1ep_lr1e6/results_seed46/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        }
+      }
+    },
+    "med_best_test": {
+      "value": 26.830985915492956,
+      "printed": "26.83",
+      "run": "(root)",
+      "n_seeds": 5,
+      "selected_seeds": [
+        46
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 27.1830985915493,
+          "source_file": "experiment/master_bert_base/results_seed42/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "43": {
+          "value": 23.591549295774648,
+          "source_file": "experiment/master_bert_base/results_seed43/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "44": {
+          "value": 26.97183098591549,
+          "source_file": "experiment/master_bert_base/results_seed44/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "45": {
+          "value": 25.84507042253521,
+          "source_file": "experiment/master_bert_base/results_seed45/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "46": {
+          "value": 26.830985915492956,
+          "source_file": "experiment/master_bert_base/results_seed46/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        }
+      }
+    },
+    "med_test_at_val": {
+      "value": 24.366197183098592,
+      "printed": "24.37",
+      "run": "sst2_pre1ep_lr1e6",
+      "n_seeds": 5,
+      "selected_seeds": [
+        42
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 24.366197183098592,
+          "source_file": "experiment/master_bert_base/sst2_pre1ep_lr1e6/results_seed42/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "43": {
+          "value": 23.450704225352112,
+          "source_file": "experiment/master_bert_base/sst2_pre1ep_lr1e6/results_seed43/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "44": {
+          "value": 25.0,
+          "source_file": "experiment/master_bert_base/sst2_pre1ep_lr1e6/results_seed44/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "45": {
+          "value": 23.73239436619718,
+          "source_file": "experiment/master_bert_base/sst2_pre1ep_lr1e6/results_seed45/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "46": {
+          "value": 24.43661971830986,
+          "source_file": "experiment/master_bert_base/sst2_pre1ep_lr1e6/results_seed46/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        }
+      }
+    },
+    "max_test_at_val": {
+      "value": 25.0,
+      "printed": "25.00",
+      "run": "first_try",
+      "n_seeds": 5,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "argmax over seeds",
+      "per_seed": {
+        "42": {
+          "value": 22.535211267605636,
+          "source_file": "experiment/master_bert_base/first_try/results_seed42/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "43": {
+          "value": 24.014084507042256,
+          "source_file": "experiment/master_bert_base/first_try/results_seed43/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "44": {
+          "value": 25.0,
+          "source_file": "experiment/master_bert_base/first_try/results_seed44/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "45": {
+          "value": 23.52112676056338,
+          "source_file": "experiment/master_bert_base/first_try/results_seed45/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        },
+        "46": {
+          "value": 24.507042253521128,
+          "source_file": "experiment/master_bert_base/first_try/results_seed46/finetune_sst2_exp1_bert_base_uncased_sst2.json"
+        }
+      }
+    }
+  },
+  "comparator": {
+    "kind": "fresh_baseline",
+    "name": "our fresh (non-JEPA) bert-base",
+    "source": "experiment/master_fresh_bert_base",
+    "stats": {
+      "med_val": {
+        "value": 92.77522935779817,
+        "printed": "92.8",
+        "run": "(root)",
+        "n_seeds": 5,
+        "selected_seeds": [
+          45
+        ],
+        "selection": "median over seeds",
+        "per_seed": {
+          "42": {
+            "value": 92.77522935779817,
+            "source_file": "experiment/master_fresh_bert_base/results_seed42/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "43": {
+            "value": 92.77522935779817,
+            "source_file": "experiment/master_fresh_bert_base/results_seed43/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "44": {
+            "value": 93.23394495412845,
+            "source_file": "experiment/master_fresh_bert_base/results_seed44/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "45": {
+            "value": 92.77522935779817,
+            "source_file": "experiment/master_fresh_bert_base/results_seed45/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "46": {
+            "value": 93.11926605504587,
+            "source_file": "experiment/master_fresh_bert_base/results_seed46/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          }
+        }
+      },
+      "med_best_test": {
+        "value": 26.338028169014084,
+        "printed": "26.34",
+        "run": "(root)",
+        "n_seeds": 5,
+        "selected_seeds": [
+          45
+        ],
+        "selection": "median over seeds",
+        "per_seed": {
+          "42": {
+            "value": 26.408450704225352,
+            "source_file": "experiment/master_fresh_bert_base/results_seed42/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "43": {
+            "value": 25.56338028169014,
+            "source_file": "experiment/master_fresh_bert_base/results_seed43/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "44": {
+            "value": 26.830985915492956,
+            "source_file": "experiment/master_fresh_bert_base/results_seed44/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "45": {
+            "value": 26.338028169014084,
+            "source_file": "experiment/master_fresh_bert_base/results_seed45/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "46": {
+            "value": 25.56338028169014,
+            "source_file": "experiment/master_fresh_bert_base/results_seed46/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          }
+        }
+      },
+      "med_test_at_val": {
+        "value": 24.084507042253524,
+        "printed": "24.08",
+        "run": "(root)",
+        "n_seeds": 5,
+        "selected_seeds": [
+          46
+        ],
+        "selection": "median over seeds",
+        "per_seed": {
+          "42": {
+            "value": 24.225352112676056,
+            "source_file": "experiment/master_fresh_bert_base/results_seed42/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "43": {
+            "value": 22.183098591549296,
+            "source_file": "experiment/master_fresh_bert_base/results_seed43/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "44": {
+            "value": 24.366197183098592,
+            "source_file": "experiment/master_fresh_bert_base/results_seed44/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "45": {
+            "value": 23.52112676056338,
+            "source_file": "experiment/master_fresh_bert_base/results_seed45/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "46": {
+            "value": 24.084507042253524,
+            "source_file": "experiment/master_fresh_bert_base/results_seed46/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          }
+        }
+      },
+      "max_test_at_val": {
+        "value": 24.366197183098592,
+        "printed": "24.37",
+        "run": "(root)",
+        "n_seeds": 5,
+        "selected_seeds": [
+          44
+        ],
+        "selection": "argmax over seeds",
+        "per_seed": {
+          "42": {
+            "value": 24.225352112676056,
+            "source_file": "experiment/master_fresh_bert_base/results_seed42/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "43": {
+            "value": 22.183098591549296,
+            "source_file": "experiment/master_fresh_bert_base/results_seed43/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "44": {
+            "value": 24.366197183098592,
+            "source_file": "experiment/master_fresh_bert_base/results_seed44/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "45": {
+            "value": 23.52112676056338,
+            "source_file": "experiment/master_fresh_bert_base/results_seed45/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          },
+          "46": {
+            "value": 24.084507042253524,
+            "source_file": "experiment/master_fresh_bert_base/results_seed46/finetune_sst2_exp1_fresh_bert_base_uncased_sst2.json"
+          }
+        }
+      }
+    }
+  }
+}

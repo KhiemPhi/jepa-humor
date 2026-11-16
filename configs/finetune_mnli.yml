@@ -9,7 +9,8 @@ num_labels: 3  # MNLI has 3 labels: entailment, neutral, contradiction
 max_length: 512
 batch_size: 32
 num_workers: 4
-epochs: 10
+epochs: 10                 # keep 10 -> LR linear decay is scheduled over 10 epochs
+stop_after_epochs: 3       # ...but stop training after epoch 3 (MNLI peaks at ep2; LR trajectory unchanged)
 lr: 1.0e-5
 weight_decay: 0.1
 adam_betas: [0.9, 0.98]

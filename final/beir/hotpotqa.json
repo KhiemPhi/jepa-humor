@@ -1,0 +1,16 @@
+{
+  "dataset": "hotpotqa",
+  "label": "HotpotQA",
+  "ndcg@10": {
+    "ckpt2": 0.4485,
+    "ckpt39": 0.44439,
+    "ckpt36": 0.43852
+  },
+  "public_dpr": 0.391,
+  "best": "ckpt2",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/hotpotqa.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/hotpotqa.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/hotpotqa.json"
+  }
+}

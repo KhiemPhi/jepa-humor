@@ -1,0 +1,16 @@
+{
+  "dataset": "msmarco",
+  "label": "MS MARCO*",
+  "ndcg@10": {
+    "ckpt2": 0.20718,
+    "ckpt39": 0.20641,
+    "ckpt36": 0.20521
+  },
+  "public_dpr": 0.177,
+  "best": "ckpt2",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/msmarco.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/msmarco.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/msmarco.json"
+  }
+}

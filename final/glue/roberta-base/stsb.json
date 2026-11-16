@@ -1,0 +1,87 @@
+{
+  "model": "roberta-base",
+  "task": "stsb",
+  "task_label": "STS-B",
+  "metric": "pearson",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": true,
+  "ours": {
+    "med_val": {
+      "value": 91.12634474215034,
+      "printed": "91.1",
+      "run": "first_try/lr3e5",
+      "n_seeds": 5,
+      "selected_seeds": [
+        43
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 91.15641222259076,
+          "source_file": "experiment/master_roberta_base/first_try/lr3e5/results_seed42/finetune_stsb_exp1_roberta_base_stsb.json"
+        },
+        "43": {
+          "value": 91.12634474215034,
+          "source_file": "experiment/master_roberta_base/first_try/lr3e5/results_seed43/finetune_stsb_exp1_roberta_base_stsb.json"
+        },
+        "44": {
+          "value": 90.95759408608133,
+          "source_file": "experiment/master_roberta_base/first_try/lr3e5/results_seed44/finetune_stsb_exp1_roberta_base_stsb.json"
+        },
+        "45": {
+          "value": 91.01335770105749,
+          "source_file": "experiment/master_roberta_base/first_try/lr3e5/results_seed45/finetune_stsb_exp1_roberta_base_stsb.json"
+        },
+        "46": {
+          "value": 91.13747236987871,
+          "source_file": "experiment/master_roberta_base/first_try/lr3e5/results_seed46/finetune_stsb_exp1_roberta_base_stsb.json"
+        }
+      }
+    },
+    "med_best_test": null,
+    "med_test_at_val": null,
+    "max_test_at_val": null
+  },
+  "comparator": {
+    "kind": "fresh_baseline",
+    "name": "our fresh (non-JEPA) roberta-base",
+    "source": "experiment/master_fresh_roberta_base",
+    "stats": {
+      "med_val": {
+        "value": 91.13785787729819,
+        "printed": "91.1",
+        "run": "lr2e5",
+        "n_seeds": 5,
+        "selected_seeds": [
+          46
+        ],
+        "selection": "median over seeds",
+        "per_seed": {
+          "42": {
+            "value": 90.7449393728887,
+            "source_file": "experiment/master_fresh_roberta_base/lr2e5/results_seed42/finetune_stsb_exp1_fresh_roberta_base_stsb.json"
+          },
+          "43": {
+            "value": 91.14621487855979,
+            "source_file": "experiment/master_fresh_roberta_base/lr2e5/results_seed43/finetune_stsb_exp1_fresh_roberta_base_stsb.json"
+          },
+          "44": {
+            "value": 91.14003343128697,
+            "source_file": "experiment/master_fresh_roberta_base/lr2e5/results_seed44/finetune_stsb_exp1_fresh_roberta_base_stsb.json"
+          },
+          "45": {
+            "value": 90.95742428856074,
+            "source_file": "experiment/master_fresh_roberta_base/lr2e5/results_seed45/finetune_stsb_exp1_fresh_roberta_base_stsb.json"
+          },
+          "46": {
+            "value": 91.13785787729819,
+            "source_file": "experiment/master_fresh_roberta_base/lr2e5/results_seed46/finetune_stsb_exp1_fresh_roberta_base_stsb.json"
+          }
+        }
+      },
+      "med_best_test": null,
+      "med_test_at_val": null,
+      "max_test_at_val": null
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "dataset": "cqadupstack",
+  "label": "CQADupStack",
+  "ndcg@10": {
+    "jepa_ckpt2": 0.18447916666666667,
+    "jepa_ckpt39": 0.1864975,
+    "knn0_ckpt2": 0.189765,
+    "knn0_ckpt39": 0.18518583333333336,
+    "mlm_ckpt2": 0.20751,
+    "mlm_ckpt39": 0.18112916666666667
+  },
+  "public_dpr": 0.153,
+  "source_files": {
+    "jepa_ckpt2": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/cqadupstack.json",
+    "jepa_ckpt39": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/cqadupstack.json",
+    "knn0_ckpt2": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/cqadupstack.json",
+    "knn0_ckpt39": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/cqadupstack.json",
+    "mlm_ckpt2": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/cqadupstack.json",
+    "mlm_ckpt39": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/cqadupstack.json"
+  },
+  "best": "mlm_ckpt2"
+}

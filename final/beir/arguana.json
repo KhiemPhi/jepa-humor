@@ -1,0 +1,16 @@
+{
+  "dataset": "arguana",
+  "label": "ArguAna",
+  "ndcg@10": {
+    "ckpt2": 0.26536,
+    "ckpt39": 0.18561,
+    "ckpt36": 0.18152
+  },
+  "public_dpr": 0.175,
+  "best": "ckpt2",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/arguana.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/arguana.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/arguana.json"
+  }
+}

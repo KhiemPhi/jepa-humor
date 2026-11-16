@@ -1,0 +1,105 @@
+{
+  "task": "HYPERPARTISAN",
+  "our_name": "hyperpartisan_news",
+  "domain": "News",
+  "metric": "macro-F1",
+  "paper": {
+    "roberta": 86.6,
+    "tapt": 90.4,
+    "source": "Gururangan et al. 2020, Table 5"
+  },
+  "ours": {
+    "jepa": {
+      "value": 95.15446072469985,
+      "printed": "95.15",
+      "std": 2.732230050220139,
+      "run": "hyperpartisan_news_jepa_lr5e6_constant",
+      "description": "100-epoch TAPT (static mask), finetune bs16 lr2e-5 wd0.01",
+      "n_seeds": 5,
+      "best_test_mean": null,
+      "source_file": "experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json",
+      "per_seed": {
+        "42": {
+          "test": 90.25000000000001,
+          "dev": 83.58974358974359,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json"
+        },
+        "43": {
+          "test": 96.7948717948718,
+          "dev": 86.87179487179488,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json"
+        },
+        "44": {
+          "test": 95.16008935219658,
+          "dev": 86.66666666666667,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json"
+        },
+        "45": {
+          "test": 98.40725312423426,
+          "dev": 81.50774888363541,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json"
+        },
+        "46": {
+          "test": 95.16008935219658,
+          "dev": 84.57831325301206,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/hyperpartisan_news_jepa_lr5e6_constant.json"
+        }
+      },
+      "candidates": {
+        "hyperpartisan_news_jepa_lr5e6_constant": 95.1545,
+        "hyperpartisan_news_jepa_lr5e6_constant_fresh_ep100": 92.1964
+      }
+    },
+    "knn0": {
+      "value": 94.50894094736239,
+      "printed": "94.51",
+      "std": 1.3061639665444453,
+      "run": "hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100",
+      "description": "100-epoch TAPT (fresh remask), finetune bs16 lr2e-5 wd0.01",
+      "n_seeds": 5,
+      "best_test_mean": 94.84095881780169,
+      "source_file": "experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json",
+      "per_seed": {
+        "42": {
+          "test": 93.58974358974359,
+          "dev": 86.87179487179488,
+          "best_test": 93.58974358974359,
+          "source_file": "experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json"
+        },
+        "43": {
+          "test": 93.5,
+          "dev": 81.1512717536814,
+          "best_test": 93.5,
+          "source_file": "experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json"
+        },
+        "44": {
+          "test": 93.5,
+          "dev": 83.03287380699894,
+          "best_test": 95.16008935219658,
+          "source_file": "experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json"
+        },
+        "45": {
+          "test": 95.16008935219658,
+          "dev": 84.86997635933807,
+          "best_test": 95.16008935219658,
+          "source_file": "experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json"
+        },
+        "46": {
+          "test": 96.7948717948718,
+          "dev": 83.80566801619433,
+          "best_test": 96.7948717948718,
+          "source_file": "experiment/dsp/results/hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100.json"
+        }
+      },
+      "candidates": {
+        "hyperpartisan_news_knn0_lr5e6_constant_fresh_ep100": 94.5089,
+        "hyperpartisan_news_knn0_lr5e6_constant": 90.8442
+      }
+    }
+  }
+}

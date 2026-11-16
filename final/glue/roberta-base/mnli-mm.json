@@ -1,0 +1,273 @@
+{
+  "model": "roberta-base",
+  "task": "mnli-mm",
+  "task_label": "MNLI-mm",
+  "metric": "accuracy",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": false,
+  "ours": {
+    "med_val": {
+      "value": 87.32709519934907,
+      "printed": "87.3",
+      "run": "first_try",
+      "n_seeds": 5,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 87.56102522375916,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed42/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "43": {
+          "value": 87.30675345809601,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed43/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "44": {
+          "value": 87.32709519934907,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed44/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "45": {
+          "value": 87.2152156224573,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed45/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "46": {
+          "value": 87.57119609438568,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed46/finetune_mnli_exp1_roberta_base_mnli.json"
+        }
+      }
+    },
+    "med_best_test": {
+      "value": 20.673952641165755,
+      "printed": "20.67",
+      "run": "forth_run:mnli2ep",
+      "n_seeds": 5,
+      "selected_seeds": [
+        45
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 20.9471766848816,
+          "source_file": "experiment/master_roberta_base/forth_run/results_mnli2ep_seed42/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "43": {
+          "value": 19.94535519125683,
+          "source_file": "experiment/master_roberta_base/forth_run/results_mnli2ep_seed43/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "44": {
+          "value": 20.9471766848816,
+          "source_file": "experiment/master_roberta_base/forth_run/results_mnli2ep_seed44/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "45": {
+          "value": 20.673952641165755,
+          "source_file": "experiment/master_roberta_base/forth_run/results_mnli2ep_seed45/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "46": {
+          "value": 19.672131147540984,
+          "source_file": "experiment/master_roberta_base/forth_run/results_mnli2ep_seed46/finetune_mnli_exp1_roberta_base_mnli.json"
+        }
+      }
+    },
+    "med_test_at_val": {
+      "value": 18.397085610200364,
+      "printed": "18.40",
+      "run": "first_try",
+      "n_seeds": 5,
+      "selected_seeds": [
+        42
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 18.397085610200364,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed42/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "43": {
+          "value": 21.85792349726776,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed43/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "44": {
+          "value": 17.122040072859747,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed44/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "45": {
+          "value": 13.934426229508196,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed45/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "46": {
+          "value": 19.12568306010929,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed46/finetune_mnli_exp1_roberta_base_mnli.json"
+        }
+      }
+    },
+    "max_test_at_val": {
+      "value": 21.85792349726776,
+      "printed": "21.86",
+      "run": "first_try",
+      "n_seeds": 5,
+      "selected_seeds": [
+        43
+      ],
+      "selection": "argmax over seeds",
+      "per_seed": {
+        "42": {
+          "value": 18.397085610200364,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed42/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "43": {
+          "value": 21.85792349726776,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed43/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "44": {
+          "value": 17.122040072859747,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed44/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "45": {
+          "value": 13.934426229508196,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed45/finetune_mnli_exp1_roberta_base_mnli.json"
+        },
+        "46": {
+          "value": 19.12568306010929,
+          "source_file": "experiment/master_roberta_base/first_try/results_seed46/finetune_mnli_exp1_roberta_base_mnli.json"
+        }
+      }
+    }
+  },
+  "comparator": {
+    "kind": "fresh_baseline",
+    "name": "our fresh (non-JEPA) roberta-base",
+    "source": "experiment/master_fresh_roberta_base",
+    "stats": {
+      "med_val": {
+        "value": 87.39829129373474,
+        "printed": "87.4",
+        "run": "(root)",
+        "n_seeds": 5,
+        "selected_seeds": [
+          46
+        ],
+        "selection": "median over seeds",
+        "per_seed": {
+          "42": {
+            "value": 87.43897477624084,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed42/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "43": {
+            "value": 87.28641171684296,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed43/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "44": {
+            "value": 87.44914564686738,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed44/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "45": {
+            "value": 87.36777868185517,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed45/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "46": {
+            "value": 87.39829129373474,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed46/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          }
+        }
+      },
+      "med_best_test": {
+        "value": 19.672131147540984,
+        "printed": "19.67",
+        "run": "(root)",
+        "n_seeds": 5,
+        "selected_seeds": [
+          44
+        ],
+        "selection": "median over seeds",
+        "per_seed": {
+          "42": {
+            "value": 19.489981785063755,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed42/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "43": {
+            "value": 20.673952641165755,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed43/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "44": {
+            "value": 19.672131147540984,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed44/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "45": {
+            "value": 20.21857923497268,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed45/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "46": {
+            "value": 19.489981785063755,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed46/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          }
+        }
+      },
+      "med_test_at_val": {
+        "value": 18.670309653916213,
+        "printed": "18.67",
+        "run": "(root)",
+        "n_seeds": 5,
+        "selected_seeds": [
+          42
+        ],
+        "selection": "median over seeds",
+        "per_seed": {
+          "42": {
+            "value": 18.670309653916213,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed42/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "43": {
+            "value": 18.0327868852459,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed43/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "44": {
+            "value": 19.398907103825135,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed44/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "45": {
+            "value": 18.48816029143898,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed45/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "46": {
+            "value": 19.30783242258652,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed46/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          }
+        }
+      },
+      "max_test_at_val": {
+        "value": 19.398907103825135,
+        "printed": "19.40",
+        "run": "(root)",
+        "n_seeds": 5,
+        "selected_seeds": [
+          44
+        ],
+        "selection": "argmax over seeds",
+        "per_seed": {
+          "42": {
+            "value": 18.670309653916213,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed42/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "43": {
+            "value": 18.0327868852459,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed43/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "44": {
+            "value": 19.398907103825135,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed44/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "45": {
+            "value": 18.48816029143898,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed45/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          },
+          "46": {
+            "value": 19.30783242258652,
+            "source_file": "experiment/master_fresh_roberta_base/results_seed46/finetune_mnli_exp1_fresh_roberta_base_mnli.json"
+          }
+        }
+      }
+    }
+  }
+}

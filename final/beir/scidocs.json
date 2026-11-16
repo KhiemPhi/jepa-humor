@@ -1,0 +1,16 @@
+{
+  "dataset": "scidocs",
+  "label": "SCIDOCS",
+  "ndcg@10": {
+    "ckpt2": 0.1104,
+    "ckpt39": 0.08559,
+    "ckpt36": 0.08346
+  },
+  "public_dpr": 0.077,
+  "best": "ckpt2",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/scidocs.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/scidocs.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/scidocs.json"
+  }
+}

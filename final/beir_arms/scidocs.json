@@ -1,0 +1,22 @@
+{
+  "dataset": "scidocs",
+  "label": "SCIDOCS",
+  "ndcg@10": {
+    "jepa_ckpt2": 0.09525,
+    "jepa_ckpt39": 0.08742,
+    "knn0_ckpt2": 0.1089,
+    "knn0_ckpt39": 0.08519,
+    "mlm_ckpt2": 0.1083,
+    "mlm_ckpt39": 0.08247
+  },
+  "public_dpr": 0.077,
+  "source_files": {
+    "jepa_ckpt2": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/scidocs.json",
+    "jepa_ckpt39": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/scidocs.json",
+    "knn0_ckpt2": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/scidocs.json",
+    "knn0_ckpt39": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/scidocs.json",
+    "mlm_ckpt2": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/scidocs.json",
+    "mlm_ckpt39": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/scidocs.json"
+  },
+  "best": "knn0_ckpt2"
+}

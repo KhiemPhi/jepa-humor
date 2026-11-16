@@ -1,0 +1,16 @@
+{
+  "dataset": "nq",
+  "label": "NQ",
+  "ndcg@10": {
+    "ckpt2": 0.47402,
+    "ckpt39": 0.51878,
+    "ckpt36": 0.51703
+  },
+  "public_dpr": 0.474,
+  "best": "ckpt39",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/nq.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/nq.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/nq.json"
+  }
+}

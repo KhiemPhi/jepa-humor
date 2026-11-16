@@ -1,5 +1,6 @@
 checkpoints
 logs
+sh
 bert-large-result
 checkpoints_better_bert_large
 checkpoints_roberta_large
@@ -62,3 +63,15 @@ fresh/
 fresh_roberta_large/
 colbertv2_jepa/
 results_pretrain_lrsweep/
+
+# run folders (results/logs/checkpoints of experiments — kept on disk, never commit)
+experiment/
+bertcorpus/
+from-scratch/
+maskdriven/
+reversed/
+trash/
+results_beir_plain/
+nohup.out
+*.bak*
+final/advglue_ablations/

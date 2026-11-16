@@ -1,0 +1,22 @@
+{
+  "dataset": "fever",
+  "label": "FEVER",
+  "ndcg@10": {
+    "jepa_ckpt2": 0.48178,
+    "jepa_ckpt39": 0.59233,
+    "knn0_ckpt2": 0.38344,
+    "knn0_ckpt39": 0.50115,
+    "mlm_ckpt2": 0.51836,
+    "mlm_ckpt39": 0.60349
+  },
+  "public_dpr": 0.562,
+  "source_files": {
+    "jepa_ckpt2": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/fever.json",
+    "jepa_ckpt39": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/fever.json",
+    "knn0_ckpt2": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/fever.json",
+    "knn0_ckpt39": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/fever.json",
+    "mlm_ckpt2": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/fever.json",
+    "mlm_ckpt39": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/fever.json"
+  },
+  "best": "mlm_ckpt39"
+}

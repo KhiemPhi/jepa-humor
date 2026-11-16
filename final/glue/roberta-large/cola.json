@@ -1,0 +1,64 @@
+{
+  "model": "roberta-large",
+  "task": "cola",
+  "task_label": "CoLA",
+  "metric": "matthews_corr",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": true,
+  "ours": {
+    "med_val": {
+      "value": 68.99565609421873,
+      "printed": "69.0",
+      "run": "hd00:glue",
+      "n_seeds": 7,
+      "selected_seeds": [
+        46
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 68.08015696669752,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed42/finetune_cola_exp1_roberta_large_cola.json"
+        },
+        "43": {
+          "value": 69.8912973824363,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed43/finetune_cola_exp1_roberta_large_cola.json"
+        },
+        "44": {
+          "value": 69.00977155101225,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed44/finetune_cola_exp1_roberta_large_cola.json"
+        },
+        "45": {
+          "value": 67.49454683036585,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed45/finetune_cola_exp1_roberta_large_cola.json"
+        },
+        "46": {
+          "value": 68.99565609421873,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed46/finetune_cola_exp1_roberta_large_cola.json"
+        },
+        "47": {
+          "value": 66.5274646611453,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed47/finetune_cola_exp1_roberta_large_cola.json"
+        },
+        "48": {
+          "value": 69.23818944138797,
+          "source_file": "experiment/master_roberta_large/hd00/results_glue_seed48/finetune_cola_exp1_roberta_large_cola.json"
+        }
+      }
+    },
+    "med_best_test": null,
+    "med_test_at_val": null,
+    "max_test_at_val": null
+  },
+  "comparator": {
+    "kind": "published",
+    "name": "RoBERTa-large",
+    "source": "arXiv 2006.03654 (DeBERTa) Table 1 for med-val; arXiv 2111.02840 (AdvGLUE) Table 4 for the test statistics",
+    "values": {
+      "med_val": 68.0,
+      "med_best_test": null,
+      "med_test_at_val": null,
+      "max_test_at_val": null
+    }
+  }
+}

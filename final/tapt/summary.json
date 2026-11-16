@@ -1,0 +1,60 @@
+{
+  "metric": "test F1 at the best-dev epoch, mean over 5 seeds (micro-F1 CHEMPROT/RCT, macro-F1 else)",
+  "selection": "best run per (task, arm) by that mean, over every finished 5-seed run -- optimistic",
+  "tasks": {
+    "CHEMPROT": {
+      "jepa": 82.34073219948111,
+      "knn0": 82.43874315364658,
+      "paper_roberta": 81.9,
+      "paper_tapt": 82.6
+    },
+    "RCT": {
+      "jepa": 87.14518002322879,
+      "knn0": 87.15978098556496,
+      "paper_roberta": 87.2,
+      "paper_tapt": 87.7
+    },
+    "ACL-ARC": {
+      "jepa": 70.12702099161729,
+      "knn0": 68.15824531195565,
+      "paper_roberta": 63.0,
+      "paper_tapt": 67.4
+    },
+    "SCIERC": {
+      "jepa": 79.33514104982439,
+      "knn0": 80.06625210760743,
+      "paper_roberta": 77.3,
+      "paper_tapt": 79.3
+    },
+    "HYPERPARTISAN": {
+      "jepa": 95.15446072469985,
+      "knn0": 94.50894094736239,
+      "paper_roberta": 86.6,
+      "paper_tapt": 90.4
+    },
+    "AGNEWS": {
+      "jepa": 93.95717499250942,
+      "knn0": 93.97432498602466,
+      "paper_roberta": 93.9,
+      "paper_tapt": 94.5
+    },
+    "HELPFULNESS": {
+      "jepa": 69.8138938881703,
+      "knn0": 70.04527431127507,
+      "paper_roberta": 65.1,
+      "paper_tapt": 68.5
+    },
+    "IMDB": {
+      "jepa": 95.51751103864953,
+      "knn0": 95.41513310584176,
+      "paper_roberta": 95.0,
+      "paper_tapt": 95.5
+    }
+  },
+  "mean_8": {
+    "jepa": 84.17388936352259,
+    "knn0": 83.97083686365981,
+    "paper_roberta": 81.25,
+    "paper_tapt": 83.2375
+  }
+}

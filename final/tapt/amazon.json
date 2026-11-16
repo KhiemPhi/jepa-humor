@@ -1,0 +1,105 @@
+{
+  "task": "HELPFULNESS",
+  "our_name": "amazon",
+  "domain": "Reviews",
+  "metric": "macro-F1",
+  "paper": {
+    "roberta": 65.1,
+    "tapt": 68.5,
+    "source": "Gururangan et al. 2020, Table 5"
+  },
+  "ours": {
+    "jepa": {
+      "value": 69.8138938881703,
+      "printed": "69.81",
+      "std": 1.058386197671559,
+      "run": "amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32",
+      "description": "5-epoch TAPT (fresh remask), finetune bs32 lr2e-5 wd0.1",
+      "n_seeds": 5,
+      "best_test_mean": 70.19248710631618,
+      "source_file": "experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json",
+      "per_seed": {
+        "42": {
+          "test": 70.14983434584438,
+          "dev": 70.15273369877288,
+          "best_test": 70.14983434584438,
+          "source_file": "experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json"
+        },
+        "43": {
+          "test": 70.3800162279832,
+          "dev": 70.51495967909236,
+          "best_test": 70.3800162279832,
+          "source_file": "experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json"
+        },
+        "44": {
+          "test": 68.09843380364656,
+          "dev": 69.04005416134879,
+          "best_test": 69.99139989437597,
+          "source_file": "experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json"
+        },
+        "45": {
+          "test": 71.19371774138608,
+          "dev": 72.1178754835014,
+          "best_test": 71.19371774138608,
+          "source_file": "experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json"
+        },
+        "46": {
+          "test": 69.2474673219913,
+          "dev": 70.33493710079632,
+          "best_test": 69.2474673219913,
+          "source_file": "experiment/dsp/results/amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32.json"
+        }
+      },
+      "candidates": {
+        "amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32": 69.8139,
+        "amazon_jepa_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5": 69.7769
+      }
+    },
+    "knn0": {
+      "value": 70.04527431127507,
+      "printed": "70.05",
+      "std": 1.02080784616644,
+      "run": "amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5",
+      "description": "5-epoch TAPT (fresh remask), finetune bs32 lr1e-5 wd0.1",
+      "n_seeds": 5,
+      "best_test_mean": 70.48238157905061,
+      "source_file": "experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json",
+      "per_seed": {
+        "42": {
+          "test": 70.6177689392381,
+          "dev": 71.13163972286374,
+          "best_test": 70.6177689392381,
+          "source_file": "experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json"
+        },
+        "43": {
+          "test": 69.13178059594466,
+          "dev": 69.47033600891123,
+          "best_test": 69.63579234529396,
+          "source_file": "experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json"
+        },
+        "44": {
+          "test": 68.53172134896055,
+          "dev": 69.76211983184993,
+          "best_test": 70.21324593848894,
+          "source_file": "experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json"
+        },
+        "45": {
+          "test": 71.10947769780725,
+          "dev": 71.9946368670396,
+          "best_test": 71.10947769780725,
+          "source_file": "experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json"
+        },
+        "46": {
+          "test": 70.83562297442477,
+          "dev": 70.69895369045528,
+          "best_test": 70.83562297442477,
+          "source_file": "experiment/dsp/results/amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5.json"
+        }
+      },
+      "candidates": {
+        "amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32_lr1e5": 70.0453,
+        "amazon_knn0_lr5e6_constant_fresh_ep5_wd01_bs32": 69.8514
+      }
+    }
+  }
+}

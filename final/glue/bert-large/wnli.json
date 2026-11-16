@@ -1,0 +1,56 @@
+{
+  "model": "bert-large",
+  "task": "wnli",
+  "task_label": "WNLI",
+  "metric": "accuracy",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": false,
+  "ours": {
+    "med_val": {
+      "value": 80.76923076923077,
+      "printed": "80.8",
+      "run": "(root):bertlarge",
+      "n_seeds": 5,
+      "selected_seeds": [
+        42
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 80.76923076923077,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed42/finetune_wnli_exp1_bert_large_uncased_wnli.json"
+        },
+        "43": {
+          "value": 80.76923076923077,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed43/finetune_wnli_exp1_bert_large_uncased_wnli.json"
+        },
+        "44": {
+          "value": 78.84615384615384,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed44/finetune_wnli_exp1_bert_large_uncased_wnli.json"
+        },
+        "45": {
+          "value": 79.8076923076923,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed45/finetune_wnli_exp1_bert_large_uncased_wnli.json"
+        },
+        "46": {
+          "value": 80.76923076923077,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed46/finetune_wnli_exp1_bert_large_uncased_wnli.json"
+        }
+      }
+    },
+    "med_best_test": null,
+    "med_test_at_val": null,
+    "max_test_at_val": null
+  },
+  "comparator": {
+    "kind": "published",
+    "name": "BERT-large",
+    "source": "arXiv 2006.03654 (DeBERTa) Table 1 for med-val; arXiv 2111.02840 (AdvGLUE) Table 4 for the test statistics",
+    "values": {
+      "med_val": null,
+      "med_best_test": null,
+      "med_test_at_val": null,
+      "max_test_at_val": null
+    }
+  }
+}

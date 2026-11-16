@@ -1,0 +1,16 @@
+{
+  "cell": "triviaqa_gemma-2-2b-it",
+  "label": "TriviaQA / 2B",
+  "exact_match": {
+    "ckpt2": 37.726509325554666,
+    "ckpt39": 39.2468841156192,
+    "ckpt36": 38.94634491293203,
+    "public DPR": 38.34526650755768
+  },
+  "source_files": {
+    "ckpt2": "/tmp/tudao/rankify_out_ck2/metrics_triviaqa_gemma-2-2b-it.json",
+    "ckpt39": "/tmp/tudao/rankify_out_ck39/metrics_triviaqa_gemma-2-2b-it.json",
+    "ckpt36": "/tmp/tudao/rankify_out/metrics_triviaqa_gemma-2-2b-it.json",
+    "public DPR": "/tmp/tudao/rankify_out_publicdpr/metrics_triviaqa_gemma-2-2b-it.json"
+  }
+}

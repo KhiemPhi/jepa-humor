@@ -1,0 +1,149 @@
+{
+  "model": "deberta-large",
+  "task": "qqp",
+  "task_label": "QQP",
+  "metric": "accuracy",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": true,
+  "ours": {
+    "med_val": {
+      "value": 92.37447440019787,
+      "printed": "92.4",
+      "run": "dropsweep:p0c1",
+      "n_seeds": 5,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 92.33489982686123,
+          "source_file": "experiment/master_deberta_large/dropsweep/results_p0c1_seed42/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "43": {
+          "value": 92.32005936186,
+          "source_file": "experiment/master_deberta_large/dropsweep/results_p0c1_seed43/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "44": {
+          "value": 92.37447440019787,
+          "source_file": "experiment/master_deberta_large/dropsweep/results_p0c1_seed44/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "45": {
+          "value": 92.40662874103388,
+          "source_file": "experiment/master_deberta_large/dropsweep/results_p0c1_seed45/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "46": {
+          "value": 92.39178827603266,
+          "source_file": "experiment/master_deberta_large/dropsweep/results_p0c1_seed46/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        }
+      }
+    },
+    "med_best_test": {
+      "value": 67.06161137440758,
+      "printed": "67.06",
+      "run": "second_run:p0c1",
+      "n_seeds": 5,
+      "selected_seeds": [
+        42
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 67.06161137440758,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed42/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "43": {
+          "value": 69.19431279620854,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed43/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "44": {
+          "value": 67.53554502369668,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed44/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "45": {
+          "value": 66.58767772511848,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed45/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "46": {
+          "value": 63.270142180094794,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed46/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        }
+      }
+    },
+    "med_test_at_val": {
+      "value": 63.03317535545023,
+      "printed": "63.03",
+      "run": "second_run:p0c1",
+      "n_seeds": 5,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 66.11374407582939,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed42/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "43": {
+          "value": 65.40284360189574,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed43/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "44": {
+          "value": 63.03317535545023,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed44/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "45": {
+          "value": 62.55924170616114,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed45/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "46": {
+          "value": 61.61137440758294,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed46/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        }
+      }
+    },
+    "max_test_at_val": {
+      "value": 66.11374407582939,
+      "printed": "66.11",
+      "run": "second_run:p0c1",
+      "n_seeds": 5,
+      "selected_seeds": [
+        42
+      ],
+      "selection": "argmax over seeds",
+      "per_seed": {
+        "42": {
+          "value": 66.11374407582939,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed42/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "43": {
+          "value": 65.40284360189574,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed43/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "44": {
+          "value": 63.03317535545023,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed44/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "45": {
+          "value": 62.55924170616114,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed45/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        },
+        "46": {
+          "value": 61.61137440758294,
+          "source_file": "experiment/master_deberta_large/second_run/results_p0c1_seed46/finetune_qqp_exp1_microsoft_deberta_large_qqp.json"
+        }
+      }
+    }
+  },
+  "comparator": {
+    "kind": "published",
+    "name": "DeBERTa-large",
+    "source": "arXiv 2006.03654 (DeBERTa) Table 1 for med-val; arXiv 2111.02840 (AdvGLUE) Table 4 for the test statistics",
+    "values": {
+      "med_val": 92.3,
+      "med_best_test": 60.43,
+      "med_test_at_val": 60.43,
+      "max_test_at_val": 60.43
+    }
+  }
+}

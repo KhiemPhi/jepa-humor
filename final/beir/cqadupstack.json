@@ -1,0 +1,16 @@
+{
+  "dataset": "cqadupstack",
+  "label": "CQADupStack",
+  "ndcg@10": {
+    "ckpt2": 0.20361000000000004,
+    "ckpt39": 0.18039333333333338,
+    "ckpt36": 0.1807466666666667
+  },
+  "public_dpr": 0.153,
+  "best": "ckpt2",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/cqadupstack.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/cqadupstack.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/cqadupstack.json"
+  }
+}

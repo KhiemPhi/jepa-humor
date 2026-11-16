@@ -1,0 +1,16 @@
+{
+  "dataset": "trec-covid",
+  "label": "TREC-COVID",
+  "ndcg@10": {
+    "ckpt2": 0.4156,
+    "ckpt39": 0.38287,
+    "ckpt36": 0.38188
+  },
+  "public_dpr": 0.332,
+  "best": "ckpt2",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/trec-covid.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/trec-covid.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/trec-covid.json"
+  }
+}

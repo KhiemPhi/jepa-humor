@@ -1,0 +1,105 @@
+{
+  "task": "CHEMPROT",
+  "our_name": "chemprot",
+  "domain": "BioMed",
+  "metric": "micro-F1",
+  "paper": {
+    "roberta": 81.9,
+    "tapt": 82.6,
+    "source": "Gururangan et al. 2020, Table 5"
+  },
+  "ours": {
+    "jepa": {
+      "value": 82.34073219948111,
+      "printed": "82.34",
+      "std": 0.40051552454213635,
+      "run": "chemprot_jepa_lr5e6_constant",
+      "description": "100-epoch TAPT (static mask), finetune bs16 lr2e-5 wd0.01",
+      "n_seeds": 5,
+      "best_test_mean": null,
+      "source_file": "experiment/dsp/results/chemprot_jepa_lr5e6_constant.json",
+      "per_seed": {
+        "42": {
+          "test": 82.1274142404151,
+          "dev": 83.80716934487022,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/chemprot_jepa_lr5e6_constant.json"
+        },
+        "43": {
+          "test": 82.15624099164025,
+          "dev": 84.13679439637413,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/chemprot_jepa_lr5e6_constant.json"
+        },
+        "44": {
+          "test": 82.41568175266647,
+          "dev": 83.14791924186238,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/chemprot_jepa_lr5e6_constant.json"
+        },
+        "45": {
+          "test": 83.07869703084462,
+          "dev": 83.72476308199424,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/chemprot_jepa_lr5e6_constant.json"
+        },
+        "46": {
+          "test": 81.92562698183914,
+          "dev": 83.0655129789864,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/chemprot_jepa_lr5e6_constant.json"
+        }
+      },
+      "candidates": {
+        "chemprot_jepa_lr5e6_constant": 82.3407,
+        "chemprot_jepa_lr5e6_constant_fresh_ep100": 81.9602
+      }
+    },
+    "knn0": {
+      "value": 82.43874315364658,
+      "printed": "82.44",
+      "std": 0.1714161861898951,
+      "run": "chemprot_knn0_lr5e6_constant",
+      "description": "100-epoch TAPT (static mask), finetune bs16 lr2e-5 wd0.01",
+      "n_seeds": 5,
+      "best_test_mean": null,
+      "source_file": "experiment/dsp/results/chemprot_knn0_lr5e6_constant.json",
+      "per_seed": {
+        "42": {
+          "test": 82.44450850389161,
+          "dev": 82.98310671611043,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/chemprot_knn0_lr5e6_constant.json"
+        },
+        "43": {
+          "test": 82.38685500144133,
+          "dev": 84.13679439637413,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/chemprot_knn0_lr5e6_constant.json"
+        },
+        "44": {
+          "test": 82.67512251369271,
+          "dev": 82.40626287597857,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/chemprot_knn0_lr5e6_constant.json"
+        },
+        "45": {
+          "test": 82.15624099164025,
+          "dev": 83.18912237330038,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/chemprot_knn0_lr5e6_constant.json"
+        },
+        "46": {
+          "test": 82.53098875756703,
+          "dev": 82.77709105892048,
+          "best_test": null,
+          "source_file": "experiment/dsp/results/chemprot_knn0_lr5e6_constant.json"
+        }
+      },
+      "candidates": {
+        "chemprot_knn0_lr5e6_constant": 82.4387,
+        "chemprot_knn0_lr5e6_constant_fresh_ep100": 82.4099
+      }
+    }
+  }
+}

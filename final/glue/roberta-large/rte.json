@@ -1,0 +1,149 @@
+{
+  "model": "roberta-large",
+  "task": "rte",
+  "task_label": "RTE",
+  "metric": "accuracy",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": true,
+  "ours": {
+    "med_val": {
+      "value": 87.00361010830325,
+      "printed": "87.0",
+      "run": "hd01:glue9_knn",
+      "n_seeds": 5,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 87.00361010830325,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed42/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "43": {
+          "value": 87.36462093862815,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed43/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "44": {
+          "value": 87.00361010830325,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed44/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "45": {
+          "value": 88.08664259927798,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed45/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "46": {
+          "value": 52.707581227436826,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed46/finetune_rte_exp1_roberta_large_rte.json"
+        }
+      }
+    },
+    "med_best_test": {
+      "value": 68.0921052631579,
+      "printed": "68.09",
+      "run": "hd01:glue9_knn",
+      "n_seeds": 5,
+      "selected_seeds": [
+        43
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 69.07894736842105,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed42/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "43": {
+          "value": 68.0921052631579,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed43/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "44": {
+          "value": 71.71052631578947,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed44/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "45": {
+          "value": 66.77631578947368,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed45/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "46": {
+          "value": 59.539473684210535,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed46/finetune_rte_exp1_roberta_large_rte.json"
+        }
+      }
+    },
+    "med_test_at_val": {
+      "value": 66.77631578947368,
+      "printed": "66.78",
+      "run": "hd01:glue9_knn",
+      "n_seeds": 5,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 68.42105263157895,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed42/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "43": {
+          "value": 68.0921052631579,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed43/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "44": {
+          "value": 66.77631578947368,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed44/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "45": {
+          "value": 65.78947368421053,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed45/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "46": {
+          "value": 40.46052631578947,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_knn_seed46/finetune_rte_exp1_roberta_large_rte.json"
+        }
+      }
+    },
+    "max_test_at_val": {
+      "value": 70.72368421052632,
+      "printed": "70.72",
+      "run": "hd01:glue9_noknn",
+      "n_seeds": 5,
+      "selected_seeds": [
+        46
+      ],
+      "selection": "argmax over seeds",
+      "per_seed": {
+        "42": {
+          "value": 64.80263157894737,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_noknn_seed42/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "43": {
+          "value": 66.11842105263158,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_noknn_seed43/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "44": {
+          "value": 40.46052631578947,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_noknn_seed44/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "45": {
+          "value": 66.44736842105263,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_noknn_seed45/finetune_rte_exp1_roberta_large_rte.json"
+        },
+        "46": {
+          "value": 70.72368421052632,
+          "source_file": "experiment/master_roberta_large/hd01/results_glue9_noknn_seed46/finetune_rte_exp1_roberta_large_rte.json"
+        }
+      }
+    }
+  },
+  "comparator": {
+    "kind": "published",
+    "name": "RoBERTa-large",
+    "source": "arXiv 2006.03654 (DeBERTa) Table 1 for med-val; arXiv 2111.02840 (AdvGLUE) Table 4 for the test statistics",
+    "values": {
+      "med_val": 86.6,
+      "med_best_test": 45.39,
+      "med_test_at_val": 45.39,
+      "max_test_at_val": 45.39
+    }
+  }
+}

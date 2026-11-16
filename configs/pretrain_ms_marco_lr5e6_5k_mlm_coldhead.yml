@@ -1,0 +1,68 @@
+# Arm B for the DPR objective comparison: original-BERT masked-LM pretraining.
+# Same data / steps / lr as the reference pretrain (pretrain_ms_marco_lr5e6_600k.yml +
+# max_steps=5000) so the pretraining OBJECTIVE is the intended difference.
+#
+# model_type: mlm        -> MLMJEPA (single encoder + vocab projection, no EMA target).
+# bert_mlm_masking: true -> original-BERT corruption, gated (default false leaves every other
+#                           task on the old path). Two things it fixes, both verified 2026-09-09:
+#   1. the encoder is fed the CORRUPTED sequence. Without it, the mlm path feeds the *unmasked*
+#      text and scores tokens already visible in the input -- a copy task, not MLM.
+#   2. 80% [MASK] / 10% random token / 10% unchanged, with explicit mlm_labels (-100 off-target),
+#      instead of 100% [MASK]. The label column is required because with 80/10/10 the selected
+#      set can no longer be recovered from `input_ids == mask_token_id`.
+# mask_ratio 0.15 = BERT's rate. Position selection is already uniform over non-special tokens
+# (data.py random_token_mask), so it needed no change. NOTE `tail_bias` is dead config -- it is
+# referenced nowhere in src/, so dropping it here changes nothing.
+#
+# bert_mlm_head: true   -> BERT's actual head: dense->GELU->LayerNorm->decoder whose weight IS
+#                          the input-embedding matrix (tied), plus its own bias. Gated; default
+#                          false keeps the single untied Linear used by previous mlm runs.
+# KNOWN remaining difference from BERT: no NSP (RoBERTa showed it is droppable).
+seed: 42
+experiment_name: pretrain_msmarco_lr5e6_5k_mlm_coldhead
+model_name: bert-base-uncased
+dataset: Tevatron/msmarco-passage-corpus
+dataset_config: null
+text_keys: ["text"]
+max_length: 512
+batch_size: 128
+num_workers: 4
+epochs: 10
+max_steps: 5000
+lr: 5.0e-6
+ema_decay: 0.996               # unused on the mlm path (no EMA target encoder)
+mask_ratio: 0.15               # BERT's rate (the JEPA arms use 0.35)
+mean_span_len: 3.0             # unused: bert_mlm_masking selects individual tokens
+mask_type: random_token
+mixed_precision: true
+log_dir: runs/pretrain
+ckpt_dir: checkpoints/pretrain
+early_stop_patience: 999
+val_split: 0.0001
+gpu_id: 0
+sample_percent: null
+model_type: mlm
+dynamic_masking: false
+bert_mlm_masking: true
+bert_mlm_head: true
+# Load the cls.predictions head bert-base-uncased already ships, instead of a random one.
+# AutoModel/BertModel silently drops those tensors, so without this the dense+LayerNorm transform
+# and the bias start random while the tied decoder is pretrained -- a broken composition with
+# initial loss ln(V). Measured: fresh 10.87 vs pretrained 4.97. Because our ENCODER is pretrained,
+# a random head would burn the 5000-step budget relearning what BERT knew AND push large
+# off-objective gradients into the weights we mean to nudge gently -- which would also make this
+# arm incomparable to the JEPA arms, whose loss starts near 0.1. Added 2026-09-11; the first
+# attempt (fresh head, init loss 10.80) was discarded along with its DPR run.
+bert_mlm_head_pretrained: false
+
+# ---- ARM B-COLD (added 2026-09-12) ----------------------------------------------------------
+# Identical to pretrain_ms_marco_lr5e6_5k_mlm.yml EXCEPT bert_mlm_head_pretrained: false, i.e. the
+# cls.predictions head starts RANDOM instead of being restored from bert-base-uncased.
+# WHY: the symmetric control for the JEPA-vs-MLM comparison. With a warm head, arm B resumes a task
+# BERT already has ~1M steps on, confounding "objective" with "prior task experience". With a cold
+# head both arms are warm-encoder + cold-objective-head, and the head-shaped cold capacity matches
+# closely: JEPA's pos_embed+input_norm+proj = 0.789M (0.593M counting only the one live position
+# row) vs this head's 0.623M -> 0.95-1.27x. (JEPA additionally carries a 7.88M transformer block,
+# whose attention is inert here because use_cls=True feeds the predictor a length-1 sequence.)
+# Expect init loss ~10.87 (= ln(30522) territory) vs ~4.97 for the warm head; that is the point.
+# Keeping arm B-warm as well: the gap between the two measures what the pretrained head is worth.

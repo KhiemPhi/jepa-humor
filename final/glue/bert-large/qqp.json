@@ -1,0 +1,149 @@
+{
+  "model": "bert-large",
+  "task": "qqp",
+  "task_label": "QQP",
+  "metric": "accuracy",
+  "test_metric": "accuracy (AdvGLUE)",
+  "in_glue_avg8": true,
+  "ours": {
+    "med_val": {
+      "value": 91.71160029680931,
+      "printed": "91.7",
+      "run": "(root):bertlarge",
+      "n_seeds": 5,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 91.74128122681178,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed42/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "43": {
+          "value": 91.66955231263913,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed43/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "44": {
+          "value": 91.71160029680931,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed44/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "45": {
+          "value": 91.81053673015089,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed45/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "46": {
+          "value": 91.66460549097205,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed46/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        }
+      }
+    },
+    "med_best_test": {
+      "value": 52.13270142180095,
+      "printed": "52.13",
+      "run": "(root):bertlarge",
+      "n_seeds": 5,
+      "selected_seeds": [
+        43
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 47.6303317535545,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed42/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "43": {
+          "value": 52.13270142180095,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed43/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "44": {
+          "value": 50.947867298578196,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed44/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "45": {
+          "value": 52.60663507109005,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed45/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "46": {
+          "value": 55.21327014218009,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed46/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        }
+      }
+    },
+    "med_test_at_val": {
+      "value": 38.388625592417064,
+      "printed": "38.39",
+      "run": "(root):bertlarge",
+      "n_seeds": 5,
+      "selected_seeds": [
+        44
+      ],
+      "selection": "median over seeds",
+      "per_seed": {
+        "42": {
+          "value": 37.677725118483416,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed42/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "43": {
+          "value": 39.81042654028436,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed43/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "44": {
+          "value": 38.388625592417064,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed44/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "45": {
+          "value": 41.23222748815166,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed45/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "46": {
+          "value": 34.834123222748815,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed46/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        }
+      }
+    },
+    "max_test_at_val": {
+      "value": 41.23222748815166,
+      "printed": "41.23",
+      "run": "(root):bertlarge",
+      "n_seeds": 5,
+      "selected_seeds": [
+        45
+      ],
+      "selection": "argmax over seeds",
+      "per_seed": {
+        "42": {
+          "value": 37.677725118483416,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed42/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "43": {
+          "value": 39.81042654028436,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed43/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "44": {
+          "value": 38.388625592417064,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed44/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "45": {
+          "value": 41.23222748815166,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed45/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        },
+        "46": {
+          "value": 34.834123222748815,
+          "source_file": "experiment/master_bert_large/results_bertlarge_seed46/finetune_qqp_exp1_bert_large_uncased_qqp.json"
+        }
+      }
+    }
+  },
+  "comparator": {
+    "kind": "published",
+    "name": "BERT-large",
+    "source": "arXiv 2006.03654 (DeBERTa) Table 1 for med-val; arXiv 2111.02840 (AdvGLUE) Table 4 for the test statistics",
+    "values": {
+      "med_val": 91.3,
+      "med_best_test": 37.91,
+      "med_test_at_val": 37.91,
+      "max_test_at_val": 37.91
+    }
+  }
+}

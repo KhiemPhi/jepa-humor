@@ -1,0 +1,16 @@
+{
+  "dataset": "quora",
+  "label": "Quora",
+  "ndcg@10": {
+    "ckpt2": 0.27701,
+    "ckpt39": 0.26827,
+    "ckpt36": 0.25667
+  },
+  "public_dpr": 0.248,
+  "best": "ckpt2",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/quora.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/quora.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/quora.json"
+  }
+}

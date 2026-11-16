@@ -1,0 +1,22 @@
+{
+  "dataset": "hotpotqa",
+  "label": "HotpotQA",
+  "ndcg@10": {
+    "jepa_ckpt2": 0.43916,
+    "jepa_ckpt39": 0.44115,
+    "knn0_ckpt2": 0.46828,
+    "knn0_ckpt39": 0.47004,
+    "mlm_ckpt2": 0.45158,
+    "mlm_ckpt39": 0.44509
+  },
+  "public_dpr": 0.391,
+  "source_files": {
+    "jepa_ckpt2": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/hotpotqa.json",
+    "jepa_ckpt39": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/hotpotqa.json",
+    "knn0_ckpt2": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/hotpotqa.json",
+    "knn0_ckpt39": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/hotpotqa.json",
+    "mlm_ckpt2": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/hotpotqa.json",
+    "mlm_ckpt39": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/hotpotqa.json"
+  },
+  "best": "knn0_ckpt39"
+}

@@ -1,0 +1,16 @@
+{
+  "dataset": "fiqa",
+  "label": "FiQA-2018",
+  "ndcg@10": {
+    "ckpt2": 0.15313,
+    "ckpt39": 0.13498,
+    "ckpt36": 0.13372
+  },
+  "public_dpr": 0.112,
+  "best": "ckpt2",
+  "source_files": {
+    "ckpt2": "experiment/dpr/beir3_work/ckpt2/results/fiqa.json",
+    "ckpt39": "experiment/dpr/beir3_work/ckpt39/results/fiqa.json",
+    "ckpt36": "experiment/dpr/beir3_work/ckpt36/results/fiqa.json"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "dataset": "dbpedia-entity",
+  "label": "DBPedia",
+  "ndcg@10": {
+    "jepa_ckpt2": 0.28343,
+    "jepa_ckpt39": 0.28405,
+    "knn0_ckpt2": 0.29162,
+    "knn0_ckpt39": 0.28233,
+    "mlm_ckpt2": 0.28675,
+    "mlm_ckpt39": 0.28138
+  },
+  "public_dpr": 0.263,
+  "source_files": {
+    "jepa_ckpt2": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt2/dbpedia-entity.json",
+    "jepa_ckpt39": "experiment/dpr_qapre/results_beir_qapre_jepa_ckpt39/dbpedia-entity.json",
+    "knn0_ckpt2": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt2/dbpedia-entity.json",
+    "knn0_ckpt39": "experiment/dpr_qapre/results_beir_qapre_knn0_ckpt39/dbpedia-entity.json",
+    "mlm_ckpt2": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt2/dbpedia-entity.json",
+    "mlm_ckpt39": "experiment/dpr_qapre/results_beir_qapre_mlm_ckpt39/dbpedia-entity.json"
+  },
+  "best": "knn0_ckpt2"
+}
